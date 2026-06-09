@@ -1,4 +1,4 @@
-# pcarmarket
+# Collector Car Tracker
 
 A full-stack web app that tracks collector car auction results and market prices. Porsche-focused in v1, with architecture designed to expand to additional marques (Ferrari, BMW, Mercedes, etc.) in v2.
 
