@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ALL_MODELS, MODEL_LINE } from '../data/taxonomy'
 import { fetchAuctionResults } from '../api/client'
 import { calcStats, groupByField } from '../utils/aggregation'
+import porscheCrest from '../assets/Porsche_Symbol_1.png'
 
 export default function MarketHome() {
   const series     = ALL_MODELS.filter(m => m.type === 'series')
@@ -37,7 +38,7 @@ export default function MarketHome() {
             </p>
           </div>
           <div className="hero-col-right">
-            <div className="hero-placeholder">Brand image coming soon</div>
+            <img src={porscheCrest} alt="Porsche crest" className="hero-crest" />
           </div>
         </div>
       </div>
