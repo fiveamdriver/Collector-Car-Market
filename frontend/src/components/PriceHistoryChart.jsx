@@ -46,31 +46,31 @@ export default function PriceHistoryChart({ monthlyData }) {
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={260}>
-        <LineChart data={visible} margin={{ top: 8, right: 24, bottom: 0, left: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" vertical={false} />
+      <ResponsiveContainer width="100%" height={280}>
+        <LineChart data={visible} margin={{ top: 8, right: 24, bottom: 4, left: 8 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#191919" vertical={false} />
           <XAxis
             dataKey="month"
-            tick={{ fill: '#555', fontSize: 11 }}
+            tick={{ fill: '#4a4a4a', fontSize: 11 }}
             tickLine={false}
-            axisLine={{ stroke: '#252525' }}
+            axisLine={{ stroke: '#222' }}
             interval="preserveStartEnd"
           />
           <YAxis
             tickFormatter={fmtAxis}
-            tick={{ fill: '#555', fontSize: 11 }}
+            tick={{ fill: '#4a4a4a', fontSize: 11 }}
             tickLine={false}
             axisLine={false}
-            width={56}
+            width={62}
           />
-          <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#2a2a2a' }} />
+          <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#252525', strokeWidth: 1 }} />
           <Line
             type="monotone"
             dataKey="avgPrice"
-            stroke="#e8e8e8"
+            stroke="#c4a35a"
             strokeWidth={2}
-            dot={{ r: 3, fill: '#e8e8e8', strokeWidth: 0 }}
-            activeDot={{ r: 5, fill: '#ffffff' }}
+            dot={{ r: 3, fill: '#c4a35a', strokeWidth: 0 }}
+            activeDot={{ r: 5, fill: '#d4b36a', strokeWidth: 0 }}
             isAnimationActive={false}
           />
         </LineChart>

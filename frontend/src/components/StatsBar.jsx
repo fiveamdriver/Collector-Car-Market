@@ -1,25 +1,25 @@
-function fmt(n) {
+function fmtPrice(n) {
   return n ? `$${n.toLocaleString()}` : '—'
 }
 
 export default function StatsBar({ avg, high, low, count }) {
   return (
     <div className="stats-bar">
-      <div className="stat">
+      <div className="stat stat--primary">
         <span className="stat-label">Avg Sale</span>
-        <span className="stat-value">{fmt(avg)}</span>
+        <span className="stat-value stat-value--accent">{fmtPrice(avg)}</span>
       </div>
       <div className="stat">
         <span className="stat-label">High</span>
-        <span className="stat-value">{fmt(high)}</span>
+        <span className="stat-value">{fmtPrice(high)}</span>
       </div>
       <div className="stat">
         <span className="stat-label">Low</span>
-        <span className="stat-value">{fmt(low)}</span>
+        <span className="stat-value">{fmtPrice(low)}</span>
       </div>
       <div className="stat">
         <span className="stat-label">Sales</span>
-        <span className="stat-value">{count}</span>
+        <span className="stat-value">{count || '—'}</span>
       </div>
     </div>
   )

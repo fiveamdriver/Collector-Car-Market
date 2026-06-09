@@ -26,12 +26,12 @@ export default function ResultsTable({ results }) {
           </tr>
         </thead>
         <tbody>
-          {sorted.map(r => (
-            <tr key={r.id}>
+          {sorted.map((r, i) => (
+            <tr key={r.id} className={i % 2 === 1 ? 'row-alt' : ''}>
               <td>{r.sold_date}</td>
               <td>{r.year}</td>
-              <td>{r.variant}</td>
-              <td>{r.transmission}</td>
+              <td className="td-variant">{r.variant}</td>
+              <td className="td-trans">{r.transmission}</td>
               <td>{fmtMileage(r.mileage)}</td>
               <td>{r.color ?? '—'}</td>
               <td className="price-cell">{fmtPrice(r.sold_price)}</td>
