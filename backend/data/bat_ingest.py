@@ -14,6 +14,7 @@ import os
 import re
 import ssl
 import sys
+import time
 import urllib.parse
 import urllib.request
 from datetime import date, datetime
@@ -33,7 +34,7 @@ AsyncSession = async_sessionmaker(engine, expire_on_commit=False)
 
 API_URL   = "https://bringatrailer.com/wp-json/bringatrailer/1.0/data/listings-filter"
 SSL_CTX   = ssl.create_default_context(cafile=certifi.where())
-MAX_PAGES = 3   # limit for test runs; remove or increase for full ingestion
+MAX_PAGES = None  # set to an integer to limit pages per config during test runs
 
 
 # ── Query configs ─────────────────────────────────────────────────────────────
@@ -229,7 +230,7 @@ async def ingest() -> None:
         page = 1
 
         print(f"[{name}]")
-        while page <= MAX_PAGES:
+        while MAX_PAGES is None or page <= MAX_PAGES:
             try:
                 items = fetch_page(ids, page)
             except Exception as exc:
@@ -256,11 +257,13 @@ async def ingest() -> None:
                 cfg_queued += 1
 
             page += 1
+            time.sleep(2)
 
         total_fetched  += cfg_fetched
         total_inserted += cfg_queued
         total_skipped  += cfg_skipped
         print(f"  fetched: {cfg_fetched} | queued: {cfg_queued} | skipped: {cfg_skipped}")
+        time.sleep(5)
 
     if to_insert:
         async with AsyncSession() as session:
