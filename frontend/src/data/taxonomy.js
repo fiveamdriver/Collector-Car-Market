@@ -18,13 +18,21 @@ export const ALL_MODELS = [
 ]
 
 export const GENERATIONS = {
-  '911':    ['964', '993', '996.1', '996.2', '997.1', '997.2', '991.1', '991.2', '992'],
+  '911':    ['F-Series', 'G-Series', '964', '993', '996.1', '996.2', '997.1', '997.2', '991.1', '991.2', '992'],
   'cayman': ['987', '981', '718'],
   'boxster': ['986', '987', '981', '718'],
 }
 
 export const VARIANTS = {
   '911': {
+    'F-Series': [
+      '911', '911S', '911T', '911E', '911L', '911R',
+      'Carrera RS 2.7', 'Carrera RS 2.7 Lightweight', 'S/T',
+    ],
+    'G-Series': [
+      'Carrera 2.7', '911S', 'Carrera RS 3.0', 'SC', 'Carrera 3.2',
+      'Turbo 3.0', 'Turbo 3.3', 'Turbo 3.3 Slant Nose', 'Turbo S', 'Speedster',
+    ],
     '964': [
       'Carrera', 'Carrera RS', 'Carrera RS America',
       'Turbo', 'Turbo S', 'Speedster', 'GTS',

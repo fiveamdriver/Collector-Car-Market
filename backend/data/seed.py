@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Seed the database with 300 realistic Porsche auction results.
+Seed the database with 350 realistic Porsche auction results.
 Clears all existing records first.
 Run from the backend/ directory:  python data/seed.py
 """
@@ -31,8 +31,8 @@ AsyncSession  = async_sessionmaker(engine, expire_on_commit=False)
 #   trans – rule key into TRANS_PROBS
 # ---------------------------------------------------------------------------
 
-V = namedtuple('V', ['name', 'weight', 'price_lo', 'price_hi', 'trans', 'cap'],
-               defaults=[None])
+V = namedtuple('V', ['name', 'weight', 'price_lo', 'price_hi', 'trans', 'cap', 'year_lo', 'year_hi'],
+               defaults=[None, None, None])
 
 # Probability of manual transmission per rule
 TRANS_PROBS = {
@@ -53,6 +53,29 @@ def pick_trans(rule: str) -> str:
 
 VARIANT_DATA: dict[str, dict[str, list]] = {
     '911': {
+        'F-Series': [
+            V('911',                        8,   60_000,   150_000, 'manual'),
+            V('911S',                       5,   80_000,   200_000, 'manual'),
+            V('911T',                       6,   60_000,   150_000, 'manual'),
+            V('911E',                       4,   60_000,   150_000, 'manual'),
+            V('911L',                       3,   60_000,   150_000, 'manual'),
+            V('911R',                       1,  800_000, 3_500_000, 'manual', 2),
+            V('Carrera RS 2.7',             2,  400_000, 1_200_000, 'manual', 4),
+            V('Carrera RS 2.7 Lightweight', 1,  800_000, 2_500_000, 'manual', 2),
+            V('S/T',                        1,  300_000,   800_000, 'manual', 2),
+        ],
+        'G-Series': [
+            V('Carrera 2.7',          5,  50_000,  120_000, 'manual', None, 1974, 1977),
+            V('911S',                 4,  40_000,   90_000, 'manual', None, 1974, 1977),
+            V('Carrera RS 3.0',       2, 200_000,  500_000, 'manual',    3, 1975, 1977),
+            V('SC',                   6,  35_000,   80_000, 'manual', None, 1978, 1983),
+            V('Carrera 3.2',          7,  50_000,  120_000, 'manual', None, 1984, 1989),
+            V('Turbo 3.0',            3, 120_000,  250_000, 'manual', None, 1975, 1977),
+            V('Turbo 3.3',            5, 100_000,  280_000, 'manual', None, 1978, 1989),
+            V('Turbo 3.3 Slant Nose', 2, 200_000,  500_000, 'manual',    3, 1987, 1989),
+            V('Turbo S',              1, 250_000,  600_000, 'manual',    2, 1980, 1980),
+            V('Speedster',            2, 150_000,  350_000, 'manual',    4, 1989, 1989),
+        ],
         '964': [
             V('Carrera',             8,  45_000,  88_000, 'very_early'),
             V('Carrera RS',          2, 200_000, 500_000, 'manual'),
@@ -196,6 +219,7 @@ VARIANT_DATA: dict[str, dict[str, list]] = {
 # Generation selection weights (higher = more records)
 GEN_WEIGHTS = {
     '911': {
+        'F-Series': 5, 'G-Series': 8,
         '964': 9, '993': 10, '996.1': 6, '996.2': 8,
         '997.1': 12, '997.2': 13, '991.1': 13, '991.2': 14, '992': 15,
     },
@@ -206,6 +230,7 @@ GEN_WEIGHTS = {
 MODEL_WEIGHTS = {'911': 55, 'Cayman': 28, 'Boxster': 17}
 
 YEAR_RANGES = {
+    'F-Series': (1964, 1973), 'G-Series': (1974, 1989),
     '964':   (1989, 1994), '993':   (1994, 1998),
     '996.1': (1998, 2001), '996.2': (2002, 2005),
     '997.1': (2005, 2008), '997.2': (2009, 2012),
@@ -215,6 +240,7 @@ YEAR_RANGES = {
 }
 
 MILEAGE_RANGES = {
+    'F-Series': (20_000, 180_000), 'G-Series': (30_000, 160_000),
     '964':   (15_000, 120_000), '993':   (12_000, 100_000),
     '996.1': (25_000, 128_000), '996.2': (22_000, 118_000),
     '997.1': (10_000,  88_000), '997.2': ( 8_000,  78_000),
@@ -281,7 +307,10 @@ def generate_record(counts: dict) -> dict | None:
     key   = (model_line, generation, vdef.name)
     counts[key] = counts.get(key, 0) + 1
 
-    year      = random.randint(*YEAR_RANGES[generation])
+    gen_yr    = YEAR_RANGES[generation]
+    yr_lo     = vdef.year_lo if vdef.year_lo is not None else gen_yr[0]
+    yr_hi     = vdef.year_hi if vdef.year_hi is not None else gen_yr[1]
+    year      = random.randint(yr_lo, yr_hi)
     trans     = pick_trans(vdef.trans)
     mileage   = random.randint(*MILEAGE_RANGES[generation])
     color     = random.choice(COLORS)
@@ -313,7 +342,7 @@ def generate_record(counts: dict) -> dict | None:
 # Main
 # ---------------------------------------------------------------------------
 
-async def seed(n: int = 300):
+async def seed(n: int = 350):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
