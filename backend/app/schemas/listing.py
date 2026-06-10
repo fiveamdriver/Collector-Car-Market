@@ -12,7 +12,7 @@ class AuctionResultCreate(BaseModel):
     year: int
     transmission: str
     mileage: Optional[int] = None
-    color: Optional[str] = None
+    thumbnail_url: Optional[str] = None
     sold_price: int
     auction_source: str
     auction_url: Optional[str] = None
