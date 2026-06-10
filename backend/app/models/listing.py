@@ -19,7 +19,7 @@ class AuctionResult(Base):
     transmission: Mapped[str]
     is_widebody: Mapped[Optional[bool]]
     mileage: Mapped[Optional[int]]
-    color: Mapped[Optional[str]]
+    thumbnail_url: Mapped[Optional[str]]
     sold_price: Mapped[int]
     auction_source: Mapped[str]
     auction_url: Mapped[Optional[str]]

@@ -25,7 +25,7 @@ sys.path.insert(0, BACKEND_DIR)
 import app.models  # noqa: F401
 from app.database import Base
 from app.models.listing import AuctionResult
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 DATABASE_URL = f"sqlite+aiosqlite:///{os.path.join(BACKEND_DIR, 'pcarmarket.db')}"
@@ -195,7 +195,7 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
         transmission      = transmission,
         is_widebody       = compute_is_widebody(variant, model_line) or None,
         mileage           = parse_mileage(title),
-        color             = None,
+        thumbnail_url     = raw.get("thumbnail_url"),
         sold_price        = int(price),
         auction_source    = "BaT",
         auction_url       = raw.get("url"),
@@ -212,16 +212,18 @@ async def ingest() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+    # Load existing records: url → thumbnail_url (None means no thumbnail yet)
     async with AsyncSession() as session:
         rows = await session.execute(
-            select(AuctionResult.auction_url).where(
+            select(AuctionResult.auction_url, AuctionResult.thumbnail_url).where(
                 AuctionResult.auction_url.isnot(None)
             )
         )
-        existing_urls: set[str] = {row[0] for row in rows.fetchall()}
+        existing: dict[str, str | None] = {row[0]: row[1] for row in rows.fetchall()}
 
-    total_fetched = total_inserted = total_skipped = 0
-    to_insert: list[dict] = []
+    total_fetched = total_skipped = 0
+    to_insert:  list[dict] = []
+    to_backfill: list[tuple[str, str]] = []  # (auction_url, thumbnail_url)
 
     for cfg in CONFIGS:
         name        = cfg["name"]
@@ -229,7 +231,7 @@ async def ingest() -> None:
         model_line  = cfg["model_line"]
         cfg_variant = cfg["variant"]
 
-        cfg_fetched = cfg_queued = cfg_skipped = 0
+        cfg_fetched = cfg_queued = cfg_updated = cfg_skipped = 0
         page = 1
 
         print(f"[{name}]")
@@ -251,32 +253,42 @@ async def ingest() -> None:
                     cfg_skipped += 1
                     continue
                 url = rec.get("auction_url")
-                if url and url in existing_urls:
-                    cfg_skipped += 1
+                if url and url in existing:
+                    if existing[url] is None and rec.get("thumbnail_url"):
+                        to_backfill.append((url, rec["thumbnail_url"]))
+                        existing[url] = rec["thumbnail_url"]  # prevent double-queue
+                        cfg_updated += 1
+                    else:
+                        cfg_skipped += 1
                     continue
                 if url:
-                    existing_urls.add(url)
+                    existing[url] = rec.get("thumbnail_url")
                 to_insert.append(rec)
                 cfg_queued += 1
 
             page += 1
             time.sleep(2)
 
-        total_fetched  += cfg_fetched
-        total_inserted += cfg_queued
-        total_skipped  += cfg_skipped
-        print(f"  fetched: {cfg_fetched} | queued: {cfg_queued} | skipped: {cfg_skipped}")
+        total_fetched += cfg_fetched
+        total_skipped += cfg_skipped
+        print(f"  fetched: {cfg_fetched} | queued: {cfg_queued} | backfilled: {cfg_updated} | skipped: {cfg_skipped}")
         time.sleep(5)
 
-    if to_insert:
-        async with AsyncSession() as session:
+    async with AsyncSession() as session:
+        if to_insert:
             session.add_all([AuctionResult(**r) for r in to_insert])
-            await session.commit()
+        for url, thumb in to_backfill:
+            await session.execute(
+                update(AuctionResult)
+                .where(AuctionResult.auction_url == url)
+                .values(thumbnail_url=thumb)
+            )
+        await session.commit()
 
     db_path = os.path.join(BACKEND_DIR, "pcarmarket.db")
     print(
         f"\nTotal — fetched: {total_fetched} | inserted: {len(to_insert)} | "
-        f"skipped: {total_skipped}"
+        f"backfilled: {len(to_backfill)} | skipped: {total_skipped}"
     )
     print(f"Database: {db_path}")
     await engine.dispose()

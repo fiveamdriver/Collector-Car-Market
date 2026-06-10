@@ -10,6 +10,8 @@ export default function ResultsTable({ results }) {
     (a, b) => new Date(b.sold_date) - new Date(a.sold_date)
   )
 
+  const showTrans = !results.every(r => r.transmission === results[0]?.transmission)
+
   return (
     <div className="table-wrapper">
       <table>
@@ -18,9 +20,9 @@ export default function ResultsTable({ results }) {
             <th>Date</th>
             <th>Year</th>
             <th>Variant</th>
-            <th>Trans</th>
+            {showTrans && <th>Trans</th>}
+            <th>Photo</th>
             <th>Mileage</th>
-            <th>Color</th>
             <th>Sold Price</th>
             <th>Source</th>
           </tr>
@@ -31,11 +33,19 @@ export default function ResultsTable({ results }) {
               <td>{r.sold_date}</td>
               <td>{r.year}</td>
               <td className="td-variant">{r.variant}</td>
-              <td className="td-trans">{r.transmission}</td>
+              {showTrans && <td className="td-trans">{r.transmission}</td>}
+              <td className="td-photo">
+                {r.thumbnail_url
+                  ? <img src={r.thumbnail_url} alt="" className="result-thumb" />
+                  : '—'}
+              </td>
               <td>{fmtMileage(r.mileage)}</td>
-              <td>{r.color ?? '—'}</td>
               <td className="price-cell">{fmtPrice(r.sold_price)}</td>
-              <td className="source-cell">{r.auction_source}</td>
+              <td className="source-cell">
+                {r.auction_url
+                  ? <a href={r.auction_url} target="_blank" rel="noopener noreferrer" className="source-link">{r.auction_source}</a>
+                  : r.auction_source}
+              </td>
             </tr>
           ))}
         </tbody>

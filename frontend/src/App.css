@@ -401,8 +401,18 @@ tbody td {
 
 .td-variant  { color: #bbb; font-weight: 500; }
 .td-trans    { color: #666; text-transform: lowercase; }
+.td-photo    { padding-top: 6px; padding-bottom: 6px; }
+.result-thumb {
+  display: block;
+  width: 80px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 4px;
+}
 .price-cell  { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
 .source-cell { color: #444; font-size: 12px; }
+.source-link  { color: var(--accent); text-decoration: none; }
+.source-link:hover { text-decoration: underline; }
 
 /* ── Tabs ────────────────────────────────────────────── */
 .tabs {

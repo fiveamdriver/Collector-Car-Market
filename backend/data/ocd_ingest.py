@@ -170,7 +170,7 @@ def map_record(raw: dict) -> dict | None:
         year              = year,
         transmission      = transmission,
         mileage           = raw.get("mileage") or raw.get("odometer"),
-        color             = raw.get("color") or raw.get("exterior_color"),
+        thumbnail_url     = None,
         sold_price        = int(price),
         auction_source    = raw.get("source") or raw.get("auction_house") or "OldCarsData",
         auction_url       = raw.get("url") or raw.get("listing_url") or raw.get("auction_url"),

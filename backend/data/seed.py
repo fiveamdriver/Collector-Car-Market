@@ -350,7 +350,7 @@ def generate_record(counts: dict) -> dict | None:
         year=year,
         transmission=trans,
         mileage=mileage,
-        color=color,
+        thumbnail_url=None,
         sold_price=sold_price,
         auction_source=source,
         sold_date=sold_date,
