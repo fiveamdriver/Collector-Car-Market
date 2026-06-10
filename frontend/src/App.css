@@ -399,7 +399,7 @@ tbody td {
   color: #888;
 }
 
-.td-variant  { color: #bbb; font-weight: 500; }
+.td-listing  { color: #bbb; font-weight: 500; }
 .td-trans    { color: #666; text-transform: lowercase; }
 .td-photo    { padding-top: 6px; padding-bottom: 6px; }
 .result-thumb {

@@ -4,6 +4,16 @@ function fmtPrice(n) {
 function fmtMileage(n) {
   return n != null ? n.toLocaleString() : '—'
 }
+function truncate(s, n) {
+  return s && s.length > n ? s.slice(0, n) + '…' : (s ?? '—')
+}
+function stripYear(s, stripMileage) {
+  if (!s) return s
+  let out = s.replace(/\b(?:19|20)\d{2}\b\s*/, '').trim()
+  if (stripMileage)
+    out = out.replace(/(?:No Reserve:\s+)?[\d,k]+-(?:Mile|Kilometer)\s*/i, '').trim()
+  return out
+}
 
 export default function ResultsTable({ results }) {
   const sorted = [...results].sort(
@@ -19,7 +29,7 @@ export default function ResultsTable({ results }) {
           <tr>
             <th>Date</th>
             <th>Year</th>
-            <th>Variant</th>
+            <th>Listing</th>
             {showTrans && <th>Trans</th>}
             <th>Photo</th>
             <th>Mileage</th>
@@ -32,7 +42,7 @@ export default function ResultsTable({ results }) {
             <tr key={r.id} className={i % 2 === 1 ? 'row-alt' : ''}>
               <td>{r.sold_date}</td>
               <td>{r.year}</td>
-              <td className="td-variant">{r.variant}</td>
+              <td className="td-listing">{truncate(stripYear(r.lot_title, r.mileage != null), 40)}</td>
               {showTrans && <td className="td-trans">{r.transmission}</td>}
               <td className="td-photo">
                 {r.thumbnail_url
