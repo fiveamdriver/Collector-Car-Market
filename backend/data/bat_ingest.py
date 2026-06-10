@@ -55,6 +55,9 @@ CONFIGS = [
     {"name": "930 Turbo",         "ids": [1833042],                               "model_line": "911",        "variant": "Turbo 3.3"},
     {"name": "996 Turbo",         "ids": [1833045],                               "model_line": "911",        "variant": "Turbo"},
     {"name": "992 Turbo",         "ids": [40033130],                              "model_line": "911",        "variant": "Turbo"},
+    {"name": "911 SC",            "ids": [16982431],                              "model_line": "911",        "variant": "SC"},
+    {"name": "911 Carrera 3.2",   "ids": [1833037],                               "model_line": "911",        "variant": "Carrera 3.2"},
+    {"name": "Carrera RS 2.7",    "ids": [68399612],                              "model_line": "911",        "variant": "Carrera RS 2.7"},
 ]
 
 
