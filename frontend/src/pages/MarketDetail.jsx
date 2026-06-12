@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
 import { ALL_MODELS, GENERATION_GROUPS, MODEL_LINE, VARIANTS, VARIANT_HERO, MODEL_HERO } from '../data/taxonomy'
+import VARIANT_DESCRIPTIONS, { PRODUCTION_NUMBERS } from '../data/variantDescriptions'
 import { fetchAuctionResults, fetchActiveListings } from '../api/client'
 import { calcStats, groupByMonth } from '../utils/aggregation'
 import { fromSlug } from '../utils/slugs'
@@ -78,16 +79,17 @@ export default function MarketDetail() {
 
   // Show the hero panel on terminal pages: a specific variant, or a standalone model
   const showHero = variant !== null || model.type === 'standalone'
-  const heroImage = variant
+  const heroFile  = variant
     ? (VARIANT_HERO[modelSlug]?.[generation]?.[variant] ?? null)
     : (MODEL_HERO[modelSlug] ?? null)
+  const heroImage = heroFile ? `/images/variants/${heroFile}` : null
 
   // Eyebrow: "Porsche 911 · 993" or "Porsche 959" etc.
   const eyebrow = generation
     ? `Porsche ${model.label} · ${generation}`
     : `Porsche ${model.label}`
 
-  // Hero title: "993 GT2", "F-Series 911R", or standalone model name
+  // Hero title: "993 GT2", "F-Body 911R", or standalone model name
   const heroTitle = variant
     ? `${generation} ${variant}`
     : model.label
@@ -135,7 +137,14 @@ export default function MarketDetail() {
           {!loading && !error && (
             <>
               {showHero
-                ? <VariantHero eyebrow={eyebrow} title={heroTitle} stats={stats} heroImage={heroImage} />
+                ? <VariantHero
+                    eyebrow={eyebrow}
+                    title={heroTitle}
+                    stats={stats}
+                    heroImage={heroImage}
+                    description={variant ? VARIANT_DESCRIPTIONS[modelSlug]?.[generation]?.[variant] : null}
+                    productionCount={variant ? (PRODUCTION_NUMBERS[generation]?.[variant] ?? null) : null}
+                  />
                 : <StatsBar {...stats} />}
               {monthlyData.length >= 2 && (
                 <PriceHistoryChart monthlyData={monthlyData} />

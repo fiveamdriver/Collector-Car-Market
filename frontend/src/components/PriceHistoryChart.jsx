@@ -25,56 +25,75 @@ function ChartTooltip({ active, payload, label }) {
   )
 }
 
-export default function PriceHistoryChart({ monthlyData }) {
+export default function PriceHistoryChart({ monthlyData, defaultExpanded = true }) {
   const [range, setRange] = useState('All')
+  const [expanded, setExpanded] = useState(defaultExpanded)
   const visible = filterByTimeRange(monthlyData, range)
 
   return (
-    <div className="price-chart">
+    <div className={`price-chart${expanded ? '' : ' price-chart--collapsed'}`}>
       <div className="chart-header">
-        <span className="chart-label">Price History</span>
-        <div className="range-toggles">
-          {RANGES.map(r => (
-            <button
-              key={r}
-              className={`range-btn${range === r ? ' active' : ''}`}
-              onClick={() => setRange(r)}
-            >
-              {r}
-            </button>
-          ))}
+        <div className="chart-header-left">
+          <span className="chart-label">Price History</span>
+          <button
+            className="chart-toggle"
+            onClick={() => setExpanded(e => !e)}
+            aria-label={expanded ? 'Collapse chart' : 'Expand chart'}
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              {expanded
+                ? <polyline points="2,8 6,4 10,8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                : <polyline points="2,4 6,8 10,4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              }
+            </svg>
+          </button>
         </div>
+        {expanded && (
+          <div className="range-toggles">
+            {RANGES.map(r => (
+              <button
+                key={r}
+                className={`range-btn${range === r ? ' active' : ''}`}
+                onClick={() => setRange(r)}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      <ResponsiveContainer width="100%" height={280}>
-        <LineChart data={visible} margin={{ top: 8, right: 24, bottom: 4, left: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#191919" vertical={false} />
-          <XAxis
-            dataKey="month"
-            tick={{ fill: '#4a4a4a', fontSize: 11 }}
-            tickLine={false}
-            axisLine={{ stroke: '#222' }}
-            interval="preserveStartEnd"
-          />
-          <YAxis
-            tickFormatter={fmtAxis}
-            tick={{ fill: '#4a4a4a', fontSize: 11 }}
-            tickLine={false}
-            axisLine={false}
-            width={62}
-          />
-          <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#252525', strokeWidth: 1 }} />
-          <Line
-            type="monotone"
-            dataKey="avgPrice"
-            stroke="#c4a35a"
-            strokeWidth={2}
-            dot={{ r: 3, fill: '#c4a35a', strokeWidth: 0 }}
-            activeDot={{ r: 5, fill: '#d4b36a', strokeWidth: 0 }}
-            isAnimationActive={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+      {expanded && (
+        <ResponsiveContainer width="100%" height={180}>
+          <LineChart data={visible} margin={{ top: 8, right: 24, bottom: 4, left: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#191919" vertical={false} />
+            <XAxis
+              dataKey="month"
+              tick={{ fill: '#4a4a4a', fontSize: 11 }}
+              tickLine={false}
+              axisLine={{ stroke: '#222' }}
+              interval="preserveStartEnd"
+            />
+            <YAxis
+              tickFormatter={fmtAxis}
+              tick={{ fill: '#4a4a4a', fontSize: 11 }}
+              tickLine={false}
+              axisLine={false}
+              width={62}
+            />
+            <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#252525', strokeWidth: 1 }} />
+            <Line
+              type="monotone"
+              dataKey="avgPrice"
+              stroke="#c4a35a"
+              strokeWidth={2}
+              dot={{ r: 3, fill: '#c4a35a', strokeWidth: 0 }}
+              activeDot={{ r: 5, fill: '#d4b36a', strokeWidth: 0 }}
+              isAnimationActive={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
     </div>
   )
 }

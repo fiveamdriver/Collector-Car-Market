@@ -59,16 +59,17 @@ export default function MarketHome() {
             const s = modelStats[m.slug]
             return (
               <Link key={m.slug} to={`/${m.slug}`} className="model-card">
-                {/* images temporarily hidden — re-enable by uncommenting:
-                MODEL_IMAGES[m.slug] && (
-                  <img src={MODEL_IMAGES[m.slug]} alt={m.label} className="model-card-thumb" />
-                ) */}
-                <span className="model-card-name">{m.label}</span>
-                {s?.count > 0 && (
-                  <>
-                    <span className="model-card-price">${s.avg.toLocaleString()}</span>
-                    <span className="model-card-meta">{s.count} sales · avg price</span>
-                  </>
+                <div className="model-card-body">
+                  <span className="model-card-name">{m.label}</span>
+                  {s?.count > 0 && (
+                    <>
+                      <span className="model-card-price">${s.avg.toLocaleString()}</span>
+                      <span className="model-card-meta">{s.count} sales · avg price</span>
+                    </>
+                  )}
+                </div>
+                {MODEL_IMAGES[m.slug] && (
+                  <img src={MODEL_IMAGES[m.slug]} alt={m.label} className="model-card-img" />
                 )}
               </Link>
             )
@@ -83,16 +84,17 @@ export default function MarketHome() {
             const s = modelStats[m.slug]
             return (
               <Link key={m.slug} to={`/${m.slug}`} className="model-card">
-                {/* images temporarily hidden — re-enable by uncommenting:
-                MODEL_IMAGES[m.slug] && (
-                  <img src={MODEL_IMAGES[m.slug]} alt={m.label} className="model-card-thumb" />
-                ) */}
-                <span className="model-card-name">{m.label}</span>
-                {s?.count > 0 && (
-                  <>
-                    <span className="model-card-price">${s.avg.toLocaleString()}</span>
-                    <span className="model-card-meta">{s.count} sales · avg price</span>
-                  </>
+                <div className="model-card-body">
+                  <span className="model-card-name">{m.label}</span>
+                  {s?.count > 0 && (
+                    <>
+                      <span className="model-card-price">${s.avg.toLocaleString()}</span>
+                      <span className="model-card-meta">{s.count} sales · avg price</span>
+                    </>
+                  )}
+                </div>
+                {MODEL_IMAGES[m.slug] && (
+                  <img src={MODEL_IMAGES[m.slug]} alt={m.label} className="model-card-img" />
                 )}
               </Link>
             )

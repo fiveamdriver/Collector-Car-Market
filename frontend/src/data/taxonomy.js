@@ -23,6 +23,7 @@ export const GENERATION_GROUPS = {
     '996': ['996.1', '996.2'],
     '997': ['997.1', '997.2'],
     '991': ['991.1', '991.2'],
+    '992': ['992.1', '992.2'],
   },
   'cayman': {
     '987': ['987.1', '987.2'],
@@ -34,14 +35,14 @@ export const GENERATION_GROUPS = {
 
 // Top-level generation list shown on GenerationIndex (groups collapsed to one entry)
 export const GENERATIONS = {
-  '911':    ['F-Series', 'G-Body', '964', '993', '996', '997', '991', '992'],
+  '911':    ['F-Body', 'G-Body', '964', '993', '996', '997', '991', '992'],
   'cayman': ['987', '981', '718'],
   'boxster': ['986', '987', '981', '718'],
 }
 
 export const VARIANTS = {
   '911': {
-    'F-Series': [
+    'F-Body': [
       '911', '911S', '911T', '911E', '911L', '911R',
       'Carrera RS 2.7', 'Carrera RS 2.7 Lightweight', 'S/T',
     ],
@@ -78,10 +79,15 @@ export const VARIANTS = {
       'Turbo', 'Turbo S',
       'GT3', 'GT3 RS', 'GT2 RS', 'Speedster',
     ],
-    '992': [
+    '992.1': [
       'Carrera', 'Carrera S', 'Carrera T', 'Carrera GTS',
       'Turbo', 'Turbo S',
-      'GT3', 'GT3 RS', 'GT2 RS', 'S/T', 'Sport Classic', 'Dakar',
+      'GT3', 'GT3 RS', 'S/T', 'Sport Classic', 'Dakar',
+    ],
+    '992.2': [
+      'Carrera', 'Carrera S', 'Carrera T', 'Carrera GTS',
+      'Turbo', 'Turbo S',
+      'GT3', 'GT3 RS',
     ],
   },
   'cayman': {
@@ -106,7 +112,7 @@ const _h = (variants, img) => Object.fromEntries(variants.map(v => [v, img]))
 
 export const VARIANT_HERO = {
   '911': {
-    'F-Series': _h(VARIANTS['911']['F-Series'], 'fseries.jpeg'),
+    'F-Body': _h(VARIANTS['911']['F-Body'], 'fseries.jpeg'),
     'G-Body':   _h(VARIANTS['911']['G-Body'],   'gbody.jpg'),
     '964':      _h(VARIANTS['911']['964'],       '964.jpeg'),
     '993':      _h(VARIANTS['911']['993'],       '993.jpg'),
@@ -116,7 +122,8 @@ export const VARIANT_HERO = {
     '997.2':    _h(VARIANTS['911']['997.2'],     '997.jpg'),
     '991.1':    _h(VARIANTS['911']['991.1'],     '991.jpeg'),
     '991.2':    _h(VARIANTS['911']['991.2'],     '991.jpeg'),
-    '992':      _h(VARIANTS['911']['992'],       '992.jpeg'),
+    '992.1':    _h(VARIANTS['911']['992.1'],     '992.jpeg'),
+    '992.2':    _h(VARIANTS['911']['992.2'],     '992.jpeg'),
   },
   // Cayman and Boxster: no generation-specific photos yet; add filenames to unlock
   'cayman':  {},
@@ -128,4 +135,27 @@ export const MODEL_HERO = {
   '959':        '959.jpg',
   'carrera-gt': 'carrera-gt.jpeg',
   '918-spyder': '918.jpeg',
+}
+
+// Hero image for generation-level pages (VariantIndex).
+// Full Vite public-directory paths so no runtime path construction is needed.
+export const GENERATION_HERO = {
+  '911': {
+    'F-Body': '/images/fseries.jpeg',
+    'G-Body':   '/images/gbody.jpg',
+    '964':      '/images/964.jpeg',
+    '993':      '/images/993.jpg',
+    '996':      '/images/996.jpeg',
+    '996.1':    '/images/996.jpeg',
+    '996.2':    '/images/996.jpeg',
+    '997':      '/images/997.jpg',
+    '997.1':    '/images/997.jpg',
+    '997.2':    '/images/997.jpg',
+    '991':      '/images/991.jpeg',
+    '991.1':    '/images/991.jpeg',
+    '991.2':    '/images/991.jpeg',
+    '992':      '/images/992.jpeg',
+    '992.1':    '/images/992.jpeg',
+    '992.2':    '/images/992.jpeg',
+  },
 }

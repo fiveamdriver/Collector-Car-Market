@@ -39,7 +39,7 @@ MAX_PAGES = None  # set to an integer to limit pages per config during test runs
 CONFIGS = [
     # ── Multi-generation ──────────────────────────────────────────────────────
     {"name": "911 GT3/GT3 RS",    "ids": [2015688, 55778434, 55778221, 55778351], "model_line": "911",        "variant": None},
-    # ── F-Series ─────────────────────────────────────────────────────────────
+    # ── F-Body ─────────────────────────────────────────────────────────────
     {"name": "Carrera RS 2.7",    "ids": [68399612],                              "model_line": "911",        "variant": "Carrera RS 2.7"},
     # ── G-Body ───────────────────────────────────────────────────────────────
     {"name": "911 SC",            "ids": [16982431],                              "model_line": "911",        "variant": None},
@@ -113,7 +113,7 @@ CONFIGS = [
 # ── Generation lookup ─────────────────────────────────────────────────────────
 
 def get_911_generation(year: int) -> str:
-    if year <= 1973: return "F-Series"
+    if year <= 1973: return "F-Body"
     if year <= 1989: return "G-Body"
     if year <= 1994: return "964"
     if year <= 1998: return "993"
