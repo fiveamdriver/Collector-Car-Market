@@ -46,3 +46,25 @@ A full-stack web app that tracks collector car auction results and market prices
 - Fixed slug round-trip bugs for variants with special characters (GT3 RS 4.0, S/T)
 - Added comprehensive variant taxonomy covering all 911 generations (964 through 992) including rare variants: Carrera RS, Carrera RS America, GT3 RS 4.0, GT2 RS, S/T, Sport Classic, Speedster, R, Dakar
 - Polished UI: dark theme with warm gold accent (#c4a35a), two-column hero layout, card design improvements, alternating table rows, chart line in gold, active state styling on time range buttons
+
+### Session 4
+- Reverse engineered BaT's internal WordPress REST API via Chrome DevTools (wp-json/bringatrailer/1.0/data/listings-filter)
+- Built bat_ingest.py with rate limiting, URL-based duplicate prevention, and full pagination
+- Automated keyword_pages ID discovery via BaT autocomplete endpoint (bat_discover.py)
+- Ingested 18 Porsche model configs — 5,600+ real auction records
+- Set up OldCarsData API integration (ocd_ingest.py), free tier exhausted, resets July 10
+- Fixed GT3 RS variant mapping (282 records), renamed 930 Turbo taxonomy, deleted all 350 mock seed records
+- Schema migration: replaced unused color column with thumbnail_url
+- Added seed.py --clear flag guard after accidental data wipes
+- Frontend: clickable auction source links, thumbnail rendering, dynamic transmission column hiding, lot_title display with deduped year/mileage prefixes
+
+### Session 5
+- Renamed project folder to CollectorCarMarket, DB moved to ~/CollectorCarMarket-data/cars.db
+- Renamed GitHub repo to fiveamdriver/Collector-Car-Market
+- Built generation and variant hero cards across all 911 pages (964, 993, 996, 997, 991, 992)
+- Added F-Body and G-Body generations with descriptions
+- Added sub-generation pages for 991.1/991.2, 996.1/996.2, 997.1/997.2
+- Added model card photos to MarketHome (911, 959, Carrera GT, 918 Spyder)
+- Ingested Cayman and Boxster data
+- Moved database out of iCloud to prevent sync conflicts
+- Added DB indexes for query performance
