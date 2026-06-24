@@ -2,16 +2,45 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ALL_MODELS, MODEL_LINE } from '../data/taxonomy'
 import { fetchModelLineStats } from '../api/client'
-import porscheCrest from '../assets/Porsche_Symbol_1.png'
+
+const MODEL_YEARS = {
+  '911':        '1963–present',
+  '356':        '1948–1965',
+  'cayman':     '2005–present',
+  'boxster':    '1996–present',
+  '959':        '1986–1988',
+  'carrera-gt': '2004–2006',
+  '918-spyder': '2013–2015',
+  '911-race':   '1973–present',
+  '911-gt1':    '1996–1998',
+  '917':        '1969–1973',
+  '956':        '1982–1985',
+  '962':        '1984–1991',
+  '935':        '1976–1981',
+  '934':        '1976–1979',
+  '908':        '1968–1971',
+  '907':        '1967–1968',
+  '906':        '1966–1967',
+  '904':        '1963–1965',
+  '550':        '1953–1956',
+  'rs60':       '1960–1961',
+  '718-rsk':    '1957–1960',
+  'rs-spyder':  '2005–2010',
+}
+
+const IMAGE_POSITION = {
+  'cayman': 'center bottom',
+}
+
 
 const MODEL_IMAGES = {
-  '911':        '/images/993.jpg',
-  '356':        '/images/356.jpeg',
-  'cayman':     '/images/cayman-gt4.jpeg',
-  'boxster':    '/images/spyder rs.webp',
-  '959':        '/images/959.jpg',
-  'carrera-gt': '/images/carrera gt.jpeg',
-  '918-spyder': '/images/918.jpeg',
+  '911':        '/images/997RS4.0v2.png',
+  '356':        '/images/356(frontpage).png',
+  'cayman':     '/images/GT4RS.png',
+  'boxster':    '/images/spyderrsfront.png',
+  '959':        '/images/959hero.jpg',
+  'carrera-gt': '/images/cgthero.jpeg',
+  '918-spyder': '/images/918hero.png',
   '911-race':   '/images/RSR.jpg',
   '911-gt1':    '/images/gt1.png',
   '917':        '/images/917.png',
@@ -37,6 +66,11 @@ export default function MarketHome() {
   const [modelStats, setModelStats] = useState({})
 
   useEffect(() => {
+    document.body.classList.add('theme-light')
+    return () => document.body.classList.remove('theme-light')
+  }, [])
+
+  useEffect(() => {
     fetchModelLineStats().then(rows => {
       const byML = Object.fromEntries(rows.map(r => [r.model_line, r]))
       setModelStats(
@@ -54,18 +88,22 @@ export default function MarketHome() {
     const s = modelStats[m.slug]
     return (
       <Link key={m.slug} to={`/${m.slug}`} className="model-card">
+        {MODEL_IMAGES[m.slug] && (
+          <img src={MODEL_IMAGES[m.slug]} alt={m.label} className="model-card-img"
+            style={IMAGE_POSITION[m.slug] ? { objectPosition: IMAGE_POSITION[m.slug] } : undefined} />
+        )}
         <div className="model-card-body">
           <span className="model-card-name">{m.label}</span>
+          {MODEL_YEARS[m.slug] && (
+            <span className="model-card-years">{MODEL_YEARS[m.slug]}</span>
+          )}
           {s?.count > 0 && (
             <>
-              <span className="model-card-price">${s.avg.toLocaleString()}</span>
-              <span className="model-card-meta">{s.count} sales · avg price</span>
+              <span className="model-card-price">${s.avg.toLocaleString()} <span className="model-card-price-label">avg price</span></span>
+              <span className="model-card-meta">{s.count.toLocaleString()} results</span>
             </>
           )}
         </div>
-        {MODEL_IMAGES[m.slug] && (
-          <img src={MODEL_IMAGES[m.slug]} alt={m.label} className="model-card-img" />
-        )}
       </Link>
     )
   }
@@ -73,22 +111,7 @@ export default function MarketHome() {
   return (
     <div className="inner">
       <div className="page-header">
-        <div className="hero-columns">
-          <div className="hero-col-left">
-            <h1 className="page-title">Porsche</h1>
-            <p className="page-desc">
-              Porsche is a benchmark performance marque defined by its motorsport heritage, engineering
-              excellence, and focus on driver engagement. Its appeal among enthusiasts and collectors stems
-              not only from its performance credentials, but also from the nuanced evolution of its models,
-              limited-production variants, and strong historical significance. Few automotive brands have
-              cultivated a community as passionate and knowledgeable about provenance, specification,
-              and heritage.
-            </p>
-          </div>
-          <div className="hero-col-right">
-            <img src={porscheCrest} alt="Porsche crest" className="hero-crest" />
-          </div>
-        </div>
+        <h1 className="page-title">Porsche</h1>
       </div>
 
       <section className="section">
