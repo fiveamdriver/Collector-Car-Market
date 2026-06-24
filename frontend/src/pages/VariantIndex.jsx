@@ -144,7 +144,14 @@ export default function VariantIndex() {
 
   if (!model) return <Navigate to="/" replace />
 
-  const heroImg = GENERATION_HERO[modelSlug]?.[generation] ?? null
+  if (variants.length === 1) {
+    const base = groupSlug ? `/${modelSlug}/${groupSlug}/${generation}` : `/${modelSlug}/${generation}`
+    return <Navigate to={`${base}/${toSlug(variants[0])}`} replace />
+  }
+
+  const heroEntry   = GENERATION_HERO[modelSlug]?.[generation] ?? null
+  const heroImg     = typeof heroEntry === 'string' ? heroEntry : (heroEntry?.img ?? null)
+  const heroParallax = typeof heroEntry === 'string' ? true : (heroEntry?.parallax ?? true)
 
   const crumbs = [
     { label: 'Markets',   to: '/' },
@@ -159,7 +166,7 @@ export default function VariantIndex() {
 
   return (
     <>
-      {heroImg && (
+      {heroImg && heroParallax && (
         <div
           ref={heroRef}
           className="gen-parallax-hero"
