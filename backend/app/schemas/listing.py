@@ -17,10 +17,10 @@ class AuctionResultCreate(BaseModel):
     is_widebody: Optional[bool] = None
     mileage: Optional[int] = None
     thumbnail_url: Optional[str] = None
-    sold_price: int
+    sold_price: Optional[int] = None
     auction_source: str
     auction_url: Optional[str] = None
-    sold_date: date
+    sold_date: Optional[date] = None
     lot_title: Optional[str] = None
     exterior_color: Optional[str] = None
     paint_to_sample: Optional[bool] = None
@@ -35,8 +35,8 @@ class AuctionResultCreate(BaseModel):
 
     @field_validator("sold_price")
     @classmethod
-    def validate_sold_price(cls, value: int) -> int:
-        if value <= 0:
+    def validate_sold_price(cls, value: Optional[int]) -> Optional[int]:
+        if value is not None and value <= 0:
             raise ValueError("sold_price must be a positive integer")
         return value
 

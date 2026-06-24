@@ -14,6 +14,7 @@ function formatMonth(dateStr) {
 export function groupByMonth(results) {
   const map = {}
   for (const r of results) {
+    if (!r.sold_date || r.sold_price == null) continue
     const month = formatMonth(r.sold_date)
     if (!map[month]) map[month] = { total: 0, count: 0 }
     map[month].total += r.sold_price
@@ -38,11 +39,11 @@ export function filterByTimeRange(monthlyData, range) {
 
 export function calcStats(results) {
   if (!results.length) return { avg: 0, high: 0, low: 0, count: 0 }
-  const prices = results.map(r => r.sold_price)
+  const prices = results.map(r => r.sold_price).filter(p => p != null)
   return {
-    avg:   Math.round(prices.reduce((a, b) => a + b, 0) / prices.length),
-    high:  Math.max(...prices),
-    low:   Math.min(...prices),
+    avg:   prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0,
+    high:  prices.length ? Math.max(...prices) : 0,
+    low:   prices.length ? Math.min(...prices) : 0,
     count: results.length,
   }
 }

@@ -20,10 +20,10 @@ class AuctionResult(Base):
     is_widebody: Mapped[Optional[bool]]
     mileage: Mapped[Optional[int]]
     thumbnail_url: Mapped[Optional[str]]
-    sold_price: Mapped[int]
+    sold_price: Mapped[Optional[int]]
     auction_source: Mapped[str]
     auction_url: Mapped[Optional[str]]
-    sold_date: Mapped[date] = mapped_column(index=True)
+    sold_date: Mapped[Optional[date]] = mapped_column(index=True)
     lot_title: Mapped[Optional[str]]
     exterior_color: Mapped[Optional[str]]
     paint_to_sample: Mapped[Optional[bool]]
