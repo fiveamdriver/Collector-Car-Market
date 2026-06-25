@@ -186,6 +186,11 @@ button { font-family: inherit; cursor: pointer; }
   gap: 16px;
 }
 
+.card-grid--4col {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
 /* ── Home: model cards ───────────────────────────────── */
 .model-card {
   display: flex;
@@ -246,11 +251,13 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ── Generation & Variant index cards ───────────────── */
 .index-card {
-  display: block;
+  display: flex;
+  flex-direction: column;
   padding: 20px 20px 14px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 4px;
+  overflow: hidden;
   transition: border-color 0.15s, background 0.15s;
 }
 
@@ -276,32 +283,63 @@ button { font-family: inherit; cursor: pointer; }
   background: var(--bg-card-hover);
 }
 
-.index-card-header {
+.index-card-img-wrap {
+  width: calc(100% + 40px);
+  margin: -20px -20px 0;
+  height: 160px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.index-card-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.index-card-body {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 6px;
+  flex-direction: column;
+  padding-top: 16px;
 }
 
 .index-card-name {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
   color: #0A0A0A;
+  margin-bottom: 6px;
+}
+
+.index-card-years {
+  font-size: 13px;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+  margin-bottom: 8px;
+}
+
+.index-card-price {
+  font-size: 13px;
+  font-weight: 500;
+  color: #0A0A0A;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.index-card-price-label {
+  color: var(--text-secondary);
+  font-weight: 400;
 }
 
 .index-card-count {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: 13px;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
-}
-
-.index-card-avg {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--accent);
-  letter-spacing: -0.2px;
-  font-variant-numeric: tabular-nums;
+  margin-top: 4px;
   margin-bottom: 10px;
 }
 

@@ -7,6 +7,17 @@ import Breadcrumb from '../components/Breadcrumb'
 import PriceHistoryChart from '../components/PriceHistoryChart'
 import Sparkline from '../components/Sparkline'
 
+const GEN_CARD_IMAGES = {
+  'F-Body': '/images/911_gen_page_cards/911R(1967)Fbodygenpic.jpeg',
+  'G-Body': '/images/911_gen_page_cards/930turbogbodygen.jpg',
+  '964':    '/images/911_gen_page_cards/porsche964RS.png',
+  '993':    '/images/911_gen_page_cards/993GT2.png',
+  '996':    '/images/911_gen_page_cards/996.jpeg',
+  '997':    '/images/911_gen_page_cards/997GT2.png',
+  '991':    '/images/911_gen_page_cards/991gt2rs.png',
+  '992':    '/images/911_gen_page_cards/911st.png',
+}
+
 const GEN_YEARS = {
   '996': '1997–2005',
   '997': '2004–2012',
@@ -135,9 +146,9 @@ export default function SubGenerationIndex() {
         </div>
 
         <div className="gen-hero-right">
-          {heroImg && (
+          {GEN_CARD_IMAGES[seg1] && (
             <img
-              src={heroImg}
+              src={GEN_CARD_IMAGES[seg1]}
               alt={`${model.label} ${seg1}`}
               className="gen-hero-img"
             />

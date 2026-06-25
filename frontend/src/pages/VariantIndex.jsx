@@ -11,6 +11,25 @@ function fmtVal(n) {
   return n ? `$${n.toLocaleString()}` : '—'
 }
 
+const GEN_CARD_IMAGES = {
+  'F-Body': '/images/911_gen_page_cards/911R(1967)Fbodygenpic.jpeg',
+  'G-Body': '/images/911_gen_page_cards/930turbogbodygen.jpg',
+  '964':    '/images/911_gen_page_cards/porsche964RS.png',
+  '993':    '/images/911_gen_page_cards/993GT2.png',
+  '996':    '/images/911_gen_page_cards/996.jpeg',
+  '996.1':  '/images/911_gen_page_cards/996.jpeg',
+  '996.2':  '/images/911_gen_page_cards/996.jpeg',
+  '997':    '/images/911_gen_page_cards/997GT2.png',
+  '997.1':  '/images/911_gen_page_cards/997GT2.png',
+  '997.2':  '/images/911_gen_page_cards/997GT2.png',
+  '991':    '/images/911_gen_page_cards/991gt2rs.png',
+  '991.1':  '/images/911_gen_page_cards/991gt2rs.png',
+  '991.2':  '/images/911_gen_page_cards/991gt2rs.png',
+  '992':    '/images/911_gen_page_cards/911st.png',
+  '992.1':  '/images/911_gen_page_cards/911st.png',
+  '992.2':  '/images/911_gen_page_cards/911st.png',
+}
+
 const GEN_YEARS = {
   'F-Body': '1963–1973',
   'G-Body':   '1974–1989',
@@ -203,9 +222,9 @@ export default function VariantIndex() {
         </div>
 
         <div className="gen-hero-right">
-          {heroImg && (
+          {GEN_CARD_IMAGES[generation] && (
             <img
-              src={heroImg}
+              src={GEN_CARD_IMAGES[generation]}
               alt={`${model.label} ${generation}`}
               className="gen-hero-img"
             />
