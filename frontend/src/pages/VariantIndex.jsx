@@ -6,10 +6,7 @@ import { calcStats, groupByField, groupByMonth } from '../utils/aggregation'
 import { toSlug } from '../utils/slugs'
 import Breadcrumb from '../components/Breadcrumb'
 import Sparkline from '../components/Sparkline'
-
-function fmtVal(n) {
-  return n ? `$${n.toLocaleString()}` : '—'
-}
+import { fmtVal } from '../utils/formatters'
 
 const GEN_DESCRIPTIONS = {
   'F-Body': 'The F-Body 911, produced from 1963 to 1973, is the original air-cooled sports car that defined Porsche\'s identity for decades. Early cars are prized for their pure, lightweight character and direct connection to Ferdinand Piëch\'s original vision. Rare variants like the Carrera RS 2.7 and 911R are among the most valuable Porsches ever sold at auction.',

@@ -64,6 +64,7 @@ export default function MarketHome() {
   const race       = ALL_MODELS.filter(m => m.category === 'race')
 
   const [modelStats, setModelStats] = useState({})
+  const [statsError, setStatsError] = useState(null)
 
   useEffect(() => {
     document.body.classList.add('theme-light')
@@ -81,7 +82,7 @@ export default function MarketHome() {
           ])
         )
       )
-    }).catch(err => console.error('Failed to load model line stats:', err))
+    }).catch(err => setStatsError(err.message))
   }, [])
 
   const ModelCard = ({ m }) => {
@@ -113,6 +114,7 @@ export default function MarketHome() {
       <div className="page-header">
         <h1 className="page-title">Porsche</h1>
       </div>
+      {statsError && <p className="status error">Could not load market stats: {statsError}</p>}
 
       <section className="section">
         <h2 className="section-label">Model Lines</h2>

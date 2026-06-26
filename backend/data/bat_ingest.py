@@ -395,7 +395,7 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
     try:
         sold_date = datetime.fromtimestamp(int(ts)).date()
     except (TypeError, ValueError, OSError):
-        sold_date = date.today()
+        sold_date = None
 
     return dict(
         make              = "Porsche",

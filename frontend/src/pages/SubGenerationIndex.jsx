@@ -6,16 +6,13 @@ import { calcStats, groupByField, groupByMonth } from '../utils/aggregation'
 import Breadcrumb from '../components/Breadcrumb'
 import PriceHistoryChart from '../components/PriceHistoryChart'
 import Sparkline from '../components/Sparkline'
+import { fmtVal } from '../utils/formatters'
 
 const GEN_DESCRIPTIONS = {
   '996': 'The 996 generation brought sweeping change to the 911 with the introduction of a water-cooled flat-six and an all-new body platform shared with the Boxster. It was the most affordable modern 911 at launch and significantly expanded the model\'s customer base. Today the 996 represents strong value among modern 911s, particularly in GT3, Turbo, and GT2 form.',
   '997': 'The 997 restored classic 911 design cues — most notably round headlights — while building on the water-cooled foundation of the 996. Two distinct model years split the generation into pre- and post-facelift cars, each with distinct engineering and character. GT variants in particular command strong and rising values, with the GT3 RS 4.0 widely regarded as one of the greatest driver\'s Porsches ever built.',
   '991': 'The 991 brought a longer wheelbase, wider track, and electric power steering, representing the most significant 911 evolution in a generation. It was the last 911 offered with a naturally aspirated flat-six in Carrera form before the 992 moved fully to turbocharged engines. GT3, R, and Speedster variants from this generation are already considered future classics.',
   '992': 'The 992 is the most capable and technologically advanced 911 to date, standardizing the widened body shell and twin-turbocharged flat-six across the entire Carrera range. Launched in 2019 with the 992.1 and refreshed for 2025 with the 992.2, the generation continues to evolve while maintaining the 911\'s fundamental character. GT3 and GT3 RS variants have drawn wide acclaim as the benchmark for naturally aspirated, road-legal track cars.',
-}
-
-function fmtVal(n) {
-  return n ? `$${n.toLocaleString()}` : '—'
 }
 
 export default function SubGenerationIndex() {
