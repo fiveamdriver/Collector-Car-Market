@@ -7,6 +7,12 @@ import { filterByTimeRange } from '../utils/aggregation'
 
 const RANGES = ['1M', '3M', '6M', '1Y', 'All']
 
+const C_GRID   = '#D5D2CC'  // --border
+const C_TEXT   = '#555555'  // --text-secondary
+const C_CURSOR = '#C8C5BF'  // --border-light
+const C_LINE   = '#888888'  // neutral mid-grey
+const C_DOT    = '#555555'  // --text-secondary
+
 function fmtAxis(n) {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000)     return `$${(n / 1_000).toFixed(0)}k`
@@ -66,29 +72,29 @@ export default function PriceHistoryChart({ monthlyData, defaultExpanded = true 
       {expanded && (
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={visible} margin={{ top: 8, right: 24, bottom: 4, left: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#D5D2CC" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke={C_GRID} vertical={false} />
             <XAxis
               dataKey="month"
-              tick={{ fill: '#555555', fontSize: 11 }}
+              tick={{ fill: C_TEXT, fontSize: 11 }}
               tickLine={false}
-              axisLine={{ stroke: '#D5D2CC' }}
+              axisLine={{ stroke: C_GRID }}
               interval="preserveStartEnd"
             />
             <YAxis
               tickFormatter={fmtAxis}
-              tick={{ fill: '#555555', fontSize: 11 }}
+              tick={{ fill: C_TEXT, fontSize: 11 }}
               tickLine={false}
               axisLine={false}
               width={62}
             />
-            <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#C8C5BF', strokeWidth: 1 }} />
+            <Tooltip content={<ChartTooltip />} cursor={{ stroke: C_CURSOR, strokeWidth: 1 }} />
             <Line
               type="monotone"
               dataKey="avgPrice"
-              stroke="#888888"
+              stroke={C_LINE}
               strokeWidth={2}
-              dot={{ r: 3, fill: '#888888', strokeWidth: 0 }}
-              activeDot={{ r: 5, fill: '#555555', strokeWidth: 0 }}
+              dot={{ r: 3, fill: C_LINE, strokeWidth: 0 }}
+              activeDot={{ r: 5, fill: C_DOT, strokeWidth: 0 }}
               isAnimationActive={false}
             />
           </LineChart>

@@ -1,5 +1,7 @@
 import { LineChart, Line, ResponsiveContainer } from 'recharts'
 
+const C_LINE = '#5a9e6f'  // sparkline green — used only for variant index cards
+
 export default function Sparkline({ data }) {
   if (!data || data.length < 2) return <div className="sparkline-empty" />
   return (
@@ -9,7 +11,7 @@ export default function Sparkline({ data }) {
           <Line
             type="monotone"
             dataKey="avgPrice"
-            stroke="#5a9e6f"
+            stroke={C_LINE}
             strokeWidth={1.5}
             dot={false}
             isAnimationActive={false}
