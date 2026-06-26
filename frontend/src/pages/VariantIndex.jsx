@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, MODEL_LINE, VARIANTS, GENERATION_HERO } from '../data/taxonomy'
+import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE, VARIANTS, GENERATION_HERO } from '../data/taxonomy'
 import { fetchAuctionResults } from '../api/client'
 import { calcStats, groupByField, groupByMonth } from '../utils/aggregation'
 import { toSlug } from '../utils/slugs'
@@ -9,50 +9,6 @@ import Sparkline from '../components/Sparkline'
 
 function fmtVal(n) {
   return n ? `$${n.toLocaleString()}` : '—'
-}
-
-const GEN_CARD_IMAGES = {
-  'F-Body': '/images/911_gen_page_cards/911R(1967)Fbodygenpic.jpeg',
-  'G-Body': '/images/911_gen_page_cards/930turbogbodygen.jpg',
-  '964':    '/images/911_gen_page_cards/porsche964RS.png',
-  '993':    '/images/911_gen_page_cards/993GT2.png',
-  '996':    '/images/911_gen_page_cards/996.jpeg',
-  '996.1':  '/images/911_gen_page_cards/996.jpeg',
-  '996.2':  '/images/911_gen_page_cards/996.jpeg',
-  '997':    '/images/911_gen_page_cards/997GT2.png',
-  '997.1':  '/images/911_gen_page_cards/997GT2.png',
-  '997.2':  '/images/911_gen_page_cards/997GT2.png',
-  '991':    '/images/911_gen_page_cards/991gt2rs.png',
-  '991.1':  '/images/911_gen_page_cards/991gt2rs.png',
-  '991.2':  '/images/911_gen_page_cards/991gt2rs.png',
-  '992':    '/images/911_gen_page_cards/911st.png',
-  '992.1':  '/images/911_gen_page_cards/911st.png',
-  '992.2':  '/images/911_gen_page_cards/911st.png',
-}
-
-const GEN_YEARS = {
-  'F-Body': '1963–1973',
-  'G-Body':   '1974–1989',
-  '964':      '1989–1994',
-  '993':      '1994–1998',
-  '996':      '1997–2005',
-  '996.1':    '1997–2001',
-  '996.2':    '2001–2005',
-  '997':      '2004–2012',
-  '997.1':    '2004–2008',
-  '997.2':    '2008–2012',
-  '991':      '2011–2019',
-  '991.1':    '2011–2016',
-  '991.2':    '2016–2019',
-  '992':      '2019–present',
-  '992.1':    '2019–2024',
-  '992.2':    '2025–present',
-  '986':      '1996–2004',
-  '987':      '2004–2012',
-  '987.1':    '2004–2008',
-  '987.2':    '2008–2012',
-  '981':      '2012–2016',
-  '718':      '2016–present',
 }
 
 const GEN_DESCRIPTIONS = {
@@ -222,9 +178,9 @@ export default function VariantIndex() {
         </div>
 
         <div className="gen-hero-right">
-          {GEN_CARD_IMAGES[generation] && (
+          {GEN_IMAGES[generation] && (
             <img
-              src={GEN_CARD_IMAGES[generation]}
+              src={GEN_IMAGES[generation]}
               alt={`${model.label} ${generation}`}
               className="gen-hero-img"
             />

@@ -1,29 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, MODEL_LINE, GENERATION_HERO } from '../data/taxonomy'
+import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE, GENERATION_HERO } from '../data/taxonomy'
 import { fetchAuctionResults } from '../api/client'
 import { calcStats, groupByField, groupByMonth } from '../utils/aggregation'
 import Breadcrumb from '../components/Breadcrumb'
 import PriceHistoryChart from '../components/PriceHistoryChart'
 import Sparkline from '../components/Sparkline'
-
-const GEN_CARD_IMAGES = {
-  'F-Body': '/images/911_gen_page_cards/911R(1967)Fbodygenpic.jpeg',
-  'G-Body': '/images/911_gen_page_cards/930turbogbodygen.jpg',
-  '964':    '/images/911_gen_page_cards/porsche964RS.png',
-  '993':    '/images/911_gen_page_cards/993GT2.png',
-  '996':    '/images/911_gen_page_cards/996.jpeg',
-  '997':    '/images/911_gen_page_cards/997GT2.png',
-  '991':    '/images/911_gen_page_cards/991gt2rs.png',
-  '992':    '/images/911_gen_page_cards/911st.png',
-}
-
-const GEN_YEARS = {
-  '996': '1997–2005',
-  '997': '2004–2012',
-  '991': '2011–2019',
-  '992': '2019–present',
-}
 
 const GEN_DESCRIPTIONS = {
   '996': 'The 996 generation brought sweeping change to the 911 with the introduction of a water-cooled flat-six and an all-new body platform shared with the Boxster. It was the most affordable modern 911 at launch and significantly expanded the model\'s customer base. Today the 996 represents strong value among modern 911s, particularly in GT3, Turbo, and GT2 form.',
@@ -146,9 +128,9 @@ export default function SubGenerationIndex() {
         </div>
 
         <div className="gen-hero-right">
-          {GEN_CARD_IMAGES[seg1] && (
+          {GEN_IMAGES[seg1] && (
             <img
-              src={GEN_CARD_IMAGES[seg1]}
+              src={GEN_IMAGES[seg1]}
               alt={`${model.label} ${seg1}`}
               className="gen-hero-img"
             />

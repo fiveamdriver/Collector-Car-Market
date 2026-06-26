@@ -1,37 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, GENERATIONS, MODEL_LINE } from '../data/taxonomy'
+import { ALL_MODELS, GENERATION_GROUPS, GENERATIONS, GEN_IMAGES, GEN_YEARS, MODEL_LINE } from '../data/taxonomy'
 import { fetchAuctionResults } from '../api/client'
 import { calcStats, groupByField } from '../utils/aggregation'
 import Breadcrumb from '../components/Breadcrumb'
 
-const GEN_IMAGES = {
-  'F-Body': '/images/911_gen_page_cards/911R(1967)Fbodygenpic.jpeg',
-  'G-Body': '/images/911_gen_page_cards/930turbogbodygen.jpg',
-  '964':    '/images/911_gen_page_cards/porsche964RS.png',
-  '993':    '/images/911_gen_page_cards/993GT2.png',
-  '996':    '/images/911_gen_page_cards/996.jpeg',
-  '997':    '/images/911_gen_page_cards/997GT2.png',
-  '991':    '/images/911_gen_page_cards/991gt2rs.png',
-  '992':    '/images/911_gen_page_cards/911st.png',
-}
-
 const GEN_IMAGE_POSITION = {
   'G-Body': 'center bottom',
   '992':    '28% center',
-}
-
-const GEN_IMAGE_TRANSFORM = {}
-
-const GEN_YEARS = {
-  'F-Body': '1963–1973',
-  'G-Body': '1974–1989',
-  '964':    '1989–1994',
-  '993':    '1994–1998',
-  '996':    '1997–2005',
-  '997':    '2004–2012',
-  '991':    '2011–2019',
-  '992':    '2019–present',
 }
 
 export default function GenerationIndex() {
@@ -84,10 +60,7 @@ export default function GenerationIndex() {
                 {GEN_IMAGES[gen] && (
                   <div className="index-card-img-wrap">
                     <img src={GEN_IMAGES[gen]} alt={gen} className="index-card-img"
-                      style={{
-                        ...(GEN_IMAGE_POSITION[gen] ? { objectPosition: GEN_IMAGE_POSITION[gen] } : {}),
-                        ...(GEN_IMAGE_TRANSFORM[gen] ? { transform: GEN_IMAGE_TRANSFORM[gen] } : {}),
-                      }} />
+                      style={GEN_IMAGE_POSITION[gen] ? { objectPosition: GEN_IMAGE_POSITION[gen] } : undefined} />
                   </div>
                 )}
                 <div className="index-card-body">
