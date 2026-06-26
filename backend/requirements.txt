@@ -8,3 +8,5 @@ pydantic-core==2.46.4
 annotated-types==0.7.0
 starlette==1.2.1
 anyio==4.13.0
+python-dotenv==1.2.2
+playwright==1.60.0

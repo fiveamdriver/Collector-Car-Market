@@ -4,7 +4,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, field_validator
 
 # Valid transmission values stored in the database.
-TransmissionType = Literal["PDK", "Manual"]
+TransmissionType = Literal["PDK", "Manual", "Automatic"]
 
 
 class AuctionResultCreate(BaseModel):
@@ -29,8 +29,8 @@ class AuctionResultCreate(BaseModel):
     @field_validator("year")
     @classmethod
     def validate_year(cls, value: int) -> int:
-        if not 1950 <= value <= 2030:
-            raise ValueError(f"year {value} is outside the valid range 1950–2030")
+        if not 1945 <= value <= 2030:
+            raise ValueError(f"year {value} is outside the valid range 1945–2030")
         return value
 
     @field_validator("sold_price")
@@ -74,8 +74,8 @@ class ActiveListingCreate(BaseModel):
     @field_validator("year")
     @classmethod
     def validate_year(cls, value: int) -> int:
-        if not 1950 <= value <= 2030:
-            raise ValueError(f"year {value} is outside the valid range 1950–2030")
+        if not 1945 <= value <= 2030:
+            raise ValueError(f"year {value} is outside the valid range 1945–2030")
         return value
 
 

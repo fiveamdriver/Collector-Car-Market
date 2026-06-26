@@ -27,15 +27,80 @@ import app.models  # noqa: F401
 from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.utils.color_parser import parse_color_from_phrase, scan_for_color
 from sqlalchemy import select
 
 SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 
-GRAPHQL_URL  = "https://cdn.goodingco.com/graphql"
-LOT_BASE_URL = "https://www.goodingco.com/lot/"
-CDN_BASE     = "https://res.cloudinary.com/goodingco/image/upload/"
+GRAPHQL_URL   = "https://cdn.goodingco.com/graphql"
+LOT_BASE_URL  = "https://www.goodingco.com/lot/"
+PAGE_DATA_URL = "https://www.goodingco.com/page-data/lot/"
+CDN_BASE      = "https://res.cloudinary.com/goodingco/image/upload/"
 HITS_PER_PAGE = 15
-QUERY_HASH   = "0749eee74b0c4cf20bde3cd2a79b36ca364b6d1e4364ce3295a1ae4dd090706a"
+QUERY_HASH    = "0749eee74b0c4cf20bde3cd2a79b36ca364b6d1e4364ce3295a1ae4dd090706a"
+
+# ── Mileage + color parsing from page-data.json highlights ────────────────────
+_SUBTITLE_MILEAGE_RE = re.compile(
+    r'([\d][\d,\.]*)\s*(k)?\s*(miles?|kilometers?|km|mi)\b',
+    re.IGNORECASE
+)
+# Matches "Finished in [Very Rare / Original Color of] X over Y"
+_FINISHED_IN_RE = re.compile(
+    r'\bfinished in\b\s+(?:very rare\s+|original colou?rs?\s+of\s+)?(.+?)(?:\s+over\b|\s+with\b|,|$)',
+    re.IGNORECASE
+)
+
+
+def fetch_lot_highlights(slug: str) -> list[str] | None:
+    """Fetch Gatsby page-data.json for a lot and return its highlights list."""
+    url = f"{PAGE_DATA_URL}{slug}/page-data.json"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=15, context=SSL_CTX) as resp:
+            data = json.loads(resp.read().decode())
+        item = data["result"]["data"]["contentfulLot"]["item"]
+        return item.get("highlights") or []
+    except Exception:
+        return None
+
+
+def _parse_mileage_from_text(text: str) -> int | None:
+    m = _SUBTITLE_MILEAGE_RE.search(text)
+    if not m:
+        return None
+    num_str, k_suffix, unit = m.group(1), m.group(2), m.group(3)
+    # European period-as-thousands: "20.408" → 20408
+    if '.' in num_str and ',' not in num_str:
+        parts = num_str.split('.')
+        if len(parts) == 2 and len(parts[1]) == 3:
+            num_str = num_str.replace('.', '')
+    num_str = num_str.replace(',', '')
+    try:
+        value = float(num_str)
+    except ValueError:
+        return None
+    if k_suffix:
+        value *= 1000
+    if unit.lower() in ('km', 'kilometer', 'kilometers'):
+        value /= 1.609
+    result = round(value)
+    return result if result >= 100 else None
+
+
+def parse_mileage_from_highlights(highlights: list[str]) -> int | None:
+    for h in highlights:
+        m = _parse_mileage_from_text(h)
+        if m is not None:
+            return m
+    return None
+
+
+def parse_color_from_highlights(highlights: list[str]) -> str | None:
+    for h in highlights:
+        fm = _FINISHED_IN_RE.search(h)
+        if fm:
+            return parse_color_from_phrase(fm.group(1).strip())
+    return None
 
 
 # ── Generation lookups (mirror bat_ingest.py) ────────────────────────────────
@@ -249,7 +314,7 @@ def fetch_page(page_number: int) -> tuple[list[dict], int]:
 
 # ── Record mapper ─────────────────────────────────────────────────────────────
 
-def map_record(v: dict) -> dict | None:
+def map_record(v: dict, highlights: list[str] | None = None) -> dict | None:
     """Map a Gooding vehicle object to an auction_results row dict."""
     # Only completed, sold lots
     if v.get("activeAuction") != "false":
@@ -306,14 +371,14 @@ def map_record(v: dict) -> dict | None:
         "year":              year,
         "transmission":      "Manual",   # not in API; almost all collector Porsches are manual
         "is_widebody":       None,
-        "mileage":           None,
+        "mileage":           parse_mileage_from_highlights(highlights or []),
         "thumbnail_url":     thumb,
         "sold_price":        sold_price,
         "auction_source":    "Gooding & Company",
         "auction_url":       lot_url,
         "sold_date":         sold_date,
         "lot_title":         title,
-        "exterior_color":    None,
+        "exterior_color":    parse_color_from_highlights(highlights or []),
         "paint_to_sample":   parse_paint_to_sample(search_text),
         "production_number": None,
     }
@@ -352,7 +417,9 @@ async def ingest() -> None:
 
         total_fetched += len(vehicles)
         for v in vehicles:
-            rec = map_record(v)
+            slug = v.get("slug") or ""
+            highlights = fetch_lot_highlights(slug) if slug else None
+            rec = map_record(v, highlights=highlights)
             if rec is None:
                 total_skipped += 1
                 continue
