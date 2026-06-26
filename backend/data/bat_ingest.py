@@ -475,6 +475,7 @@ async def ingest(only: list[str] | None = None) -> None:
                     cfg_skipped += 1
                     continue
                 url = rec.get("auction_url")
+                # BaT always provides URLs; null-URL records skip dedup and would duplicate on re-run.
                 if url and url in existing:
                     if existing[url] is None and rec.get("thumbnail_url"):
                         to_backfill.append((url, rec["thumbnail_url"]))

@@ -26,6 +26,7 @@ import app.models  # noqa: F401
 from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.utils.color_parser import scan_for_color
 from sqlalchemy import select
 
 SSL_CTX = ssl.create_default_context(cafile=certifi.where())
@@ -33,6 +34,40 @@ SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 SEARCH_URL   = "https://rmsothebys.com/api/search/SearchLots"
 LOT_BASE_URL = "https://rmsothebys.com"
 PAGE_SIZE    = 40
+
+# ── Mileage parsing ────────────────────────────────────────────────────────────
+# Handles RM collection subtitle formats:
+#   "4,952 Miles From New", "Just Under 26,800 km From New",
+#   "Just 20.408 km From New"  ← European period-as-thousands separator
+_SUBTITLE_MILEAGE_RE = re.compile(
+    r'([\d][\d,\.]*)\s*(k)?\s*(miles?|kilometers?|km|mi)\b',
+    re.IGNORECASE
+)
+
+
+def parse_mileage_from_subtitle(text: str) -> int | None:
+    if not text:
+        return None
+    m = _SUBTITLE_MILEAGE_RE.search(text)
+    if not m:
+        return None
+    num_str, k_suffix, unit = m.group(1), m.group(2), m.group(3)
+    # European period-as-thousands-separator: "20.408" → 20408
+    if '.' in num_str and ',' not in num_str:
+        parts = num_str.split('.')
+        if len(parts) == 2 and len(parts[1]) == 3:
+            num_str = num_str.replace('.', '')
+    num_str = num_str.replace(',', '')
+    try:
+        value = float(num_str)
+    except ValueError:
+        return None
+    if k_suffix:
+        value *= 1000
+    if unit.lower() in ('km', 'kilometer', 'kilometers'):
+        value /= 1.609
+    result = round(value)
+    return result if result >= 100 else None
 
 
 # ── Generation lookups (mirror bat_ingest.py) ────────────────────────────────
@@ -334,22 +369,26 @@ def map_record(item: dict, lot_date: str | None) -> dict | None:
     link = item.get("link") or ""
     lot_url = f"{LOT_BASE_URL}{link}" if link else None
 
+    collection = item.get("collection") or ""
+    mileage = parse_mileage_from_subtitle(collection)
+    exterior_color = scan_for_color(collection)
+
     return {
         "make":              "Porsche",
         "model_line":        model_line,
         "generation":        generation,
         "variant":           variant,
         "year":              year,
-        "transmission":      "Manual",
+        "transmission":      "Manual",   # not in API; almost all collector Porsches are manual
         "is_widebody":       None,
-        "mileage":           None,
+        "mileage":           mileage,
         "thumbnail_url":     item.get("crop") or None,
         "sold_price":        sold_price,
         "auction_source":    "RM Sotheby's",
         "auction_url":       lot_url,
         "sold_date":         sold_date,
         "lot_title":         title,
-        "exterior_color":    None,
+        "exterior_color":    exterior_color,
         "paint_to_sample":   parse_paint_to_sample(title),
         "production_number": None,
     }
