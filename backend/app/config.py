@@ -19,8 +19,8 @@ load_dotenv(_env_file)
 # Async SQLAlchemy URL used by the FastAPI app and data-pipeline scripts.
 DATABASE_URL: str = os.environ["DATABASE_URL"]
 
-# Raw filesystem path for migration scripts that use sqlite3 directly.
-DATABASE_PATH: str = os.environ["DATABASE_PATH"]
+# Raw filesystem path for migration scripts that use sqlite3 directly (SQLite only).
+DATABASE_PATH: str = os.environ.get("DATABASE_PATH", "")
 
 # Comma-separated allowed CORS origins.  Multiple values are supported for
 # environments that run the frontend on a non-default port.

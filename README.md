@@ -8,9 +8,9 @@ A full-stack web app that tracks collector car auction results and market prices
 - Built as a portfolio project demonstrating REST API design, React frontend, and data pipeline architecture
 
 ## Tech Stack
-- **Backend:** Python, FastAPI, SQLite, pandas
-- **Frontend:** React, Recharts
-- **Data:** BaT internal API (reverse engineered via Chrome DevTools)
+- **Backend:** Python, FastAPI, SQLite, SQLAlchemy
+- **Frontend:** React, Vite, Recharts
+- **Data Sources:** BaT (internal WordPress API), RM Sotheby's (internal JSON API), Gooding & Company (Gatsby page-data.json), Race Cars For You
 - **Dev Environment:** macOS, VS Code, Claude Code CLI
 
 ## Project Structure
