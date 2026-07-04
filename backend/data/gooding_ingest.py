@@ -220,6 +220,8 @@ def parse_generation(model_line: str, year: int, text: str) -> str:
 
 
 def parse_variant(model_line: str, year: int, text: str) -> str:
+    if model_line == "914":
+        return "914/6" if re.search(r'914[/-]6', text) else "base"
     if model_line == "911":
         gen = get_911_generation(year)
         if gen == "G-Body":

@@ -107,6 +107,15 @@ CONFIGS = [
     {"name": "Carrera GT",        "ids": [38349021],                              "model_line": "Carrera GT", "variant": "base"},
     {"name": "959",               "ids": [39491899],                              "model_line": "959",        "variant": "base"},
     {"name": "918 Spyder",        "ids": [38553278],                              "model_line": "918 Spyder", "variant": None},
+    # ── Transaxle (924/944/968/928) & 914 ─────────────────────────────────────
+    # Deliberately excludes Panamera and the SUVs (Cayenne/Macan).
+    {"name": "914",               "ids": [49009535],                              "model_line": "914",        "variant": None},
+    {"name": "914/6",             "ids": [1833047],                               "model_line": "914",        "variant": "914/6"},
+    {"name": "924",               "ids": [2834564],                               "model_line": "924",        "variant": None},
+    {"name": "944",               "ids": [1833048],                               "model_line": "944",        "variant": None},
+    {"name": "944 Turbo",         "ids": [2423735],                               "model_line": "944",        "variant": "Turbo"},
+    {"name": "968",               "ids": [2121740],                               "model_line": "968",        "variant": None},
+    {"name": "928",               "ids": [1833246],                               "model_line": "928",        "variant": None},
 ]
 
 
