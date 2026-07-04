@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ALL_MODELS, MODEL_LINE } from '../data/taxonomy'
+import { ALL_MODELS, MODEL_LINE, GROUP_CHILDREN } from '../data/taxonomy'
 import { fetchModelLineStats } from '../api/client'
 
 const MODEL_YEARS = {
   '911':        '1963–present',
   '356':        '1948–1965',
+  'transaxle':  '1976–1995',
   'cayman':     '2005–present',
   'boxster':    '1996–present',
+  '914':        '1969–1976',
   '959':        '1986–1988',
   'carrera-gt': '2004–2006',
   '918-spyder': '2013–2015',
@@ -36,8 +38,10 @@ const IMAGE_POSITION = {
 const MODEL_IMAGES = {
   '911':        '/images/Front_page_cards/Regular_models/997RS4.0v2.png',
   '356':        '/images/Front_page_cards/Regular_models/356(frontpage).png',
+  'transaxle':  '/images/Front_page_cards/Regular_models/944.png',
   'cayman':     '/images/Front_page_cards/Regular_models/GT4RS.png',
   'boxster':    '/images/Front_page_cards/Regular_models/spyderrsfront.png',
+  '914':        '/images/Front_page_cards/Regular_models/porsche 914.jpg',
   '959':        '/images/Front_page_cards/Specialty/959hero.jpg',
   'carrera-gt': '/images/Front_page_cards/Specialty/cgthero.jpeg',
   '918-spyder': '/images/Front_page_cards/Specialty/918hero.png',
@@ -74,14 +78,20 @@ export default function MarketHome() {
   useEffect(() => {
     fetchModelLineStats().then(rows => {
       const byML = Object.fromEntries(rows.map(r => [r.model_line, r]))
-      setModelStats(
-        Object.fromEntries(
-          ALL_MODELS.map(m => [
-            m.slug,
-            { count: byML[MODEL_LINE[m.slug]]?.count ?? 0, avg: byML[MODEL_LINE[m.slug]]?.avg_sold_price ?? 0 },
-          ])
-        )
-      )
+      const statFor = (slug) => {
+        // "group" models (Transaxle) aggregate several DB model lines.
+        const children = GROUP_CHILDREN[slug]
+        if (children) {
+          const parts = children.map(c => byML[MODEL_LINE[c]]).filter(Boolean)
+          const count = parts.reduce((n, r) => n + r.count, 0)
+          const avg = count
+            ? Math.round(parts.reduce((s, r) => s + r.avg_sold_price * r.count, 0) / count)
+            : 0
+          return { count, avg }
+        }
+        return { count: byML[MODEL_LINE[slug]]?.count ?? 0, avg: byML[MODEL_LINE[slug]]?.avg_sold_price ?? 0 }
+      }
+      setModelStats(Object.fromEntries(ALL_MODELS.map(m => [m.slug, statFor(m.slug)])))
     }).catch(err => setStatsError(err.message))
   }, [])
 
@@ -118,7 +128,7 @@ export default function MarketHome() {
 
       <section className="section">
         <h2 className="section-label">Model Lines</h2>
-        <div className="card-grid card-grid--models-2col">
+        <div className="card-grid card-grid--models">
           {series.map(m => <ModelCard key={m.slug} m={m} />)}
         </div>
       </section>

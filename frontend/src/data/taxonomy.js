@@ -5,6 +5,12 @@ export const MODEL_LINE = {
   '356':        '356',
   'cayman':     'Cayman',
   'boxster':    'Boxster',
+  // Transaxle & 914
+  '914':        '914',
+  '924':        '924',
+  '944':        '944',
+  '968':        '968',
+  '928':        '928',
   // Specialty
   '959':        '959',
   'carrera-gt': 'Carrera GT',
@@ -30,10 +36,17 @@ export const MODEL_LINE = {
 // category drives which section on MarketHome; type drives routing
 export const ALL_MODELS = [
   // ── Model Lines ──────────────────────────────────────────────────────────────
-  { slug: '911',        label: '911',        type: 'series',     category: 'series' },
-  { slug: '356',        label: '356',        type: 'series',     category: 'series' },
-  { slug: 'cayman',     label: 'Cayman',     type: 'series',     category: 'series' },
-  { slug: 'boxster',    label: 'Boxster',    type: 'series',     category: 'series' },
+  { slug: '911',        label: '911',        type: 'series',        category: 'series' },
+  { slug: 'cayman',     label: 'Cayman',     type: 'series',        category: 'series' },
+  { slug: 'boxster',    label: 'Boxster',    type: 'series',        category: 'series' },
+  { slug: '356',        label: '356',        type: 'series',        category: 'series' },
+  { slug: '914',        label: '914',        type: 'variant-model', category: 'series' },
+  { slug: 'transaxle',  label: 'Transaxle',  type: 'group',         category: 'series' },
+  // ── Transaxle children (routable, not shown as their own home section) ────────
+  { slug: '924',        label: '924',        type: 'variant-model', category: 'transaxle' },
+  { slug: '944',        label: '944',        type: 'variant-model', category: 'transaxle' },
+  { slug: '968',        label: '968',        type: 'standalone',    category: 'transaxle' },
+  { slug: '928',        label: '928',        type: 'standalone',    category: 'transaxle' },
   // ── Specialty Models ──────────────────────────────────────────────────────────
   { slug: '959',        label: '959',        type: 'standalone', category: 'specialty' },
   { slug: 'carrera-gt', label: 'Carrera GT', type: 'standalone', category: 'specialty' },
@@ -55,6 +68,31 @@ export const ALL_MODELS = [
   { slug: '718-rsk',    label: '718 RSK',    type: 'standalone', category: 'race' },
   { slug: 'rs-spyder',  label: 'RS Spyder',  type: 'standalone', category: 'race' },
 ]
+
+// Child model slugs for "group" models (a card that opens into several models,
+// the way the 911 opens into generations).
+export const GROUP_CHILDREN = {
+  'transaxle': ['924', '944', '968', '928'],
+}
+
+// Curated variant lists for "variant-model" models — models that split into
+// trims (like 924 Carrera GT / 944 Turbo) but have no generation level.
+// Values match the DB `variant` field so results filter cleanly.
+export const VARIANT_MODELS = {
+  '924': ['Carrera GT', 'Turbo', 'base'],
+  '944': ['Turbo', 'S2', 'S', 'base'],
+  '914': ['914/6', 'base'],
+}
+
+// Card image + production years for the transaxle children and 914, used by
+// GroupIndex / VariantModelIndex / MarketDetail.
+export const TRANSAXLE_META = {
+  '924': { years: '1976–1988', img: null },
+  '944': { years: '1982–1991', img: '/images/Front_page_cards/Regular_models/944.png' },
+  '968': { years: '1992–1995', img: null },
+  '928': { years: '1978–1995', img: null },
+  '914': { years: '1969–1976', img: '/images/Front_page_cards/Regular_models/porsche%20914.jpg' },
+}
 
 // Groups that have sub-generations; keyed by the group URL slug
 export const GENERATION_GROUPS = {

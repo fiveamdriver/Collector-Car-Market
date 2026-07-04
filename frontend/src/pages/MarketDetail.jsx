@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, MODEL_LINE, VARIANTS, VARIANT_HERO, MODEL_HERO } from '../data/taxonomy'
+import { ALL_MODELS, GENERATION_GROUPS, MODEL_LINE, VARIANTS, VARIANT_HERO, MODEL_HERO, VARIANT_MODELS, GROUP_CHILDREN } from '../data/taxonomy'
 import VARIANT_DESCRIPTIONS, { PRODUCTION_NUMBERS } from '../data/variantDescriptions'
 import { fetchAuctionResults, fetchActiveListings } from '../api/client'
 import { calcStats, groupByMonth } from '../utils/aggregation'
@@ -18,8 +18,13 @@ export default function MarketDetail() {
   const modelLine = MODEL_LINE[modelSlug]
   const groups    = GENERATION_GROUPS[modelSlug] ?? {}
 
+  // variant-model (924/944/914): no generation level — seg1 is the variant.
+  const isVariantModel = model?.type === 'variant-model'
+
   let groupSlug, generation, variantSlug
-  if (!seg1) {
+  if (isVariantModel) {
+    groupSlug = null; generation = null; variantSlug = seg1 ?? null
+  } else if (!seg1) {
     groupSlug = null; generation = null; variantSlug = null
   } else if (seg3) {
     groupSlug = seg1; generation = seg2; variantSlug = seg3
@@ -27,7 +32,9 @@ export default function MarketDetail() {
     groupSlug = null; generation = seg1; variantSlug = seg2
   }
 
-  const candidates = VARIANTS[modelSlug]?.[generation] ?? []
+  const candidates = isVariantModel
+    ? (VARIANT_MODELS[modelSlug] ?? [])
+    : (VARIANTS[modelSlug]?.[generation] ?? [])
   const variant    = variantSlug ? fromSlug(variantSlug, candidates) : null
 
   const [tab, setTab] = useState('results')
@@ -89,9 +96,13 @@ export default function MarketDetail() {
     ? `Porsche ${model.label} · ${generation}`
     : `Porsche ${model.label}`
 
-  // Hero title: "993 GT2", "F-Body 911R", or standalone model name
+  // Hero title: "993 GT2", "F-Body 911R", "944 Turbo", or standalone model name
   const heroTitle = variant
-    ? `${generation} ${variant}`
+    ? (isVariantModel
+        ? (variant === 'base' || variant.includes(model.label)
+            ? (variant === 'base' ? model.label : variant)
+            : `${model.label} ${variant}`)
+        : `${generation} ${variant}`)
     : model.label
 
   const crumbs = [{ label: 'Markets', to: '/' }]
@@ -102,6 +113,14 @@ export default function MarketDetail() {
       ? `/${modelSlug}/${groupSlug}/${generation}`
       : `/${modelSlug}/${generation}` })
     if (variant)    crumbs.push({ label: variant })
+  } else if (isVariantModel) {
+    const parentSlug = Object.keys(GROUP_CHILDREN).find(g => GROUP_CHILDREN[g].includes(modelSlug))
+    if (parentSlug) {
+      const parent = ALL_MODELS.find(m => m.slug === parentSlug)
+      crumbs.push({ label: parent?.label ?? parentSlug, to: `/${parentSlug}` })
+    }
+    crumbs.push({ label: model.label, to: `/${modelSlug}` })
+    if (variant) crumbs.push({ label: variant === 'base' ? model.label : variant })
   } else {
     crumbs.push({ label: model.label })
   }

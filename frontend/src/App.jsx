@@ -3,6 +3,8 @@ import { ALL_MODELS, GENERATION_GROUPS } from './data/taxonomy'
 import Layout from './components/Layout'
 import MarketHome from './pages/MarketHome'
 import GenerationIndex from './pages/GenerationIndex'
+import GroupIndex from './pages/GroupIndex'
+import VariantModelIndex from './pages/VariantModelIndex'
 import SubGenerationIndex from './pages/SubGenerationIndex'
 import VariantIndex from './pages/VariantIndex'
 import MarketDetail from './pages/MarketDetail'
@@ -12,14 +14,19 @@ function ModelRouter() {
   const { modelSlug } = useParams()
   const model = ALL_MODELS.find(m => m.slug === modelSlug)
   if (!model) return <Navigate to="/" replace />
-  return model.type === 'standalone' ? <MarketDetail /> : <GenerationIndex />
+  if (model.type === 'group')         return <GroupIndex />
+  if (model.type === 'variant-model') return <VariantModelIndex />
+  if (model.type === 'standalone')    return <MarketDetail />
+  return <GenerationIndex />
 }
 
-// /:modelSlug/:seg1 — group slug (997) → SubGenerationIndex; flat gen (964) → VariantIndex
+// /:modelSlug/:seg1 — variant-model leaf (944/turbo) → MarketDetail;
+// group slug (997) → SubGenerationIndex; flat gen (964) → VariantIndex
 function Seg1Router() {
   const { modelSlug, seg1 } = useParams()
   const model = ALL_MODELS.find(m => m.slug === modelSlug)
   if (!model) return <Navigate to="/" replace />
+  if (model.type === 'variant-model') return <MarketDetail />
   const groups = GENERATION_GROUPS[modelSlug] ?? {}
   return seg1 in groups ? <SubGenerationIndex /> : <VariantIndex />
 }
