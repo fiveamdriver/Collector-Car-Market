@@ -40,6 +40,8 @@ import app.models  # noqa: F401
 from app.config import DATABASE_URL
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
+from app.utils.transaxle import match_model_line as match_transaxle_line
 from sqlalchemy import select
 import asyncio
 
@@ -183,6 +185,11 @@ def parse_model_line(text: str) -> str:
     # which is a 911.  A real 918's title never also carries "911".
     if re.search(r'918\s*Spyder', text, re.IGNORECASE) and not re.search(r'\b911\b', text):
         return "918 Spyder"
+    # Transaxle first: "924S" / "944S" / "928S4" carry a suffix that \b924\b
+    # cannot match, so these cars fell through to the "911" default below.
+    transaxle = match_transaxle_line(text)
+    if transaxle:
+        return transaxle
     for token, ml in PORSCHE_MODEL_LINES:
         if token == "Carrera GT":
             if re.search(r'\bCarrera GT\b', text):
@@ -349,6 +356,9 @@ def map_lot(doc: dict) -> dict | None:
     model_line = parse_model_line(desc)
     generation = parse_generation(model_line, year, desc)
     variant    = parse_variant(model_line, year, desc)
+    if model_line in TRANSAXLE_LINES:
+        model_line, variant = classify_transaxle(model_line, desc)
+        generation = model_line
 
     image = doc.get("image") or {}
     thumbnail = image.get("url") or None

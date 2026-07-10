@@ -38,7 +38,7 @@ const IMAGE_POSITION = {
 const MODEL_IMAGES = {
   '911':        '/images/Front_page_cards/Regular_models/997RS4.0v2.png',
   '356':        '/images/Front_page_cards/Regular_models/356(frontpage).png',
-  'transaxle':  '/images/Front_page_cards/Regular_models/944.png',
+  'transaxle':  '/images/Front_page_cards/Regular_models/924_CarreraGT.png',
   'cayman':     '/images/Front_page_cards/Regular_models/GT4RS.png',
   'boxster':    '/images/Front_page_cards/Regular_models/spyderrsfront.png',
   '914':        '/images/Front_page_cards/Regular_models/porsche 914.jpg',

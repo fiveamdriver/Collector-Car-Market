@@ -28,6 +28,8 @@ from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
 from app.utils.color_parser import scan_for_color
+from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
+from app.utils.transaxle import match_model_line as match_transaxle_line
 from sqlalchemy import select
 
 SSL_CTX = ssl.create_default_context(cafile=certifi.where())
@@ -162,6 +164,11 @@ def parse_year(text: str) -> int | None:
 
 
 def parse_model_line(text: str) -> str:
+    # Transaxle first: "924S" / "944S" / "928S4" carry a suffix that \b924\b
+    # cannot match, so these cars fell through to the "911" default below.
+    transaxle = match_transaxle_line(text)
+    if transaxle:
+        return transaxle
     for token, ml in PORSCHE_MODEL_LINES:
         if token == "Carrera GT":
             if re.search(r'\bCarrera GT\b', text):
@@ -375,6 +382,9 @@ def map_record(item: dict, lot_date: str | None) -> dict | None:
     model_line = parse_model_line(title)
     generation = parse_generation(model_line, year, title)
     variant    = parse_variant(model_line, year, title)
+    if model_line in TRANSAXLE_LINES:
+        model_line, variant = classify_transaxle(model_line, title)
+        generation = model_line
 
     link = item.get("link") or ""
     lot_url = f"{LOT_BASE_URL}{link}" if link else None

@@ -34,6 +34,8 @@ from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
 from app.utils.color_parser import parse_color_from_phrase, scan_for_color
+from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
+from app.utils.transaxle import match_model_line as match_transaxle_line
 from datetime import datetime
 from sqlalchemy import select
 
@@ -381,6 +383,9 @@ def map_record(node: dict) -> dict | None:
         return None
     generation  = parse_generation(model_line, year, title)
     variant    = parse_variant(model_line, year, title, trim)
+    if model_line in TRANSAXLE_LINES:
+        model_line, variant = classify_transaxle(model_line, f"{title} {trim}".strip())
+        generation = model_line
 
     # Mileage
     mileage    = parse_odometer(node.get("odometer"), node.get("odometerUnits"))

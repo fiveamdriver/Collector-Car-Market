@@ -45,8 +45,8 @@ export const ALL_MODELS = [
   // ── Transaxle children (routable, not shown as their own home section) ────────
   { slug: '924',        label: '924',        type: 'variant-model', category: 'transaxle' },
   { slug: '944',        label: '944',        type: 'variant-model', category: 'transaxle' },
-  { slug: '968',        label: '968',        type: 'standalone',    category: 'transaxle' },
-  { slug: '928',        label: '928',        type: 'standalone',    category: 'transaxle' },
+  { slug: '968',        label: '968',        type: 'variant-model', category: 'transaxle' },
+  { slug: '928',        label: '928',        type: 'variant-model', category: 'transaxle' },
   // ── Specialty Models ──────────────────────────────────────────────────────────
   { slug: '959',        label: '959',        type: 'standalone', category: 'specialty' },
   { slug: 'carrera-gt', label: 'Carrera GT', type: 'standalone', category: 'specialty' },
@@ -78,9 +78,15 @@ export const GROUP_CHILDREN = {
 // Curated variant lists for "variant-model" models — models that split into
 // trims (like 924 Carrera GT / 944 Turbo) but have no generation level.
 // Values match the DB `variant` field so results filter cleanly.
+// The entry-level card is keyed 'base' and rendered with the model name, so
+// the S-suffix cars (924S / 944S / 928S) live there rather than in a card of
+// their own.  Competition cars sit on separate "<line> Race" model lines and
+// are deliberately absent here.
 export const VARIANT_MODELS = {
-  '924': ['Carrera GT', 'Turbo', 'base'],
-  '944': ['Turbo', 'S2', 'S', 'base'],
+  '924': ['Carrera GTS', 'Carrera GT', 'Turbo', 'base'],
+  '944': ['Turbo S', 'Turbo', 'S2', 'base'],
+  '968': ['Turbo S', 'Club Sport', 'base'],
+  '928': ['GTS', 'GT', 'S4', 'Club Sport', 'base'],
   '914': ['914/6', 'base'],
 }
 

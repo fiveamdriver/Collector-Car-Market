@@ -27,6 +27,12 @@ from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
 from app.utils.color_parser import parse_exterior_color
+from app.utils.transaxle import (
+    TRANSAXLE_LINES,
+    classify as classify_transaxle,
+    is_tribute,
+    strip_style_prefix,
+)
 from sqlalchemy import select, update
 
 API_URL   = "https://bringatrailer.com/wp-json/bringatrailer/1.0/data/listings-filter"
@@ -388,12 +394,23 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
     else:
         generation = model_line
 
-    if generation == '964' and 'RS America' in title:
+    if model_line in TRANSAXLE_LINES:
+        # Runs before config_variant: the "944 Turbo" config would otherwise
+        # stamp every lot it returns as "Turbo", including the Turbo S cars
+        # and the Turbo Cup race cars.
+        model_line, variant = classify_transaxle(model_line, title)
+        generation = model_line
+    elif generation == '964' and 'RS America' in title:
         variant = 'RS America'
     elif config_variant is not None:
         variant = config_variant
     elif generation == 'G-Body':
         variant = parse_gbody_variant(title, year)
+    elif model_line == '914':
+        # Without this branch the 911 patterns apply, and "Twin-Turbocharged
+        # 1976 Porsche 914" is filed as a Turbo — a variant the 914 never had.
+        variant = 'base' if is_tribute(title) or not re.search(
+            r'914[/-]6', strip_style_prefix(title)) else '914/6'
     elif model_line in ('Cayman', 'Boxster'):
         variant = parse_cayman_boxster_variant(title)
     else:
