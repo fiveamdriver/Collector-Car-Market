@@ -7,12 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.listing import ActiveListing, AuctionResult
-from app.schemas.listing import (
-    ActiveListingCreate,
-    ActiveListingRead,
-    AuctionResultCreate,
-    AuctionResultRead,
-)
+from app.schemas.listing import ActiveListingRead, AuctionResultRead
 
 router = APIRouter()
 
@@ -22,6 +17,10 @@ router = APIRouter()
 class ModelLineStats(BaseModel):
     model_line: str
     count: int
+    # Rows with a non-null sold_price — the denominator behind avg_sold_price.
+    # Clients combining lines into a weighted average must weight by this,
+    # not by count, or unsold lots skew the blend.
+    priced_count: int
     avg_sold_price: Optional[int] = None
 
 
@@ -31,6 +30,7 @@ async def get_model_line_stats(db: AsyncSession = Depends(get_db)) -> list[Model
     query = select(
         AuctionResult.model_line,
         func.count().label("count"),
+        func.count(AuctionResult.sold_price).label("priced_count"),
         func.avg(AuctionResult.sold_price).label("avg_sold_price"),
     ).group_by(AuctionResult.model_line)
 
@@ -39,6 +39,7 @@ async def get_model_line_stats(db: AsyncSession = Depends(get_db)) -> list[Model
         ModelLineStats(
             model_line=row.model_line,
             count=row.count,
+            priced_count=row.priced_count,
             avg_sold_price=round(row.avg_sold_price) if row.avg_sold_price else None,
         )
         for row in rows
@@ -88,18 +89,6 @@ async def get_auction_result(
     return row
 
 
-@router.post("/auction-results", response_model=AuctionResultRead, status_code=status.HTTP_201_CREATED)
-async def create_auction_result(
-    payload: AuctionResultCreate,
-    db: AsyncSession = Depends(get_db),
-) -> AuctionResultRead:
-    row = AuctionResult(**payload.model_dump())
-    db.add(row)
-    await db.commit()
-    await db.refresh(row)
-    return row
-
-
 # --- Active Listings ---
 
 @router.get("/active-listings", response_model=list[ActiveListingRead])
@@ -122,15 +111,3 @@ async def list_active_listings(
         query = query.where(ActiveListing.variant == variant)
     result = await db.execute(query)
     return result.scalars().all()
-
-
-@router.post("/active-listings", response_model=ActiveListingRead, status_code=status.HTTP_201_CREATED)
-async def create_active_listing(
-    payload: ActiveListingCreate,
-    db: AsyncSession = Depends(get_db),
-) -> ActiveListingRead:
-    row = ActiveListing(**payload.model_dump())
-    db.add(row)
-    await db.commit()
-    await db.refresh(row)
-    return row

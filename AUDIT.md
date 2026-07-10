@@ -135,3 +135,15 @@ These issues were identified but left for a dedicated follow-up to avoid scope c
 **PropTypes / TypeScript:** React components have no runtime type checking. The codebase uses `.jsx` throughout. Given React 19's deprecation of the `prop-types` package, the right path is migrating to `.tsx` with TypeScript strict mode rather than adding a deprecated library.
 
 **Empty `app/crud/` directory:** The `crud/` package was scaffolded but never populated. All DB logic currently lives in the route handlers. Either populate it or remove it to avoid confusion for new contributors.
+
+---
+
+## Addendum — 2026-07-10
+
+This document describes the June 11 state of the codebase and has drifted. Corrections:
+
+- **Item 3:** The WAL pragma / `busy_timeout` handler it references no longer exists; the database moved from SQLite to Supabase Postgres, where it would be moot.
+- **Item 6:** `TransmissionType` grew a third value (`Automatic`). The Create schemas and their validators were later removed entirely along with the POST endpoints (the API is now read-only); validators on the read path turned one bad row into a 500 for the whole endpoint.
+- **Item 8:** CORS was never a real control for the POST endpoints — CORS binds browsers only, not curl/scripts. The endpoints were removed on 2026-07-10.
+- **"SubGenerationIndex over-fetches":** the description was wrong — the page passed no `limit` at all and silently computed stats from the API's 500-row default. Fixed 2026-07-10 (`limit: 10000` to match sibling pages).
+- A unique index on `auction_results.auction_url` and a composite index `(model_line, generation, variant, sold_date)` were applied to the live database on 2026-07-10.

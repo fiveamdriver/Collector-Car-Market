@@ -12,7 +12,7 @@ function formatMonth(dateStr) {
 }
 
 export function groupByMonth(results) {
-  const map = {}
+  const map = Object.create(null) // no prototype — field values can't collide with Object.prototype keys
   for (const r of results) {
     if (!r.sold_date || r.sold_price == null) continue
     const month = formatMonth(r.sold_date)
@@ -39,17 +39,27 @@ export function filterByTimeRange(monthlyData, range) {
 
 export function calcStats(results) {
   if (!results.length) return { avg: 0, high: 0, low: 0, count: 0 }
-  const prices = results.map(r => r.sold_price).filter(p => p != null)
+  // Single pass, no spread: Math.max(...prices) blows the argument-count
+  // limit once a result set gets large enough.
+  let sum = 0, n = 0, high = 0, low = Infinity
+  for (const r of results) {
+    const p = r.sold_price
+    if (p == null) continue
+    sum += p
+    n += 1
+    if (p > high) high = p
+    if (p < low)  low = p
+  }
   return {
-    avg:   prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0,
-    high:  prices.length ? Math.max(...prices) : 0,
-    low:   prices.length ? Math.min(...prices) : 0,
+    avg:   n ? Math.round(sum / n) : 0,
+    high:  n ? high : 0,
+    low:   n ? low : 0,
     count: results.length,
   }
 }
 
 export function groupByField(results, field) {
-  const map = {}
+  const map = Object.create(null) // no prototype — field values can't collide with Object.prototype keys
   for (const r of results) {
     const key = r[field]
     if (!map[key]) map[key] = []

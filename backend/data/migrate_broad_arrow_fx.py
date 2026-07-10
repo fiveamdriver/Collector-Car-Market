@@ -15,13 +15,29 @@ Identified non-USD events (from inspecting actual lot pages):
 
 Exchange rates are approximate mid-market rates for the auction period.
 
-Usage (from backend/ directory):
-    python data/migrate_broad_arrow_fx.py
+▲▲▲ ONE-SHOT MIGRATION — ALREADY APPLIED (June 2026). DO NOT RE-RUN. ▲▲▲
+This script is NOT idempotent: nothing marks a row as converted, so a second
+run multiplies every European sold_price by its FX rate AGAIN, and the
+original local-currency amounts are not stored anywhere to recover from.
+It now refuses to run without --force-double-conversion-risk.
+
+Usage (historical, from backend/ directory):
+    python data/migrate_broad_arrow_fx.py --force-double-conversion-risk
 """
 import asyncio
 import os
 import re
 import sys
+
+if '--force-double-conversion-risk' not in sys.argv:
+    sys.exit(
+        "migrate_broad_arrow_fx.py: refusing to run.\n"
+        "This one-shot migration was already applied in June 2026 and is not\n"
+        "idempotent — re-running it would multiply every European Broad Arrow\n"
+        "sold_price by its FX rate a second time, with no stored original to\n"
+        "recover from. If you are certain it has never run against this\n"
+        "database, pass --force-double-conversion-risk."
+    )
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BACKEND_DIR)

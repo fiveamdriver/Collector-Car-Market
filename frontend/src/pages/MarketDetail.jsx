@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, MODEL_LINE, VARIANTS, VARIANT_HERO, MODEL_HERO, VARIANT_MODELS, GROUP_CHILDREN, CROSS_LISTINGS } from '../data/taxonomy'
+import { ALL_MODELS, MODEL_LINE, VARIANTS, VARIANT_HERO, MODEL_HERO, VARIANT_MODELS, GROUP_CHILDREN, CROSS_LISTINGS } from '../data/taxonomy'
 import VARIANT_DESCRIPTIONS, { PRODUCTION_NUMBERS } from '../data/variantDescriptions'
 import { fetchAuctionResults, fetchActiveListings } from '../api/client'
 import { calcStats, groupByMonth } from '../utils/aggregation'
@@ -8,7 +8,7 @@ import { fromSlug } from '../utils/slugs'
 import Breadcrumb from '../components/Breadcrumb'
 import StatsBar from '../components/StatsBar'
 import VariantHero from '../components/VariantHero'
-import PriceHistoryChart from '../components/PriceHistoryChart'
+import PriceHistoryChart from '../components/LazyPriceHistoryChart'
 import ResultsTable from '../components/ResultsTable'
 import ActiveListingsPanel from '../components/ActiveListingsPanel'
 
@@ -16,7 +16,6 @@ export default function MarketDetail() {
   const { modelSlug, seg1, seg2, seg3 } = useParams()
   const model     = ALL_MODELS.find(m => m.slug === modelSlug)
   const modelLine = MODEL_LINE[modelSlug]
-  const groups    = GENERATION_GROUPS[modelSlug] ?? {}
 
   // variant-model (924/944/914): no generation level — seg1 is the variant.
   const isVariantModel = model?.type === 'variant-model'
@@ -54,44 +53,52 @@ export default function MarketDetail() {
   }, [modelLine, generation, variant])
 
   useEffect(() => {
+    let stale = false // ignore responses that land after a navigation
     setLoading(true)
     setError(null)
-    const params = { model_line: modelLine }
+    // limit must match the index pages — the API default of 500 silently
+    // truncates and makes this page's stats disagree with its parent index.
+    const params = { model_line: modelLine, limit: 10000 }
     if (generation) params.generation = generation
     if (variant)    params.variant    = variant
     const crossEntries = variant ? (CROSS_LISTINGS[modelSlug]?.[generation]?.[variant] ?? []) : []
     const fetches = [
       fetchAuctionResults(params),
       ...crossEntries.map(e =>
-        fetchAuctionResults({ ...e.params }).then(rows =>
+        fetchAuctionResults({ ...e.params, limit: 10000 }).then(rows =>
           rows.filter(r =>
-            e.ids?.includes(r.id) || new RegExp(e.titlePattern, 'i').test(r.lot_title ?? '')
+            e.ids?.includes(r.id) ||
+            (e.titlePattern != null && new RegExp(e.titlePattern, 'i').test(r.lot_title ?? ''))
           )
         )
       ),
     ]
     Promise.all(fetches)
       .then(batches => {
+        if (stale) return
         const merged = batches.flat()
         merged.sort((a, b) => (b.sold_date ?? '').localeCompare(a.sold_date ?? ''))
         setResults(merged)
       })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+      .catch(e => { if (!stale) setError(e.message) })
+      .finally(() => { if (!stale) setLoading(false) })
+    return () => { stale = true }
   }, [modelLine, modelSlug, generation, variant])
 
   // Fetch active listings lazily when the tab is first activated
   useEffect(() => {
     if (tab !== 'listings') return
+    let stale = false
     setListingsLoading(true)
     setListingsError(null)
     const params = { model_line: modelLine }
     if (generation) params.generation = generation
     if (variant)    params.variant    = variant
     fetchActiveListings(params)
-      .then(setListings)
-      .catch(e => setListingsError(e.message))
-      .finally(() => setListingsLoading(false))
+      .then(rows => { if (!stale) setListings(rows) })
+      .catch(e => { if (!stale) setListingsError(e.message) })
+      .finally(() => { if (!stale) setListingsLoading(false) })
+    return () => { stale = true }
   }, [tab, modelLine, generation, variant])
 
   const stats       = useMemo(() => calcStats(results),    [results])

@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Optional
 
-from sqlalchemy import func
+from sqlalchemy import Index, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -9,6 +9,18 @@ from app.database import Base
 
 class AuctionResult(Base):
     __tablename__ = "auction_results"
+    __table_args__ = (
+        # Matches the API's canonical query shape: filter on taxonomy columns,
+        # then ORDER BY sold_date DESC LIMIT n.
+        Index(
+            "ix_auction_results_mlgv_sold_date",
+            "model_line", "generation", "variant", "sold_date",
+        ),
+        # Dedup backstop: every ingest script dedupes on auction_url in
+        # application memory; this makes the database enforce it. Postgres
+        # treats NULLs as distinct, so URL-less rows are unaffected.
+        Index("ux_auction_results_auction_url", "auction_url", unique=True),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     make: Mapped[str]
@@ -33,6 +45,9 @@ class AuctionResult(Base):
 
 class ActiveListing(Base):
     __tablename__ = "active_listings"
+    __table_args__ = (
+        Index("ix_active_listings_mlgv", "model_line", "generation", "variant"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     make: Mapped[str]

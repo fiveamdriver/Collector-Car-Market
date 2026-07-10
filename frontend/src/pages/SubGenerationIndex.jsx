@@ -4,7 +4,7 @@ import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE } from
 import { fetchAuctionResults } from '../api/client'
 import { calcStats, groupByField, groupByMonth } from '../utils/aggregation'
 import Breadcrumb from '../components/Breadcrumb'
-import PriceHistoryChart from '../components/PriceHistoryChart'
+import PriceHistoryChart from '../components/LazyPriceHistoryChart'
 import Sparkline from '../components/Sparkline'
 import { fmtVal } from '../utils/formatters'
 
@@ -26,12 +26,17 @@ export default function SubGenerationIndex() {
   const [error,   setError]   = useState(null)
 
   useEffect(() => {
+    let stale = false // ignore responses that land after a navigation
     setLoading(true)
     setError(null)
-    fetchAuctionResults({ model_line: modelLine })
-      .then(data => setResults(data.filter(r => subGens.includes(r.generation))))
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+    // limit must match GenerationIndex — without it the API returns only the
+    // 500 newest rows across ALL generations, so the per-card "N sold" counts
+    // and averages were computed from an arbitrary recent slice.
+    fetchAuctionResults({ model_line: modelLine, limit: 10000 })
+      .then(data => { if (!stale) setResults(data.filter(r => subGens.includes(r.generation))) })
+      .catch(e => { if (!stale) setError(e.message) })
+      .finally(() => { if (!stale) setLoading(false) })
+    return () => { stale = true }
   }, [modelLine, seg1])
 
   const byGen      = useMemo(() => groupByField(results, 'generation'), [results])

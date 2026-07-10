@@ -62,6 +62,34 @@ const MODEL_IMAGES = {
   'rs-spyder':  '/images/Front_page_cards/Racecars/RS spyder (racecar).jpg',
 }
 
+// Top-level so React reconciles cards across renders instead of remounting
+// them (a component defined inside the render body is a new element type on
+// every render, which destroys and recreates all 24 card images when the
+// stats response lands).
+function ModelCard({ m, stats }) {
+  return (
+    <Link to={`/${m.slug}`} className="model-card">
+      {MODEL_IMAGES[m.slug] && (
+        <img src={MODEL_IMAGES[m.slug]} alt={m.label} className="model-card-img"
+          loading="lazy" decoding="async"
+          style={IMAGE_POSITION[m.slug] ? { objectPosition: IMAGE_POSITION[m.slug] } : undefined} />
+      )}
+      <div className="model-card-body">
+        <span className="model-card-name">{m.label}</span>
+        {MODEL_YEARS[m.slug] && (
+          <span className="model-card-years">{MODEL_YEARS[m.slug]}</span>
+        )}
+        {stats?.count > 0 && stats.avg > 0 && (
+          <>
+            <span className="model-card-price">${stats.avg.toLocaleString()} <span className="model-card-price-label">avg price</span></span>
+            <span className="model-card-meta">{stats.count.toLocaleString()} results</span>
+          </>
+        )}
+      </div>
+    </Link>
+  )
+}
+
 export default function MarketHome() {
   const series     = ALL_MODELS.filter(m => m.category === 'series')
   const standalone = ALL_MODELS.filter(m => m.category === 'specialty')
@@ -76,7 +104,9 @@ export default function MarketHome() {
   }, [])
 
   useEffect(() => {
+    let stale = false
     fetchModelLineStats().then(rows => {
+      if (stale) return
       const byML = Object.fromEntries(rows.map(r => [r.model_line, r]))
       const statFor = (slug) => {
         // "group" models (Transaxle) aggregate several DB model lines.
@@ -84,40 +114,23 @@ export default function MarketHome() {
         if (children) {
           const parts = children.map(c => byML[MODEL_LINE[c]]).filter(Boolean)
           const count = parts.reduce((n, r) => n + r.count, 0)
-          const avg = count
-            ? Math.round(parts.reduce((s, r) => s + r.avg_sold_price * r.count, 0) / count)
+          // Weight each line's average by its priced-row count and skip
+          // lines with no priced rows — weighting by the all-rows count
+          // biased the blend, and a null average contributed 0 to the
+          // numerator while still counting in the denominator.
+          const priced = parts.filter(r => r.avg_sold_price != null)
+          const pricedCount = priced.reduce((n, r) => n + r.priced_count, 0)
+          const avg = pricedCount
+            ? Math.round(priced.reduce((s, r) => s + r.avg_sold_price * r.priced_count, 0) / pricedCount)
             : 0
           return { count, avg }
         }
         return { count: byML[MODEL_LINE[slug]]?.count ?? 0, avg: byML[MODEL_LINE[slug]]?.avg_sold_price ?? 0 }
       }
       setModelStats(Object.fromEntries(ALL_MODELS.map(m => [m.slug, statFor(m.slug)])))
-    }).catch(err => setStatsError(err.message))
+    }).catch(err => { if (!stale) setStatsError(err.message) })
+    return () => { stale = true }
   }, [])
-
-  const ModelCard = ({ m }) => {
-    const s = modelStats[m.slug]
-    return (
-      <Link key={m.slug} to={`/${m.slug}`} className="model-card">
-        {MODEL_IMAGES[m.slug] && (
-          <img src={MODEL_IMAGES[m.slug]} alt={m.label} className="model-card-img"
-            style={IMAGE_POSITION[m.slug] ? { objectPosition: IMAGE_POSITION[m.slug] } : undefined} />
-        )}
-        <div className="model-card-body">
-          <span className="model-card-name">{m.label}</span>
-          {MODEL_YEARS[m.slug] && (
-            <span className="model-card-years">{MODEL_YEARS[m.slug]}</span>
-          )}
-          {s?.count > 0 && (
-            <>
-              <span className="model-card-price">${s.avg.toLocaleString()} <span className="model-card-price-label">avg price</span></span>
-              <span className="model-card-meta">{s.count.toLocaleString()} results</span>
-            </>
-          )}
-        </div>
-      </Link>
-    )
-  }
 
   return (
     <div className="inner">
@@ -129,21 +142,21 @@ export default function MarketHome() {
       <section className="section">
         <h2 className="section-label">Model Lines</h2>
         <div className="card-grid card-grid--models">
-          {series.map(m => <ModelCard key={m.slug} m={m} />)}
+          {series.map(m => <ModelCard key={m.slug} m={m} stats={modelStats[m.slug]} />)}
         </div>
       </section>
 
       <section className="section">
         <h2 className="section-label">Specialty Models</h2>
         <div className="card-grid card-grid--models">
-          {standalone.map(m => <ModelCard key={m.slug} m={m} />)}
+          {standalone.map(m => <ModelCard key={m.slug} m={m} stats={modelStats[m.slug]} />)}
         </div>
       </section>
 
       <section className="section">
         <h2 className="section-label">Race Cars</h2>
         <div className="card-grid card-grid--models">
-          {race.map(m => <ModelCard key={m.slug} m={m} />)}
+          {race.map(m => <ModelCard key={m.slug} m={m} stats={modelStats[m.slug]} />)}
         </div>
       </section>
     </div>

@@ -47,9 +47,11 @@ export default function ResultsTable({ results }) {
 
   const visible = useMemo(() => {
     let rows = filterYear ? results.filter(r => r.year === filterYear) : [...results]
+    // ISO date strings compare correctly as strings; '' sorts null dates last
+    // in desc and first in asc instead of NaN-ordering them arbitrarily.
     switch (sortBy) {
-      case 'date-desc':  rows.sort((a, b) => new Date(b.sold_date) - new Date(a.sold_date)); break
-      case 'date-asc':   rows.sort((a, b) => new Date(a.sold_date) - new Date(b.sold_date)); break
+      case 'date-desc':  rows.sort((a, b) => (b.sold_date ?? '').localeCompare(a.sold_date ?? '')); break
+      case 'date-asc':   rows.sort((a, b) => (a.sold_date ?? '').localeCompare(b.sold_date ?? '')); break
       case 'price-desc': rows.sort((a, b) => (b.sold_price ?? 0) - (a.sold_price ?? 0)); break
       case 'price-asc':  rows.sort((a, b) => (a.sold_price ?? 0) - (b.sold_price ?? 0)); break
     }
@@ -123,7 +125,7 @@ export default function ResultsTable({ results }) {
                 <td className="td-listing">{truncate(stripColor(stripYear(r.lot_title, r.mileage != null), r.exterior_color), 40)}</td>
                 <td className="td-photo">
                   {r.thumbnail_url
-                    ? <img src={r.thumbnail_url} alt="" className="result-thumb result-thumb--clickable" onClick={() => setLightbox(r.thumbnail_url)} />
+                    ? <img src={r.thumbnail_url} alt="" loading="lazy" decoding="async" className="result-thumb result-thumb--clickable" onClick={() => setLightbox(r.thumbnail_url)} />
                     : '—'}
                 </td>
                 <td className="td-color">{r.exterior_color ?? '—'}</td>

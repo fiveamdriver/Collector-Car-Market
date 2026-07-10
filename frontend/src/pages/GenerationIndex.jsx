@@ -22,12 +22,14 @@ export default function GenerationIndex() {
   const [error,   setError]   = useState(null)
 
   useEffect(() => {
+    let stale = false // ignore responses that land after a navigation
     setLoading(true)
     setError(null)
     fetchAuctionResults({ model_line: modelLine, limit: 10000 })
-      .then(setResults)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+      .then(data => { if (!stale) setResults(data) })
+      .catch(e => { if (!stale) setError(e.message) })
+      .finally(() => { if (!stale) setLoading(false) })
+    return () => { stale = true }
   }, [modelLine])
 
   const byGen = useMemo(() => groupByField(results, 'generation'), [results])
@@ -60,6 +62,7 @@ export default function GenerationIndex() {
                 {GEN_IMAGES[gen] && (
                   <div className="index-card-img-wrap">
                     <img src={GEN_IMAGES[gen]} alt={gen} className="index-card-img"
+                      loading="lazy" decoding="async"
                       style={GEN_IMAGE_POSITION[gen] ? { objectPosition: GEN_IMAGE_POSITION[gen] } : undefined} />
                   </div>
                 )}

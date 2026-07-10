@@ -16,7 +16,7 @@ import ssl
 import sys
 import urllib.parse
 import urllib.request
-from datetime import date, datetime
+from datetime import datetime
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BACKEND_DIR)
@@ -25,35 +25,28 @@ import app.models  # noqa: F401
 from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.utils.generations import get_911_generation
 from sqlalchemy import select
 
 API_BASE = "https://api.oldcarsdata.com"   # adjust if the base URL differs
 API_KEY  = os.environ.get("OCD_API_KEY")
 
 
-# ── Generation lookup (911 only) ─────────────────────────────────────────────
-
-def get_911_generation(year: int) -> str:
-    if year <= 1994: return "964"
-    if year <= 1998: return "993"
-    if year <= 2001: return "996.1"
-    if year <= 2005: return "996.2"
-    if year <= 2008: return "997.1"
-    if year <= 2012: return "997.2"
-    if year <= 2016: return "991.1"
-    if year <= 2019: return "991.2"
-    return "992"
-
-
 # ── Transmission normalizer ──────────────────────────────────────────────────
 
 def normalize_transmission(value: str | None) -> str:
-    """Normalize a raw transmission string to one of the two canonical DB values."""
+    """Normalize a raw transmission string to a canonical DB value.
+
+    PDK (dual-clutch) and conventional automatics (Tiptronic etc.) are
+    distinct values — a Tiptronic must not be filed as a PDK.
+    """
     if not value:
         return "Manual"
     lower = value.lower()
-    if any(k in lower for k in ("pdk", "doppelkupplung", "automatic")):
+    if any(k in lower for k in ("pdk", "doppelkupplung")):
         return "PDK"
+    if any(k in lower for k in ("automatic", "tiptronic", "sportomatic")):
+        return "Automatic"
     return "Manual"
 
 
@@ -155,7 +148,9 @@ def map_record(raw: dict) -> dict | None:
     try:
         sold_date = datetime.strptime(str(sold_date_raw)[:10], "%Y-%m-%d").date()
     except (ValueError, TypeError):
-        sold_date = date.today()
+        # Unknown date stays NULL — substituting today's date would fabricate
+        # a sale cluster in the ingest month on the price-history chart.
+        sold_date = None
 
     return dict(
         make              = "Porsche",

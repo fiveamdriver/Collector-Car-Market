@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { ALL_MODELS, GENERATION_GROUPS } from './data/taxonomy'
+import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
 import MarketHome from './pages/MarketHome'
 import GenerationIndex from './pages/GenerationIndex'
@@ -28,7 +29,9 @@ function Seg1Router() {
   if (!model) return <Navigate to="/" replace />
   if (model.type === 'variant-model') return <MarketDetail />
   const groups = GENERATION_GROUPS[modelSlug] ?? {}
-  return seg1 in groups ? <SubGenerationIndex /> : <VariantIndex />
+  // Object.hasOwn, not `in`: `in` walks the prototype chain, so a URL segment
+  // like /911/constructor would match Object.prototype and mis-route.
+  return Object.hasOwn(groups, seg1) ? <SubGenerationIndex /> : <VariantIndex />
 }
 
 // /:modelSlug/:seg1/:seg2 — group+subgen (997/997.1) → VariantIndex; gen+variant (964/carrera) → MarketDetail
@@ -44,13 +47,15 @@ export default function App() {
   return (
     <BrowserRouter>
       <Layout>
-        <Routes>
-          <Route path="/"                                element={<MarketHome />} />
-          <Route path="/:modelSlug"                      element={<ModelRouter />} />
-          <Route path="/:modelSlug/:seg1"                element={<Seg1Router />} />
-          <Route path="/:modelSlug/:seg1/:seg2"          element={<Seg2Router />} />
-          <Route path="/:modelSlug/:seg1/:seg2/:seg3"    element={<MarketDetail />} />
-        </Routes>
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/"                                element={<MarketHome />} />
+            <Route path="/:modelSlug"                      element={<ModelRouter />} />
+            <Route path="/:modelSlug/:seg1"                element={<Seg1Router />} />
+            <Route path="/:modelSlug/:seg1/:seg2"          element={<Seg2Router />} />
+            <Route path="/:modelSlug/:seg1/:seg2/:seg3"    element={<MarketDetail />} />
+          </Routes>
+        </ErrorBoundary>
       </Layout>
     </BrowserRouter>
   )

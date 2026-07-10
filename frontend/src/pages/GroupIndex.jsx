@@ -42,7 +42,7 @@ export default function GroupIndex() {
             <Link key={childSlug} to={`/${childSlug}`} className="index-card">
               {meta.img && (
                 <div className="index-card-img-wrap">
-                  <img src={meta.img} alt={child?.label} className="index-card-img" />
+                  <img src={meta.img} alt={child?.label} className="index-card-img" loading="lazy" decoding="async" />
                 </div>
               )}
               <div className="index-card-body">

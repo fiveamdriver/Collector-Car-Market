@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 """
-Seed the database with 350 realistic Porsche auction results.
-Clears all existing records first.
-Run from the backend/ directory:  python data/seed.py
+Seed a LOCAL DEVELOPMENT database with 350 synthetic Porsche auction results.
+
+The generated records are fake and carry no marker distinguishing them from
+scraped data, so this script refuses to run against anything other than a
+local SQLite DATABASE_URL. Pass --clear to delete existing auction_results
+first (off by default; requires typed confirmation).
+
+Run from the backend/ directory:  python data/seed.py [--clear]
 """
 import asyncio
 import os
@@ -15,9 +20,19 @@ BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BACKEND_DIR)
 
 import app.models  # noqa: F401
+from app.config import DATABASE_URL
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
 from sqlalchemy import delete
+
+# Synthetic data must never reach a shared/production database: the rows are
+# indistinguishable from real scraped results and are never deduped (no
+# auction_url), so every accidental run would permanently pollute the corpus.
+if not DATABASE_URL.startswith("sqlite"):
+    sys.exit(
+        "seed.py: refusing to run — DATABASE_URL is not a local SQLite database.\n"
+        "This script generates synthetic records for local development only."
+    )
 
 # ---------------------------------------------------------------------------
 # Variant definitions
@@ -42,8 +57,10 @@ TRANS_PROBS = {
 }
 
 def pick_trans(rule: str) -> str:
+    # Canonical DB casing — lowercase values fail the API's response model
+    # and 500 every read of /auction-results.
     p = TRANS_PROBS.get(rule, 0.50)
-    return 'manual' if random.random() < p else 'pdk'
+    return 'Manual' if random.random() < p else 'PDK'
 
 
 VARIANT_DATA: dict[str, dict[str, list]] = {
@@ -294,7 +311,7 @@ def available_variants(model_line: str, generation: str, counts: dict) -> list:
 
 
 def make_lot_title(year, model_line, generation, variant, color, trans) -> str:
-    t = 'Manual' if trans == 'manual' else 'PDK'
+    t = trans
     return random.choice([
         f'{year} Porsche {model_line} {variant}',
         f'{year} Porsche {model_line} {generation} {variant}',
@@ -365,6 +382,11 @@ async def seed(n: int = 350):
         await conn.run_sync(Base.metadata.create_all)
 
     if '--clear' in sys.argv:
+        answer = input(
+            "--clear will DELETE ALL rows in auction_results. Type 'delete' to proceed: "
+        )
+        if answer.strip().lower() != 'delete':
+            sys.exit('Aborted — nothing deleted.')
         async with AsyncSessionLocal() as session:
             await session.execute(delete(AuctionResult))
             await session.commit()

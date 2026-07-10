@@ -32,7 +32,7 @@ export default function VariantIndex() {
 
   // seg1 is a group key (997) → seg2 is the actual generation (997.1)
   // seg1 is a flat gen (964)  → seg1 itself is the generation
-  const isGrouped  = seg1 in groups
+  const isGrouped  = Object.hasOwn(groups, seg1)
   const groupSlug  = isGrouped ? seg1 : null
   const generation = isGrouped ? seg2 : seg1
 
@@ -43,6 +43,7 @@ export default function VariantIndex() {
   const [error,   setError]   = useState(null)
 
   useEffect(() => {
+    let stale = false // ignore responses that land after a navigation
     setLoading(true)
     setError(null)
     // Cross-listed lots are re-tagged with the host variant so they roll into
@@ -53,7 +54,8 @@ export default function VariantIndex() {
         fetchAuctionResults({ ...e.params, limit: 10000 }).then(rows =>
           rows
             .filter(r =>
-              e.ids?.includes(r.id) || new RegExp(e.titlePattern, 'i').test(r.lot_title ?? '')
+              e.ids?.includes(r.id) ||
+              (e.titlePattern != null && new RegExp(e.titlePattern, 'i').test(r.lot_title ?? ''))
             )
             .map(r => ({ ...r, variant: hostVariant }))
         )
@@ -63,9 +65,10 @@ export default function VariantIndex() {
       fetchAuctionResults({ model_line: modelLine, generation, limit: 10000 }),
       ...extras,
     ])
-      .then(batches => setResults(batches.flat()))
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+      .then(batches => { if (!stale) setResults(batches.flat()) })
+      .catch(e => { if (!stale) setError(e.message) })
+      .finally(() => { if (!stale) setLoading(false) })
+    return () => { stale = true }
   }, [modelLine, modelSlug, generation])
 
   const byVariant  = useMemo(() => groupByField(results, 'variant'), [results])

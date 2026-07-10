@@ -24,12 +24,14 @@ export default function VariantModelIndex() {
   const [error,   setError]   = useState(null)
 
   useEffect(() => {
+    let stale = false // ignore responses that land after a navigation
     setLoading(true)
     setError(null)
     fetchAuctionResults({ model_line: modelLine, limit: 10000 })
-      .then(setResults)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+      .then(data => { if (!stale) setResults(data) })
+      .catch(e => { if (!stale) setError(e.message) })
+      .finally(() => { if (!stale) setLoading(false) })
+    return () => { stale = true }
   }, [modelLine])
 
   const byVariant = useMemo(() => groupByField(results, 'variant'), [results])
