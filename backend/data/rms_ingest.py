@@ -6,7 +6,8 @@ Usage (from backend/ directory):
     python data/rms_ingest.py
 
 No API key or authentication required. Re-running is safe — duplicates are
-skipped by auction_url. Non-USD lots are skipped (most major US events are USD).
+skipped by auction_url. Non-USD lots (EUR/GBP/CHF/CAD) are converted to USD
+via FX_RATES at ingest time.
 """
 import asyncio
 import certifi
@@ -262,12 +263,22 @@ def parse_paint_to_sample(text: str) -> bool | None:
 
 _PRICE_RE = re.compile(r'[\$£€]?([\d,]+)\s*(USD|CAD|EUR|GBP|CHF)?', re.IGNORECASE)
 
+# Local currency → USD, matching bonhams_ingest.py.  Approximate mid-market
+# rates; update periodically for accuracy on recent sales.
+FX_RATES: dict[str, float] = {
+    "USD": 1.00,
+    "EUR": 1.09,
+    "GBP": 1.27,
+    "CHF": 1.13,
+    "CAD": 0.73,
+}
+
 
 def parse_price_usd(value: str) -> int | None:
     """
-    Parse the sold price from RM's value string (e.g. '$1,250,000 USD').
-    Returns None if the value is not USD or unparseable.
-    Currently only USD lots are stored; add FX conversion here to support others.
+    Parse the sold price from RM's value string (e.g. '$1,250,000 USD' or
+    '£3,492,500 GBP') and convert it to USD via FX_RATES.
+    Returns None if the value is unparseable.
     """
     if not value:
         return None
@@ -280,14 +291,11 @@ def parse_price_usd(value: str) -> int | None:
     elif "GBP" in value or "£" in value: currency = "GBP"
     elif "CHF" in value: currency = "CHF"
 
-    if currency != "USD":
-        return None  # skip non-USD; add conversion here if needed
-
     m = _PRICE_RE.search(value)
     if not m:
         return None
     try:
-        return int(m.group(1).replace(",", ""))
+        return round(int(m.group(1).replace(",", "")) * FX_RATES[currency])
     except ValueError:
         return None
 

@@ -343,6 +343,40 @@ button { font-family: inherit; cursor: pointer; }
   margin-bottom: 10px;
 }
 
+/* ── Variant index cards (name + count header, avg, sparkline) ── */
+.index-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.index-card-header .index-card-name {
+  margin-bottom: 0;
+}
+
+.index-card-header .index-card-count {
+  margin: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.index-card-avg {
+  font-size: 13px;
+  font-weight: 500;
+  color: #0A0A0A;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 12px;
+}
+
+/* Pin sparklines to the card bottom so all cards in a row match */
+.index-card .sparkline,
+.index-card .sparkline-empty {
+  margin-top: auto;
+}
+
 /* ── Sparkline ───────────────────────────────────────── */
 .sparkline       { margin-top: 2px; }
 .sparkline-empty { height: 36px; }
@@ -492,24 +526,6 @@ button { font-family: inherit; cursor: pointer; }
 @media (max-width: 700px) {
   .variant-hero { grid-template-columns: 1fr; }
   .variant-hero-right { min-height: 180px; }
-}
-
-/* ── Generation parallax photo ───────────────────────── */
-.gen-parallax-hero {
-  position: relative;
-  margin: -28px -32px 0;
-  height: 100vh;
-  background-attachment: fixed;
-  background-size: cover;
-  background-position: center;
-}
-
-.gen-parallax-hero::after {
-  content: '';
-  position: absolute;
-  inset: 50% 0 0 0;
-  background: linear-gradient(to bottom, transparent, #000000);
-  pointer-events: none;
 }
 
 /* ── Generation hero ─────────────────────────────────── */

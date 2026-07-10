@@ -116,21 +116,21 @@ export const GENERATIONS = {
   '356':      ['Pre-A', '356 A', '356 B', '356 C'],
   'cayman':   ['987', '981', '718'],
   'boxster':  ['986', '987', '981', '718'],
-  '911-race': ['F-Body', 'G-Body', '964', '993', '997', '991', '992'],
+  '911-race': ['F-Body', 'G-Body', '964', '993', '996', '997', '991', '992'],
 }
 
 export const VARIANTS = {
   '911': {
     'F-Body': [
       '911', '911S', '911T', '911E', '911L', '911R',
-      'Carrera RS 2.7', 'Carrera RS 2.7 Lightweight', 'S/T',
+      'Carrera RS 2.7', 'S/T',
     ],
     'G-Body': [
       'Speedster', 'Turbo 3.3 Slant Nose', '930 Turbo',
       'Carrera 2.7 MFI', 'Carrera 2.7', 'Carrera 3.2', 'SC', '911S', '911',
     ],
     '964': [
-      'Carrera', 'Carrera RS', 'RS America',
+      'Carrera', 'Carrera RS', 'RS 3.8', 'RS America',
       'Turbo', 'Turbo S', 'Speedster',
     ],
     '993': [
@@ -191,11 +191,12 @@ export const VARIANTS = {
   '911-race': {
     'F-Body':  ['RSR'],
     'G-Body':  ['RSR', 'RSR Turbo'],
-    '964':     ['RSR'],
-    '993':     ['Cup 3.8 RSR'],
-    '997':     ['GT3 RSR'],
-    '991':     ['RSR'],
-    '992':     ['RSR'],
+    '964':     ['RSR 3.8', 'Carrera Cup'],
+    '993':     ['GT2 R', 'Cup 3.8 RSR', 'Carrera Cup'],
+    '996':     ['GT3 Cup', 'GT3 RSR', 'Carrera Cup'],
+    '997':     ['GT3 RSR', 'GT3 Cup'],
+    '991':     ['RSR', 'GT2 RS Clubsport', 'GT3 Cup'],
+    '992':     ['GT3 Cup'],
   },
 }
 
@@ -246,6 +247,26 @@ export const VARIANT_HERO = {
     },
   },
   '911-race': {},
+}
+
+// Lots cross-listed onto a second market page.  Keyed
+// [modelSlug][generation][variant] → extra queries; lots whose title matches
+// titlePattern (or whose id is in ids, for lots titled without the marker)
+// appear on that page in addition to their home market.
+// Example: the street-legal RSR 3.8 Strassenversions live in the race section
+// but are also shown with the street RS 3.8s as standouts of the 964 line.
+export const CROSS_LISTINGS = {
+  '911': {
+    '964': {
+      'RS 3.8': [{
+        params: { model_line: '911 Race', generation: '964', variant: 'RSR 3.8' },
+        titlePattern: 'Strassenversion',
+        // Strassenversion chassis WP0ZZZ96ZPS496107 at RM Villa Erba 2017,
+        // titled plain 'Carrera RSR 3.8'
+        ids: [27995],
+      }],
+    },
+  },
 }
 
 // Hero image for standalone models
@@ -317,32 +338,3 @@ export const GEN_YEARS = {
   '718':    '2016–present',
 }
 
-// Hero image for generation-level pages (VariantIndex)
-export const GENERATION_HERO = {
-  '911': {
-    'F-Body': '/images/Canepa%20Images/fseries.jpeg',
-    'G-Body':   '/images/Canepa%20Images/gbody.jpg',
-    '964':      '/images/Canepa%20Images/964.jpeg',
-    '993':      '/images/Canepa%20Images/993.jpg',
-    '996':      '/images/Canepa%20Images/996.jpeg',
-    '996.1':    '/images/Canepa%20Images/996.jpeg',
-    '996.2':    '/images/Canepa%20Images/996.jpeg',
-    '997':      '/images/Canepa%20Images/997.jpg',
-    '997.1':    '/images/Canepa%20Images/997.jpg',
-    '997.2':    '/images/Canepa%20Images/997.jpg',
-    '991':      '/images/Canepa%20Images/991.jpeg',
-    '991.1':    '/images/Canepa%20Images/991.jpeg',
-    '991.2':    '/images/Canepa%20Images/991.jpeg',
-    '992':      '/images/Canepa%20Images/992.jpeg',
-    '992.1':    '/images/Canepa%20Images/992.jpeg',
-    '992.2':    '/images/Canepa%20Images/992.jpeg',
-  },
-  '356': {},
-  'cayman': {
-    '718': { img: null, parallax: false },
-  },
-  'boxster': {
-    '718': { img: null, parallax: false },
-  },
-  '911-race': {},
-}

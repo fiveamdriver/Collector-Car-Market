@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE, VARIANTS, GENERATION_HERO } from '../data/taxonomy'
+import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE, VARIANTS, CROSS_LISTINGS } from '../data/taxonomy'
 import { fetchAuctionResults } from '../api/client'
 import { calcStats, groupByField, groupByMonth } from '../utils/aggregation'
 import { toSlug } from '../utils/slugs'
@@ -42,66 +42,31 @@ export default function VariantIndex() {
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
 
-  const heroRef    = useRef(null)
-  const contentRef = useRef(null)
-
   useEffect(() => {
     setLoading(true)
     setError(null)
-    fetchAuctionResults({ model_line: modelLine, generation, limit: 10000 })
-      .then(setResults)
+    // Cross-listed lots are re-tagged with the host variant so they roll into
+    // that card's count, average, and sparkline.
+    const crossByVariant = CROSS_LISTINGS[modelSlug]?.[generation] ?? {}
+    const extras = Object.entries(crossByVariant).flatMap(([hostVariant, entries]) =>
+      entries.map(e =>
+        fetchAuctionResults({ ...e.params, limit: 10000 }).then(rows =>
+          rows
+            .filter(r =>
+              e.ids?.includes(r.id) || new RegExp(e.titlePattern, 'i').test(r.lot_title ?? '')
+            )
+            .map(r => ({ ...r, variant: hostVariant }))
+        )
+      )
+    )
+    Promise.all([
+      fetchAuctionResults({ model_line: modelLine, generation, limit: 10000 }),
+      ...extras,
+    ])
+      .then(batches => setResults(batches.flat()))
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
-  }, [modelLine, generation])
-
-  useEffect(() => {
-    const hero    = heroRef.current
-    const content = contentRef.current
-    if (!hero || !content) return
-    const onScroll = () => {
-      const H    = hero.offsetHeight
-      // Full scrollable area below the hero (includes layout padding)
-      const belowH = document.body.scrollHeight - H
-      // Max scroll the browser will actually allow
-      const maxY = document.body.scrollHeight - window.innerHeight
-      const T    = maxY * 0.5
-      const y    = window.scrollY
-
-      // Outside the animation zone — clear and exit, no dead space
-      if (y <= 0 || y >= maxY) {
-        content.style.transform = ''
-        return
-      }
-
-      let extra
-      if (y <= T) {
-        // Phase 1: gentle lag — content rises slightly slower than natural scroll
-        const t = y / T                                       // 0 → 1
-        extra = t * 60                                        // up to +60px behind
-      } else {
-        // Phase 2: hard kick then smooth settle back to 0 at y=maxY
-        // Asymmetric bump t*(1-t)^2 peaks at t=⅓ (early hard kick),
-        // derivative→0 at t=1 so there is no jarring snap at the hero exit
-        const t     = (y - T) / T                            // 0 → 1
-        const lag   = 60 * (1 - t)                           // fades the phase-1 lag
-        const surge = -200 * 6.75 * t * (1 - t) * (1 - t)   // peaks ≈ −200px at t=⅓
-        extra = lag + surge
-      }
-
-      // Clamp: prevent a negative transform from pulling content bottom
-      // above the viewport bottom (dead black space at the bottom of the page)
-      // floor = how far negative we can go before content bottom exits viewport
-      const floor = y - belowH
-      if (extra < floor) extra = floor
-
-      content.style.transform = `translateY(${extra}px)`
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      if (content) content.style.transform = ''
-    }
-  }, [])
+  }, [modelLine, modelSlug, generation])
 
   const byVariant  = useMemo(() => groupByField(results, 'variant'), [results])
   const genStats   = useMemo(() => calcStats(results), [results])
@@ -121,10 +86,6 @@ export default function VariantIndex() {
     return <Navigate to={`${base}/${toSlug(variants[0])}`} replace />
   }
 
-  const heroEntry   = GENERATION_HERO[modelSlug]?.[generation] ?? null
-  const heroImg     = typeof heroEntry === 'string' ? heroEntry : (heroEntry?.img ?? null)
-  const heroParallax = typeof heroEntry === 'string' ? true : (heroEntry?.parallax ?? true)
-
   const crumbs = [
     { label: 'Markets',   to: '/' },
     { label: model.label, to: `/${modelSlug}` },
@@ -137,15 +98,7 @@ export default function VariantIndex() {
     : `/${modelSlug}/${generation}`
 
   return (
-    <>
-      {heroImg && heroParallax && (
-        <div
-          ref={heroRef}
-          className="gen-parallax-hero"
-          style={{ backgroundImage: `url(${heroImg})` }}
-        />
-      )}
-      <div ref={contentRef} className="inner">
+    <div className="inner">
       <div className="page-header">
         <Breadcrumb crumbs={crumbs} />
       </div>
@@ -214,6 +167,5 @@ export default function VariantIndex() {
         </div>
       )}
     </div>
-    </>
   )
 }

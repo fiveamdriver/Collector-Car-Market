@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, MODEL_LINE, VARIANTS, VARIANT_HERO, MODEL_HERO, VARIANT_MODELS, GROUP_CHILDREN } from '../data/taxonomy'
+import { ALL_MODELS, GENERATION_GROUPS, MODEL_LINE, VARIANTS, VARIANT_HERO, MODEL_HERO, VARIANT_MODELS, GROUP_CHILDREN, CROSS_LISTINGS } from '../data/taxonomy'
 import VARIANT_DESCRIPTIONS, { PRODUCTION_NUMBERS } from '../data/variantDescriptions'
 import { fetchAuctionResults, fetchActiveListings } from '../api/client'
 import { calcStats, groupByMonth } from '../utils/aggregation'
@@ -59,11 +59,26 @@ export default function MarketDetail() {
     const params = { model_line: modelLine }
     if (generation) params.generation = generation
     if (variant)    params.variant    = variant
-    fetchAuctionResults(params)
-      .then(setResults)
+    const crossEntries = variant ? (CROSS_LISTINGS[modelSlug]?.[generation]?.[variant] ?? []) : []
+    const fetches = [
+      fetchAuctionResults(params),
+      ...crossEntries.map(e =>
+        fetchAuctionResults({ ...e.params }).then(rows =>
+          rows.filter(r =>
+            e.ids?.includes(r.id) || new RegExp(e.titlePattern, 'i').test(r.lot_title ?? '')
+          )
+        )
+      ),
+    ]
+    Promise.all(fetches)
+      .then(batches => {
+        const merged = batches.flat()
+        merged.sort((a, b) => (b.sold_date ?? '').localeCompare(a.sold_date ?? ''))
+        setResults(merged)
+      })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
-  }, [modelLine, generation, variant])
+  }, [modelLine, modelSlug, generation, variant])
 
   // Fetch active listings lazily when the tab is first activated
   useEffect(() => {
@@ -96,13 +111,17 @@ export default function MarketDetail() {
     ? `Porsche ${model.label} · ${generation}`
     : `Porsche ${model.label}`
 
-  // Hero title: "993 GT2", "F-Body 911R", "944 Turbo", or standalone model name
+  // Hero title: 911 pages show the variant alone ("Carrera RS 2.7") — the
+  // eyebrow already carries the generation. Others: "718 GT4", "944 Turbo",
+  // or the standalone model name.
   const heroTitle = variant
     ? (isVariantModel
         ? (variant === 'base' || variant.includes(model.label)
             ? (variant === 'base' ? model.label : variant)
             : `${model.label} ${variant}`)
-        : `${generation} ${variant}`)
+        : (modelSlug === '911' || modelSlug === '911-race')
+            ? variant
+            : `${generation} ${variant}`)
     : model.label
 
   const crumbs = [{ label: 'Markets', to: '/' }]

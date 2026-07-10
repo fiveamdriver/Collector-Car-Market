@@ -8,8 +8,7 @@ const VARIANT_DESCRIPTIONS = {
       '911E':                      'Positioned between the T and S, the E offered mechanical fuel injection on later examples alongside a comfortable touring specification that balanced performance with usability. It is increasingly valued by collectors who seek the mid-range F-Body experience without the premium commanded by the 911S.',
       '911L':                      'Produced only for the 1968 model year, the 911L was the luxury-oriented variant positioned just above the T before the range was reorganized. Its single-year production run makes it genuinely rare and historically significant as a transitional model in early 911 development.',
       '911R':                      'Built in 1967 for racing homologation, only 23 911Rs were produced, making it one of the rarest and most consequential Porsches from any era. Factory-stripped to minimum weight with a 210-horsepower engine, surviving examples have sold for millions at auction.',
-      'Carrera RS 2.7':            'Produced in 1972–1973 to homologate the car for Group 4 racing, the Carrera RS 2.7 featured a bored-out 2.7-liter engine producing 210 horsepower and the iconic "ducktail" rear spoiler. With approximately 1,580 examples built, it is widely regarded as one of the most important road cars Porsche ever produced.',
-      'Carrera RS 2.7 Lightweight': 'The most focused version of the Carrera RS 2.7, built without the Touring equipment package, weighed just 900 kilograms and was intended primarily for competition. Fewer than 200 were produced in this specification, and pristine examples represent some of the most significant and valuable air-cooled Porsches at auction.',
+      'Carrera RS 2.7':            'Produced in 1972–1973 to homologate the car for Group 4 racing, the Carrera RS 2.7 featured a bored-out 2.7-liter engine producing 210 horsepower and the iconic "ducktail" rear spoiler. Approximately 1,580 were built, most in Touring specification alongside roughly 200 stripped-out 900-kilogram Lightweights, which command the largest premiums. It is widely regarded as one of the most important road cars Porsche ever produced.',
       'S/T':                       'The 911 S/T was a factory-built racing variant based on the 911S, stripped to minimum weight for events including the Targa Florio and Tour de France Automobile. Only approximately 70 were produced between 1970 and 1972, placing them among the rarest and most historically important F-Body 911s.',
     },
     'G-Body': {
@@ -26,6 +25,7 @@ const VARIANT_DESCRIPTIONS = {
     '964': {
       'Carrera':   'The 964 Carrera represented the 911\'s first comprehensive redesign in over two decades, with 85% new components including coil-spring suspension, power steering, and ABS alongside a 247-horsepower 3.6-liter engine. The rear-wheel-drive Carrera 2 with a manual gearbox is now the most sought-after base 964 for its pure driving character.',
       'Carrera RS': 'Built for Group N homologation, the 964 Carrera RS featured a lightweight body, a 260-horsepower 3.6-liter engine, and purpose-built suspension not shared with the standard car. Originally sold only in Europe in approximately 2,000 examples, it is among the most driver-focused and collectible 964s.',
+      'RS 3.8':     'The street-legal Carrera RS 3.8 was built by Porsche\'s motorsport department at Weissach around an enlarged 300-horsepower 3.8-liter flat-six, wearing the Turbo widebody and a fixed rear wing. Approximately 55 were built, making it one of the rarest and most valuable road-going 964s; its competition counterpart, the RSR 3.8, is catalogued under the 911 race cars.',
       'RS America': 'Porsche\'s lightweight homologation special for the US market deleted air conditioning, rear seats, and sound deadening while retaining the standard 247-horsepower engine. Around 700 were produced for 1993–1994 and are increasingly collected as the American counterpart to the European Carrera RS.',
       'Turbo':      'The 964 Turbo used the 3.3-liter turbocharged engine carried over from the G-Body producing 320 horsepower, making it the last 911 Turbo to use the older architecture before the 3.6-liter arrived. Dramatic wide-body stance and a strong collector following have kept values firm.',
       'Turbo S':    'The rarest factory 964, the Turbo S was produced in only 86 examples as a stripped lightweight version of the Turbo with a 381-horsepower engine. Survivors are among the most valuable air-cooled 911s and appear at auction very infrequently.',
@@ -175,6 +175,34 @@ const VARIANT_DESCRIPTIONS = {
       'Spyder RS': 'The 718 Spyder RS combined the GT4 RS\'s 493-horsepower motorsport flat-six from the 911 GT3 with the open Spyder body in a PDK-only package, creating the most extreme and powerful Boxster ever built. Produced in very limited numbers, it commands a substantial premium at auction.',
     },
   },
+  '911-race': {
+    '964': {
+      'RSR 3.8':     'Built by Porsche Motorsport at Weissach around a 300-plus-horsepower 3.8-liter flat-six, the Carrera RSR 3.8 was the customer racing flagship of the 964 line, winning its class at Le Mans and taking overall victory at Spa and Suzuka in 1993. Approximately 51 were built, including a handful of road-registerable Strassenversion examples that rank among the most valuable 964s ever sold.',
+      'Carrera Cup': 'The Carrera Cup 964s were lightweight one-make racers built for Porsche\'s Carrera Cup championships, including the short-lived Carrera Cup USA program whose cars were sold off with delivery mileage when the series folded. Low-mileage USA examples are prized as time-capsule factory race cars.',
+    },
+    '993': {
+      'GT2 R':       'The GT2 R was the pure competition version of the 993 GT2, stripped for GT racing with increased boost and a full cage. It contested international GT championships in the mid-1990s and appears at auction far less often than the road-going GT2.',
+      'Cup 3.8 RSR': 'The 993 Cup 3.8 RSR evolved the one-make Cup car into full RSR specification for customer GT racing, with a 3.8-liter engine and wider bodywork. It bridged the gap between the Carrera Cup and the factory GT2 program.',
+      'Carrera Cup': 'The 993 Carrera Cup cars continued Porsche\'s one-make racing formula with the last air-cooled 911, using a 3.8-liter naturally aspirated flat-six and lightweight body.',
+    },
+    '996': {
+      'GT3 Cup':     'The 996 GT3 Cup launched the modern era of Porsche one-make racing, powered by the Mezger GT3 engine. Hundreds raced worldwide in Supercup and national Carrera Cup series, making it the most accessible entry into factory-built Porsche race cars.',
+      'GT3 RSR':     'The 996 GT3 RSR was the factory customer GT car for endurance racing, winning its class at Le Mans, Sebring, and Daytona. It combined the Mezger engine with wide RSR bodywork and sequential gearbox.',
+      'Carrera Cup': 'Early 996-generation one-make Cup cars, campaigned in national Carrera Cup championships before the GT3 Cup naming took hold.',
+    },
+    '997': {
+      'GT3 RSR':     'The 997 GT3 RSR was Porsche\'s customer GT racing weapon of the ALMS and Le Mans era, with a 4.0-liter Mezger engine and dramatic wide-body aero. Ex-works and podium-finishing chassis carry significant provenance premiums.',
+      'GT3 Cup':     'The 997 GT3 Cup was built in greater numbers than any previous Porsche race car, powering Supercup and Carrera Cup grids worldwide. Well-documented, low-hour examples remain the standard track-day and club racing choice.',
+    },
+    '991': {
+      'RSR':         'The 991 RSR was a mid-engined revolution in the 911\'s racing lineage, developed by the factory for the FIA WEC and IMSA. Genuine examples are rarely offered publicly and represent the pinnacle of modern 911 GT racing.',
+      'GT2 RS Clubsport': 'The GT2 RS Clubsport is a track-only customer racing version of the 991 GT2 RS, with 700 horsepower, a welded-in cage, and no road registration. Two hundred were built, plus thirty Manthey-developed Clubsport 25 examples, and low-hour cars trade near their original list price.',
+      'GT3 Cup':     'The 991 GT3 Cup continued the one-make formula with a 4.0-liter flat-six and factory-sealed drivetrain, racing in Supercup and Carrera Cup series worldwide.',
+    },
+    '992': {
+      'GT3 Cup':     'The 992 GT3 Cup is the current generation of Porsche\'s one-make racer, the first Cup car with the 992\'s wider body and a 510-horsepower 4.0-liter flat-six.',
+    },
+  },
 }
 
 export default VARIANT_DESCRIPTIONS
@@ -189,6 +217,8 @@ export const PRODUCTION_NUMBERS = {
   },
   '964': {
     'Carrera RS': 2282,
+    'RS 3.8':     55,
+    'RSR 3.8':    51,
     'RS America': 701,
     'Turbo S':    81,
     'Speedster':  936,
