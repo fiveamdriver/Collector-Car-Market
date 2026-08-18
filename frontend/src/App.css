@@ -955,3 +955,104 @@ body.theme-light .model-card-price-label {
 body.theme-light .model-card-meta {
   color: #555555;
 }
+
+/* ── Home category nav ───────────────────────────────── */
+/* A grid column rather than an absolutely-positioned rail: the nav then can't
+   overflow the viewport on the widths where it nearly-but-doesn't fit. */
+.inner.home {
+  max-width: 1292px;                          /* 1120 content + 40 gap + 132 nav */
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  column-gap: 40px;
+  /* No align-items: start — the nav column must span the full row height or
+     its sticky list has no track to travel along and scrolls away. */
+}
+
+/* Row 1, content column only: the title keeps its position while the nav below
+   starts level with the first section heading. */
+.home-header { grid-column: 2; grid-row: 1; }
+.home-nav    { grid-column: 1; grid-row: 2; }
+.home-main   { grid-column: 2; grid-row: 2; }
+
+.home-nav-list {
+  position: sticky;
+  top: 82px;
+  list-style: none;
+  /* Pull up by the item's top padding so the first item's *text* — not its box —
+     sits level with the first section heading. */
+  margin: -6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 1px solid var(--border);
+}
+
+.home-nav-item {
+  display: block;
+  padding: 6px 0 6px 12px;
+  margin-left: -1px;                          /* active rule sits on the rail */
+  border-left: 1px solid transparent;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.home-nav-item:hover {
+  color: var(--text-primary);
+  border-left-color: var(--border-hover);
+}
+
+.home-nav-item.is-active {
+  color: var(--text-primary);
+  font-weight: 600;
+  border-left-color: var(--text-primary);
+}
+
+/* No room for a rail beside the cards — lay the tabs out above them. */
+@media (max-width: 1180px) {
+  .inner.home {
+    display: block;
+    max-width: 1120px;
+  }
+
+  .home-header, .home-nav, .home-main { grid-column: auto; grid-row: auto; }
+
+  .home-nav {
+    position: sticky;
+    top: 0;                                   /* the site header is not sticky */
+    z-index: 5;
+    margin-bottom: 20px;
+    padding: 10px 0;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .home-nav-list {
+    position: static;
+    margin: 0;
+    flex-direction: row;
+    gap: 20px;
+    border-left: none;
+    overflow-x: auto;
+  }
+
+  .home-nav-item {
+    padding: 2px 0;
+    margin-left: 0;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+  }
+
+  .home-nav-item:hover     { border-left-color: transparent; }
+  .home-nav-item.is-active { border-left-color: transparent; border-bottom-color: var(--text-primary); }
+}
+
+/* Anchor scrolling shouldn't tuck a section label under the sticky header. */
+.home .section {
+  scroll-margin-top: 96px;
+}

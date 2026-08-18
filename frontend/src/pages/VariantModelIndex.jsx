@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
 import { ALL_MODELS, MODEL_LINE, VARIANT_MODELS, TRANSAXLE_META, GROUP_CHILDREN } from '../data/taxonomy'
-import { fetchAuctionResults } from '../api/client'
-import { calcStats, groupByField, groupByMonth } from '../utils/aggregation'
+import { fetchAggregateStats } from '../api/client'
+import { indexByKey, statsFromGroup, toMonthlySeries } from '../utils/aggregation'
 import { toSlug } from '../utils/slugs'
 import Breadcrumb from '../components/Breadcrumb'
 import Sparkline from '../components/Sparkline'
@@ -19,7 +19,7 @@ export default function VariantModelIndex() {
   // Which group (if any) this model belongs to, for the breadcrumb trail.
   const parentSlug = Object.keys(GROUP_CHILDREN).find(g => GROUP_CHILDREN[g].includes(modelSlug))
 
-  const [results, setResults] = useState([])
+  const [groupStats, setGroupStats] = useState([])
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
 
@@ -27,17 +27,17 @@ export default function VariantModelIndex() {
     let stale = false // ignore responses that land after a navigation
     setLoading(true)
     setError(null)
-    fetchAuctionResults({ model_line: modelLine, limit: 10000 })
-      .then(data => { if (!stale) setResults(data) })
+    fetchAggregateStats({ model_line: modelLine, group_by: 'variant', monthly: true })
+      .then(data => { if (!stale) setGroupStats(data) })
       .catch(e => { if (!stale) setError(e.message) })
       .finally(() => { if (!stale) setLoading(false) })
     return () => { stale = true }
   }, [modelLine])
 
-  const byVariant = useMemo(() => groupByField(results, 'variant'), [results])
+  const byVariant = useMemo(() => indexByKey(groupStats), [groupStats])
   const sorted = useMemo(() => (
     [...variants].sort((a, b) =>
-      calcStats(byVariant[b] ?? []).avg - calcStats(byVariant[a] ?? []).avg)
+      statsFromGroup(byVariant[b]).avg - statsFromGroup(byVariant[a]).avg)
   ), [variants, byVariant])
 
   if (!model) return <Navigate to="/" replace />
@@ -63,9 +63,9 @@ export default function VariantModelIndex() {
       {!loading && !error && (
         <div className="card-grid">
           {sorted.map(variant => {
-            const varResults = byVariant[variant] ?? []
-            const stats   = calcStats(varResults)
-            const monthly = groupByMonth(varResults)
+            const group   = byVariant[variant]
+            const stats   = statsFromGroup(group)
+            const monthly = toMonthlySeries(group?.monthly)
             const label   = variant === 'base' ? model.label : variant
             return (
               <Link key={variant} to={`/${modelSlug}/${toSlug(variant)}`} className="index-card">

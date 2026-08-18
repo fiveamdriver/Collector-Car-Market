@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
 import { ALL_MODELS, GENERATION_GROUPS, GENERATIONS, GEN_IMAGES, GEN_YEARS, MODEL_LINE } from '../data/taxonomy'
-import { fetchAuctionResults } from '../api/client'
-import { calcStats, groupByField } from '../utils/aggregation'
+import { fetchAggregateStats } from '../api/client'
+import { combineStats, indexByKey, statsFromGroup } from '../utils/aggregation'
 import Breadcrumb from '../components/Breadcrumb'
 
 const GEN_IMAGE_POSITION = {
@@ -17,7 +17,7 @@ export default function GenerationIndex() {
   const modelLine  = MODEL_LINE[modelSlug]
   const groups     = GENERATION_GROUPS[modelSlug] ?? {}
 
-  const [results, setResults] = useState([])
+  const [groupStats, setGroupStats] = useState([])
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
 
@@ -25,14 +25,14 @@ export default function GenerationIndex() {
     let stale = false // ignore responses that land after a navigation
     setLoading(true)
     setError(null)
-    fetchAuctionResults({ model_line: modelLine, limit: 10000 })
-      .then(data => { if (!stale) setResults(data) })
+    fetchAggregateStats({ model_line: modelLine, group_by: 'generation' })
+      .then(data => { if (!stale) setGroupStats(data) })
       .catch(e => { if (!stale) setError(e.message) })
       .finally(() => { if (!stale) setLoading(false) })
     return () => { stale = true }
   }, [modelLine])
 
-  const byGen = useMemo(() => groupByField(results, 'generation'), [results])
+  const byGen = useMemo(() => indexByKey(groupStats), [groupStats])
 
   if (!model) return <Navigate to="/" replace />
 
@@ -52,11 +52,10 @@ export default function GenerationIndex() {
       {!loading && !error && (
         <div className="card-grid card-grid--4col">
           {generations.map(gen => {
-            const subGens    = groups[gen]
-            const genResults = subGens
-              ? subGens.flatMap(sg => byGen[sg] ?? [])
-              : (byGen[gen] ?? [])
-            const stats = calcStats(genResults)
+            const subGens = groups[gen]
+            const stats = subGens
+              ? combineStats(subGens.map(sg => byGen[sg]))
+              : statsFromGroup(byGen[gen])
             return (
               <Link key={gen} to={`/${modelSlug}/${gen}`} className="index-card">
                 {GEN_IMAGES[gen] && (

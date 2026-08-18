@@ -9,6 +9,7 @@ No API key required. Re-running is safe — duplicates are skipped by auction_ur
 """
 import asyncio
 import certifi
+import html
 import json
 import os
 import re
@@ -27,6 +28,7 @@ from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
 from app.utils.color_parser import parse_exterior_color
+from app.utils.variants import match_variant
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -135,11 +137,16 @@ CONFIGS = [
 YEAR_RE     = re.compile(r'\b(19|20)\d{2}\b')
 MILEAGE_RE  = re.compile(r'([\d,]+)(k)?-(Mile|Kilometer)', re.IGNORECASE)
 
+# Order matters: longest match first. "Targa" must precede "Carrera T" or a
+# "Carrera Targa" lot is filed as a Carrera T, and "Carrera 4S" must precede
+# "Carrera 4" for the same reason.
 VARIANT_PATTERNS = [
     "GT3 RS 4.0", "GT3 RS", "GT3",
     "GT2 RS", "GT2",
     "Turbo S", "Turbo",
-    "RS America", "Carrera RS", "Carrera S", "Carrera GTS", "Carrera T", "Carrera",
+    "Targa",
+    "RS America", "Carrera RS",
+    "Carrera 4S", "Carrera 4", "Carrera S", "Carrera GTS", "Carrera T", "Carrera",
 ]
 
 WIDEBODY_VARIANTS = {"GT3 RS", "GT3 RS 4.0", "GT2", "GT2 RS", "Turbo", "Turbo S", "Turbo 3.3", "Turbo 3.0"}
@@ -159,10 +166,7 @@ def parse_variant(title: str) -> str:
     "GT3 RS 4.0" is matched before "GT3 RS" and "GT3 RS" before "GT3".
     Returns "base" when no pattern matches (i.e. a stock Carrera).
     """
-    for pat in VARIANT_PATTERNS:
-        if pat in title:
-            return pat
-    return "base"
+    return match_variant(VARIANT_PATTERNS, title)
 
 
 CAYMAN_BOXSTER_PATTERNS = ["GT4 RS", "GT4", "GTS", "Spyder RS", "Spyder"]
@@ -354,7 +358,9 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
     if price is None:
         return None
 
-    title = raw.get("title") or ""
+    # The API returns HTML-escaped titles ("Magnus Walker&#8217;s ..."), so unescape
+    # before parsing and storing — the entities are otherwise shown to the user.
+    title = html.unescape(raw.get("title") or "")
     year  = parse_year(title)
     if not year:
         return None

@@ -36,6 +36,8 @@ from app.models.listing import AuctionResult
 from app.utils.color_parser import parse_color_from_phrase, scan_for_color
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
+from app.utils.model_lines import match_model_line as match_model_line_shared
+from app.utils.variants import match_variant
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -107,36 +109,6 @@ query PorscheSoldLots($size: Int!, $offset: Int!) {
 
 # ── Model / variant parsing ───────────────────────────────────────────────────
 
-PORSCHE_MODEL_LINES = [
-    ("918 Spyder", "918 Spyder"),
-    ("959",         "959"),
-    ("Cayenne",     "Cayenne"),
-    ("Panamera",    "Panamera"),
-    ("Macan",       "Macan"),
-    ("Taycan",      "Taycan"),
-    ("Boxster",     "Boxster"),
-    ("Cayman",      "Cayman"),
-    ("968",         "968"),
-    ("944",         "944"),
-    ("930",         "911"),
-    ("928",         "928"),
-    ("924",         "924"),
-    ("914",         "914"),
-    ("912E",        "912"),
-    ("912",         "912"),
-    ("356",         "356"),
-    ("904",         "904"),
-    ("962",         "962"),
-    ("956",         "956"),
-    ("935",         "935"),
-    ("934",         "934"),
-    ("917",         "917"),
-    ("908",         "908"),
-    ("907",         "907"),
-    ("906",         "906"),
-    ("Carrera GT",  "Carrera GT"),
-    ("911",         "911"),
-]
 
 _911_VARIANTS = [
     "GT3 RS 4.0", "GT3 RS", "GT3",
@@ -159,16 +131,7 @@ YEAR_RE = re.compile(r'\b(19|20)\d{2}\b')
 
 
 def parse_model_line(text: str) -> str:
-    for token, ml in PORSCHE_MODEL_LINES:
-        if token == "Carrera GT":
-            if re.search(r'\bCarrera GT\b', text): return ml
-        elif token[0].isdigit():
-            # Match "356", "356A", "356B", "356C" etc. — Mecum titles use "356B" not "356 B"
-            if re.search(r'\b' + re.escape(token) + r'[A-Z]?\b', text): return ml
-        elif token in text:
-            return ml
-    return "911"
-
+    return match_model_line_shared(text, match_transaxle_line)
 
 # Maps Mecum API model names (from models.nodes) to our model_line values.
 _API_MODEL_MAP = {
@@ -245,9 +208,7 @@ def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
             if "911S" in combined:        return "911S"
             if "Targa" in combined:       return "Targa"
             return "base"
-        for pat in _911_VARIANTS:
-            if pat in combined: return pat
-        return "base"
+        return match_variant(_911_VARIANTS, combined)
 
     if model_line == "356":
         for pat in _356_VARIANTS:

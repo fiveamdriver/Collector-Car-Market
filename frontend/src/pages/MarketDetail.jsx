@@ -111,12 +111,21 @@ export default function MarketDetail() {
   const heroFile  = variant
     ? (VARIANT_HERO[modelSlug]?.[generation]?.[variant] ?? null)
     : (MODEL_HERO[modelSlug] ?? null)
-  const heroImage = heroFile ? `/images/variants/${heroFile}` : null
+  // Entries are bare filenames resolved against /images/variants/, but an entry
+  // may also give a full path when the image lives elsewhere (the restomod cards
+  // reuse their front-page photo rather than duplicating a 300KB file).
+  const heroImage = heroFile
+    ? (heroFile.startsWith('/') ? heroFile : `/images/variants/${heroFile}`)
+    : null
 
-  // Eyebrow: "Porsche 911 · 993" or "Porsche 959" etc.
-  const eyebrow = generation
-    ? `Porsche ${model.label} · ${generation}`
-    : `Porsche ${model.label}`
+  // Eyebrow: "Porsche 911 · 993" or "Porsche 959" etc. Coachbuilders are not
+  // Porsche models — "Porsche Singer" reads wrong — so they're labelled by what
+  // they are instead.
+  const eyebrow = model.category === 'restomod'
+    ? 'Restomod'
+    : generation
+      ? `Porsche ${model.label} · ${generation}`
+      : `Porsche ${model.label}`
 
   // Hero title: 911 pages show the variant alone ("Carrera RS 2.7") — the
   // eyebrow already carries the generation. Others: "718 GT4", "944 Turbo",

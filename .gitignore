@@ -6,6 +6,13 @@ __pycache__/
 venv/
 *.egg-info/
 
+# Env files — every variant except the committed templates.
+# ".env" alone missed backend/.env.bak, which holds a live database password.
+.env
+.env.*
+!.env.example
+!*.env.example
+
 # Node
 node_modules/
 dist/

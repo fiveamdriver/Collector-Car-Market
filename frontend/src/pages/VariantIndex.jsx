@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
 import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE, VARIANTS, CROSS_LISTINGS } from '../data/taxonomy'
-import { fetchAuctionResults } from '../api/client'
-import { calcStats, groupByField, groupByMonth } from '../utils/aggregation'
+import { fetchAggregateStats, fetchAuctionResults } from '../api/client'
+import {
+  combineStats, groupStatsFromRows, indexByKey, mergeGroups,
+  statsFromGroup, toMonthlySeries,
+} from '../utils/aggregation'
 import { toSlug } from '../utils/slugs'
 import Breadcrumb from '../components/Breadcrumb'
 import Sparkline from '../components/Sparkline'
 import { fmtVal } from '../utils/formatters'
 
 const GEN_DESCRIPTIONS = {
+  '356 A': 'Introduced at the 1955 Frankfurt show, the 356 A brought a curved one-piece windshield, softer suspension, and the larger 1600 flat-four that made the car markedly more usable. It was also the first 356 offered with the exotic four-cam Carrera engine, while the stripped-down Speedster became an icon of 1950s sports car culture. Speedsters and Carrera-engined cars rank among the most valuable 356s at auction.',
   'F-Body': 'The F-Body 911, produced from 1963 to 1973, is the original air-cooled sports car that defined Porsche\'s identity for decades. Early cars are prized for their pure, lightweight character and direct connection to Ferdinand Piëch\'s original vision. Rare variants like the Carrera RS 2.7 and 911R are among the most valuable Porsches ever sold at auction.',
   'G-Body': 'The G-Body generation ran from 1974 to 1989, the longest production run of any 911, and introduced the iconic impact bumpers that define its silhouette. It encompassed the 2.7, 3.0, and 3.2 Carrera engines, culminating in one of the finest air-cooled motors Porsche ever built. The 930 Turbo and limited Speedster variants from this era are especially sought after by collectors.',
   '964':   'Produced from 1989 to 1994, the 964 was the 911\'s first major redesign in over two decades, introducing all-wheel drive, power steering, and ABS. It retained the iconic air-cooled flat-six that defined the 911\'s character. The 964 remains one of the most collectible air-cooled Porsches, with values that have climbed steadily among enthusiasts and collectors.',
@@ -38,7 +42,7 @@ export default function VariantIndex() {
 
   const variants = VARIANTS[modelSlug]?.[generation] ?? []
 
-  const [results, setResults] = useState([])
+  const [groupStats, setGroupStats] = useState([])
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
 
@@ -47,39 +51,49 @@ export default function VariantIndex() {
     setLoading(true)
     setError(null)
     // Cross-listed lots are re-tagged with the host variant so they roll into
-    // that card's count, average, and sparkline.
+    // that card's count, average, and sparkline. These stay row-level fetches:
+    // they're selected by id or title pattern, which SQL grouping can't express.
+    // The filters are narrow, so the row count is tiny.
     const crossByVariant = CROSS_LISTINGS[modelSlug]?.[generation] ?? {}
     const extras = Object.entries(crossByVariant).flatMap(([hostVariant, entries]) =>
       entries.map(e =>
-        fetchAuctionResults({ ...e.params, limit: 10000 }).then(rows =>
-          rows
-            .filter(r =>
+        fetchAuctionResults(e.params).then(rows =>
+          groupStatsFromRows(
+            hostVariant,
+            rows.filter(r =>
               e.ids?.includes(r.id) ||
               (e.titlePattern != null && new RegExp(e.titlePattern, 'i').test(r.lot_title ?? ''))
             )
-            .map(r => ({ ...r, variant: hostVariant }))
+          )
         )
       )
     )
     Promise.all([
-      fetchAuctionResults({ model_line: modelLine, generation, limit: 10000 }),
+      fetchAggregateStats({
+        model_line: modelLine, generation, group_by: 'variant', monthly: true,
+      }),
       ...extras,
     ])
-      .then(batches => { if (!stale) setResults(batches.flat()) })
+      .then(([base, ...crossGroups]) => {
+        if (stale) return
+        // Fold each cross-listed group into its host variant's aggregate.
+        const merged = indexByKey(base)
+        for (const g of crossGroups) {
+          merged[g.key] = mergeGroups(merged[g.key], g) ?? g
+        }
+        setGroupStats(Object.values(merged))
+      })
       .catch(e => { if (!stale) setError(e.message) })
       .finally(() => { if (!stale) setLoading(false) })
     return () => { stale = true }
   }, [modelLine, modelSlug, generation])
 
-  const byVariant  = useMemo(() => groupByField(results, 'variant'), [results])
-  const genStats   = useMemo(() => calcStats(results), [results])
+  const byVariant = useMemo(() => indexByKey(groupStats), [groupStats])
+  const genStats  = useMemo(() => combineStats(groupStats), [groupStats])
 
   const sortedVariants = useMemo(() => (
-    [...variants].sort((a, b) => {
-      const aAvg = calcStats(byVariant[a] ?? []).avg
-      const bAvg = calcStats(byVariant[b] ?? []).avg
-      return bAvg - aAvg
-    })
+    [...variants].sort((a, b) =>
+      statsFromGroup(byVariant[b]).avg - statsFromGroup(byVariant[a]).avg)
   ), [variants, byVariant])
 
   if (!model) return <Navigate to="/" replace />
@@ -147,9 +161,9 @@ export default function VariantIndex() {
       {!loading && !error && (
         <div className="card-grid">
           {sortedVariants.map(variant => {
-            const varResults = byVariant[variant] ?? []
-            const stats   = calcStats(varResults)
-            const monthly = groupByMonth(varResults)
+            const group   = byVariant[variant]
+            const stats   = statsFromGroup(group)
+            const monthly = toMonthlySeries(group?.monthly)
             return (
               <Link
                 key={variant}

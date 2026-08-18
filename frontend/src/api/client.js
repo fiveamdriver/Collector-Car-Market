@@ -15,6 +15,16 @@ export async function fetchModelLineStats() {
   return data
 }
 
+// Counts/averages/trend lines computed in the database. Index pages render only
+// aggregates, so this replaces pulling every matching row into the browser.
+export async function fetchAggregateStats(params = {}) {
+  const clean = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v != null && v !== '')
+  )
+  const { data } = await api.get('/stats/aggregate', { params: clean })
+  return data
+}
+
 export async function fetchActiveListings(params = {}) {
   const clean = Object.fromEntries(
     Object.entries(params).filter(([, v]) => v != null && v !== '')

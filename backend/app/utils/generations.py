@@ -5,6 +5,16 @@ This is the single source of truth for the generation ladders. The same
 functions were previously copy-pasted into each ingest script and had begun
 to drift (ocd_ingest.py was missing the F-Body/G-Body branches, filing every
 pre-1995 911 as a 964).
+
+Every value returned here must exist in the frontend taxonomy
+(frontend/src/data/taxonomy.js). Generations rendered as a group — 996, 997,
+991, 992 — have no card of their own; the site draws their sub-generations and
+sums them for the parent. A bare group name therefore has nowhere to appear, so
+these ladders always return the sub-generation. `scripts/preflight-taxonomy.mjs`
+checks the database for values that have drifted out of the taxonomy.
+
+Race cars are deliberately excluded from this: the 911 Race line uses flat
+generations and keeps its own ladder in data/migrate_race_cars.py.
 """
 
 
@@ -19,7 +29,9 @@ def get_911_generation(year: int) -> str:
     if year <= 2012: return "997.2"
     if year <= 2016: return "991.1"
     if year <= 2019: return "991.2"
-    return "992"
+    # The 992.2 facelift arrived for the 2025 model year.
+    if year <= 2024: return "992.1"
+    return "992.2"
 
 
 def get_cayman_generation(year: int) -> str:

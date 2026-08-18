@@ -42,6 +42,8 @@ from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
+from app.utils.model_lines import match_model_line as match_model_line_shared
+from app.utils.variants import match_variant
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -78,35 +80,6 @@ FX_RATES: dict[str, float] = {
 
 # ── Model / variant parsing ───────────────────────────────────────────────────
 
-PORSCHE_MODEL_LINES = [
-    ("959",         "959"),
-    ("Cayenne",     "Cayenne"),
-    ("Panamera",    "Panamera"),
-    ("Macan",       "Macan"),
-    ("Taycan",      "Taycan"),
-    ("Boxster",     "Boxster"),
-    ("Cayman",      "Cayman"),
-    ("968",         "968"),
-    ("944",         "944"),
-    ("930",         "911"),
-    ("928",         "928"),
-    ("924",         "924"),
-    ("914",         "914"),
-    ("912E",        "912"),
-    ("912",         "912"),
-    ("356",         "356"),
-    ("904",         "904"),
-    ("962",         "962"),
-    ("956",         "956"),
-    ("935",         "935"),
-    ("934",         "934"),
-    ("917",         "917"),
-    ("908",         "908"),
-    ("907",         "907"),
-    ("906",         "906"),
-    ("Carrera GT",  "Carrera GT"),
-    ("911",         "911"),
-]
 
 _911_VARIANTS = [
     "GT3 RS 4.0", "GT3 RS", "GT3",
@@ -144,36 +117,7 @@ def descriptive_part(title: str) -> str:
 
 
 def parse_model_line(text: str) -> str:
-    # 356 and its sub-series (356A/356B/356C/356SC — the suffix is often attached,
-    # e.g. "356A", "356SC").  Checked first so it beats "Carrera GT": a 356 Carrera
-    # GT is a 356, not the 2003-07 Carrera GT supercar.  Requiring 356 to be flanked
-    # by non-digits keeps it from matching "356" buried in a chassis/engine number.
-    if re.search(r'(?<!\d)356(?!\d)', text):
-        return "356"
-    # The 906 is marketed as the "Carrera 6" / "Carrera Six"; some titles use only
-    # that name and carry "906" only in the (stripped) chassis number.  The speed
-    # guard avoids catching a modern "Carrera 6-speed".
-    if re.search(r'\bCarrera[\s\-]?(?:6|Six)\b(?!\s*[-–]?\s*speed)', text, re.IGNORECASE):
-        return "906"
-    # 918 Spyder hypercar — but NOT the 911 Turbo S "Edition 918 Spyder" trim,
-    # which is a 911.  A real 918's title never also carries "911".
-    if re.search(r'918\s*Spyder', text, re.IGNORECASE) and not re.search(r'\b911\b', text):
-        return "918 Spyder"
-    # Transaxle first: "924S" / "944S" / "928S4" carry a suffix that \b924\b
-    # cannot match, so these cars fell through to the "911" default below.
-    transaxle = match_transaxle_line(text)
-    if transaxle:
-        return transaxle
-    for token, ml in PORSCHE_MODEL_LINES:
-        if token == "Carrera GT":
-            if re.search(r'\bCarrera GT\b', text):
-                return ml
-        elif token[0].isdigit():
-            if re.search(r'\b' + re.escape(token) + r'\b', text):
-                return ml
-        elif token in text:
-            return ml
-    return "911"
+    return match_model_line_shared(text, match_transaxle_line)
 
 
 def parse_generation(model_line: str, year: int, text: str) -> str:
@@ -221,10 +165,7 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
             if "911S" in text:                      return "911S"
             if "Targa" in text:                     return "Targa"
             return "base"
-        for pat in _911_VARIANTS:
-            if pat in text:
-                return pat
-        return "base"
+        return match_variant(_911_VARIANTS, text)
 
     if model_line == "356":
         for pat in _356_VARIANTS:

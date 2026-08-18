@@ -15,6 +15,11 @@ export const MODEL_LINE = {
   '959':        '959',
   'carrera-gt': 'Carrera GT',
   '918-spyder': '918 Spyder',
+  // Restomods — coachbuilders get their own model line so their seven-figure
+  // sales don't sit inside the donor generation's street average.
+  'singer':        'Singer',
+  'gunther-werks': 'Gunther Werks',
+  'emory':         'Emory',
   // Race cars
   '911-race':   '911 Race',
   '911-gt1':    '911 GT1',
@@ -51,6 +56,10 @@ export const ALL_MODELS = [
   { slug: '959',        label: '959',        type: 'standalone', category: 'specialty' },
   { slug: 'carrera-gt', label: 'Carrera GT', type: 'standalone', category: 'specialty' },
   { slug: '918-spyder', label: '918 Spyder', type: 'standalone', category: 'specialty' },
+  // ── Restomods ─────────────────────────────────────────────────────────────────
+  { slug: 'singer',        label: 'Singer',        type: 'standalone', category: 'restomod' },
+  { slug: 'gunther-werks', label: 'Gunther Werks', type: 'standalone', category: 'restomod' },
+  { slug: 'emory',         label: 'Emory Motorsports', type: 'standalone', category: 'restomod' },
   // ── Race Cars ─────────────────────────────────────────────────────────────────
   { slug: '911-race',   label: '911',        type: 'series',     category: 'race' },
   { slug: '911-gt1',   label: '911 GT1',    type: 'standalone', category: 'race' },
@@ -129,50 +138,58 @@ export const VARIANTS = {
   '911': {
     'F-Body': [
       '911', '911S', '911T', '911E', '911L', '911R',
-      'Carrera RS 2.7', 'S/T',
+      'Carrera RS 2.7', 'S/T', 'Targa',
     ],
     'G-Body': [
       'Speedster', 'Turbo 3.3 Slant Nose', '930 Turbo',
       'Carrera 2.7 MFI', 'Carrera 2.7', 'Carrera 3.2', 'SC', '911S', '911',
+      'Targa',
     ],
+    // Carrera 4 starts here — the 964 was the first all-wheel-drive 911.
     '964': [
-      'Carrera', 'Carrera RS', 'RS 3.8', 'RS America',
-      'Turbo', 'Turbo S', 'Speedster',
+      'Carrera', 'Carrera 4', 'Carrera RS', 'RS 3.8', 'RS America',
+      'Turbo', 'Turbo S', 'Speedster', 'Targa',
     ],
+    // Carrera 4S starts here, alongside the first glass-roof Targa.
     '993': [
-      'Carrera', 'Carrera S', 'Carrera RS',
-      'Turbo', 'Turbo S', 'GT2',
+      'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S', 'Carrera RS',
+      'Turbo', 'Turbo S', 'GT2', 'Targa',
     ],
-    '996.1': ['Carrera', 'Carrera S', 'Turbo', 'GT3'],
-    '996.2': ['Carrera', 'Carrera S', 'Turbo', 'Turbo S', 'GT3', 'GT3 RS', 'GT2'],
+    // No 996.1 Targa or 4S: both arrived with the MY2002 facelift.
+    '996.1': ['Carrera', 'Carrera 4', 'Carrera S', 'Turbo', 'GT3'],
+    '996.2': [
+      'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S',
+      'Turbo', 'Turbo S', 'GT3', 'GT3 RS', 'GT2', 'Targa',
+    ],
     '997.1': [
-      'Carrera', 'Carrera S',
-      'Turbo', 'GT3', 'GT3 RS', 'GT2',
+      'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S',
+      'Turbo', 'GT3', 'GT3 RS', 'GT2', 'Targa',
     ],
     '997.2': [
-      'Carrera', 'Carrera S', 'Carrera GTS',
+      'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S', 'Carrera GTS',
       'Turbo', 'Turbo S',
       'GT3', 'GT3 RS', 'GT3 RS 4.0', 'GT2 RS', 'Sport Classic', 'Speedster',
+      'Targa',
     ],
     '991.1': [
-      'Carrera', 'Carrera S', 'Carrera T', 'Carrera GTS',
+      'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S', 'Carrera T', 'Carrera GTS',
       'Turbo', 'Turbo S',
-      'GT3', 'GT3 RS', 'R',
+      'GT3', 'GT3 RS', 'R', 'Targa',
     ],
     '991.2': [
-      'Carrera', 'Carrera S', 'Carrera T', 'Carrera GTS',
+      'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S', 'Carrera T', 'Carrera GTS',
       'Turbo', 'Turbo S',
-      'GT3', 'GT3 RS', 'GT2 RS', 'Speedster',
+      'GT3', 'GT3 RS', 'GT2 RS', 'Speedster', 'Targa',
     ],
     '992.1': [
-      'Carrera', 'Carrera S', 'Carrera T', 'Carrera GTS',
+      'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S', 'Carrera T', 'Carrera GTS',
       'Turbo', 'Turbo S',
-      'GT3', 'GT3 RS', 'S/T', 'Sport Classic', 'Dakar',
+      'GT3', 'GT3 RS', 'S/T', 'Sport Classic', 'Dakar', 'Targa',
     ],
     '992.2': [
-      'Carrera', 'Carrera S', 'Carrera T', 'Carrera GTS',
+      'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S', 'Carrera T', 'Carrera GTS',
       'Turbo', 'Turbo S',
-      'GT3', 'GT3 RS',
+      'GT3', 'GT3 RS', 'Targa',
     ],
   },
   '356': {
@@ -280,6 +297,9 @@ export const MODEL_HERO = {
   '959':        null,
   'carrera-gt': null,
   '918-spyder': null,
+  'singer':        '/images/Front_page_cards/Restomod/singer_dls.jpg',
+  'gunther-werks': '/images/Front_page_cards/Restomod/gunther_werks_f26.jpg',
+  'emory':         '/images/Front_page_cards/Restomod/emory_motorsports.jpg',
   '911-gt1':    null,
   '917':        null,
   '956':        null,
@@ -299,6 +319,7 @@ export const MODEL_HERO = {
 // Card images for generation index and hero pages.
 // Used by GenerationIndex, SubGenerationIndex, and VariantIndex.
 export const GEN_IMAGES = {
+  '356 A':  '/images/Canepa Images/356.jpeg',
   'F-Body': '/images/911_gen_page_cards/911R(1967)Fbodygenpic.jpeg',
   'G-Body': '/images/911_gen_page_cards/930turbogbodygen.jpg',
   '964':    '/images/911_gen_page_cards/porsche964RS.png',
@@ -320,6 +341,7 @@ export const GEN_IMAGES = {
 // Production year spans for all generations and sub-generations.
 // Used by GenerationIndex, SubGenerationIndex, and VariantIndex.
 export const GEN_YEARS = {
+  '356 A':  '1955–1959',
   'F-Body': '1963–1973',
   'G-Body': '1974–1989',
   '964':    '1989–1994',

@@ -1,7 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ALL_MODELS, MODEL_LINE, GROUP_CHILDREN } from '../data/taxonomy'
 import { fetchModelLineStats } from '../api/client'
+
+// Drives both the side nav and the sections themselves, so the two can't drift.
+const SECTIONS = [
+  { id: 'model-lines', label: 'Model Lines',      category: 'series' },
+  { id: 'specialty',   label: 'Specialty Models', category: 'specialty' },
+  { id: 'race',        label: 'Race Cars',        category: 'race' },
+  { id: 'restomods',   label: 'Restomods',        category: 'restomod' },
+]
 
 const MODEL_YEARS = {
   '911':        '1963–present',
@@ -13,6 +21,9 @@ const MODEL_YEARS = {
   '959':        '1986–1988',
   'carrera-gt': '2004–2006',
   '918-spyder': '2013–2015',
+  'singer':        '2009–present',
+  'gunther-werks': '2017–present',
+  'emory':         '1996–present',
   '911-race':   '1973–present',
   '911-gt1':    '1996–1998',
   '917':        '1969–1973',
@@ -45,6 +56,9 @@ const MODEL_IMAGES = {
   '959':        '/images/Front_page_cards/Specialty/959hero.jpg',
   'carrera-gt': '/images/Front_page_cards/Specialty/cgthero.jpeg',
   '918-spyder': '/images/Front_page_cards/Specialty/918hero.png',
+  'singer':        '/images/Front_page_cards/Restomod/singer_dls.jpg',
+  'gunther-werks': '/images/Front_page_cards/Restomod/gunther_werks_f26.jpg',
+  'emory':         '/images/Front_page_cards/Restomod/emory_motorsports.jpg',
   '911-race':   '/images/Front_page_cards/Racecars/RSR.jpg',
   '911-gt1':    '/images/Front_page_cards/Racecars/gt1.png',
   '917':        '/images/Front_page_cards/Racecars/917.png',
@@ -91,12 +105,40 @@ function ModelCard({ m, stats }) {
 }
 
 export default function MarketHome() {
-  const series     = ALL_MODELS.filter(m => m.category === 'series')
-  const standalone = ALL_MODELS.filter(m => m.category === 'specialty')
-  const race       = ALL_MODELS.filter(m => m.category === 'race')
-
   const [modelStats, setModelStats] = useState({})
   const [statsError, setStatsError] = useState(null)
+  const [activeId, setActiveId]     = useState(SECTIONS[0].id)
+  const sectionRefs = useRef({})
+
+  // The active section is the last one whose top has scrolled past the marker —
+  // not the one nearest to it, which lights up the *next* section while you're
+  // still reading the current one.
+  useEffect(() => {
+    const nodes = SECTIONS.map(s => sectionRefs.current[s.id]).filter(Boolean)
+    if (!nodes.length) return
+
+    const pick = () => {
+      const marker = 120
+      let current = nodes[0]
+      for (const node of nodes) {
+        if (node.getBoundingClientRect().top <= marker) current = node
+      }
+      // At the very bottom the last section may be too short to reach the
+      // marker; it's still the one in view.
+      const atBottom =
+        window.innerHeight + window.scrollY >= document.body.scrollHeight - 2
+      if (atBottom) current = nodes[nodes.length - 1]
+      setActiveId(current.dataset.sectionId)
+    }
+
+    pick()
+    window.addEventListener('scroll', pick, { passive: true })
+    window.addEventListener('resize', pick)
+    return () => {
+      window.removeEventListener('scroll', pick)
+      window.removeEventListener('resize', pick)
+    }
+  }, [])
 
   useEffect(() => {
     document.body.classList.add('theme-light')
@@ -132,33 +174,57 @@ export default function MarketHome() {
     return () => { stale = true }
   }, [])
 
+  const scrollTo = (id) => (e) => {
+    e.preventDefault()
+    sectionRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setActiveId(id)
+  }
+
   return (
-    <div className="inner">
-      <div className="page-header">
+    <div className="inner home">
+      {/* Sits in its own grid row above both columns, so the nav lines up with
+          the first section heading rather than with the page title. */}
+      <div className="page-header home-header">
         <h1 className="page-title">Porsche</h1>
       </div>
-      {statsError && <p className="status error">Could not load market stats: {statsError}</p>}
 
-      <section className="section">
-        <h2 className="section-label">Model Lines</h2>
-        <div className="card-grid card-grid--models">
-          {series.map(m => <ModelCard key={m.slug} m={m} stats={modelStats[m.slug]} />)}
-        </div>
-      </section>
+      <nav className="home-nav" aria-label="Categories">
+        <ul className="home-nav-list">
+          {SECTIONS.map(s => (
+            <li key={s.id}>
+              <a
+                href={`#${s.id}`}
+                className={`home-nav-item${activeId === s.id ? ' is-active' : ''}`}
+                aria-current={activeId === s.id ? 'true' : undefined}
+                onClick={scrollTo(s.id)}
+              >
+                {s.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
-      <section className="section">
-        <h2 className="section-label">Specialty Models</h2>
-        <div className="card-grid card-grid--models">
-          {standalone.map(m => <ModelCard key={m.slug} m={m} stats={modelStats[m.slug]} />)}
-        </div>
-      </section>
+      <div className="home-main">
+        {statsError && <p className="status error">Could not load market stats: {statsError}</p>}
 
-      <section className="section">
-        <h2 className="section-label">Race Cars</h2>
-        <div className="card-grid card-grid--models">
-          {race.map(m => <ModelCard key={m.slug} m={m} stats={modelStats[m.slug]} />)}
-        </div>
-      </section>
+        {SECTIONS.map(s => (
+          <section
+            key={s.id}
+            id={s.id}
+            data-section-id={s.id}
+            ref={el => { sectionRefs.current[s.id] = el }}
+            className="section"
+          >
+            <h2 className="section-label">{s.label}</h2>
+            <div className="card-grid card-grid--models">
+              {ALL_MODELS.filter(m => m.category === s.category).map(m => (
+                <ModelCard key={m.slug} m={m} stats={modelStats[m.slug]} />
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
     </div>
   )
 }
