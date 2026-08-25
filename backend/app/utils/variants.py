@@ -18,7 +18,10 @@ import re
 # rejects legitimate run-together forms, so only add names that actually collide.
 #   "Carrera T" -> "Carrera Targa", "Carrera Type 996"
 #   "Turbo S"   -> "Turbo Study" (a Singer commission, not a Turbo S)
-_WORD_BOUNDED = frozenset({"Carrera T", "Turbo S"})
+#   "R"         -> the 991 R. A single letter matches inside almost anything, so
+#                  it is only ever correct bounded on both sides: "RS", "RSR",
+#                  "RUF" and "RoW" must not become the 991 R.
+_WORD_BOUNDED = frozenset({"Carrera T", "Turbo S", "R"})
 
 # Coachbuilt cars are identified by their builder, not by the donor car's trim.
 # They have to be tested before the trim list, because a title like "911 Carrera 2
@@ -33,7 +36,7 @@ _COACHBUILT = (
 def variant_matches(pattern: str, text: str) -> bool:
     """True if `pattern` names a variant present in `text`."""
     if pattern in _WORD_BOUNDED:
-        return re.search(re.escape(pattern) + r'\b', text) is not None
+        return re.search(r'\b' + re.escape(pattern) + r'\b', text) is not None
     return pattern in text
 
 

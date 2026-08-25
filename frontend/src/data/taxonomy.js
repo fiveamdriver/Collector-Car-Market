@@ -24,6 +24,7 @@ export const MODEL_LINE = {
   '911-race':   '911 Race',
   '911-gt1':    '911 GT1',
   '917':        '917',
+  '910':        '910',
   '956':        '956',
   '962':        '962',
   '935':        '935',
@@ -64,6 +65,7 @@ export const ALL_MODELS = [
   { slug: '911-race',   label: '911',        type: 'series',     category: 'race' },
   { slug: '911-gt1',   label: '911 GT1',    type: 'standalone', category: 'race' },
   { slug: '917',        label: '917',        type: 'standalone', category: 'race' },
+  { slug: '910',        label: '910',        type: 'standalone', category: 'race' },
   { slug: '956',        label: '956',        type: 'standalone', category: 'race' },
   { slug: '962',        label: '962',        type: 'standalone', category: 'race' },
   { slug: '935',        label: '935',        type: 'standalone', category: 'race' },
@@ -147,7 +149,9 @@ export const VARIANTS = {
     ],
     // Carrera 4 starts here — the 964 was the first all-wheel-drive 911.
     '964': [
-      'Carrera', 'Carrera 4', 'Carrera RS', 'RS 3.8', 'RS America',
+      // The 964 was marketed as Carrera 2 / Carrera 4; 'Carrera 4' was listed
+      // but its rear-drive twin was not, hiding every C2 the ingest classified.
+      'Carrera', 'Carrera 2', 'Carrera 4', 'Carrera RS', 'RS 3.8', 'RS America',
       'Turbo', 'Turbo S', 'Speedster', 'Targa',
     ],
     // Carrera 4S starts here, alongside the first glass-roof Targa.
@@ -193,7 +197,7 @@ export const VARIANTS = {
     ],
   },
   '356': {
-    'Pre-A':  ['Coupe', 'Cabriolet', 'Speedster'],
+    'Pre-A':  ['Coupe', 'Cabriolet', 'Speedster', 'Roadster'],
     '356 A':  ['Coupe', 'Cabriolet', 'Speedster'],
     '356 B':  ['Coupe', 'Roadster', 'Cabriolet', 'Notchback'],
     '356 C':  ['Coupe', 'Cabriolet'],
@@ -302,6 +306,7 @@ export const MODEL_HERO = {
   'emory':         '/images/Front_page_cards/Restomod/emory_motorsports.jpg',
   '911-gt1':    null,
   '917':        null,
+  '910':        null,
   '956':        null,
   '962':        null,
   '935':        null,

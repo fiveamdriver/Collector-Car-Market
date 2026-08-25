@@ -24,10 +24,10 @@ BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BACKEND_DIR)
 
 import app.models  # noqa: F401
-from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
 from app.utils.color_parser import parse_exterior_color
+from app.utils.model_lines import match_coachbuilt_line
 from app.utils.variants import match_variant
 from app.utils.generations import (
     get_911_generation,
@@ -365,6 +365,15 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
     if not year:
         return None
 
+    # The model line comes from the query config, not the title, so a Singer or
+    # Gunther Werks car arrives labelled "911" (the "964 Singer" config sets
+    # model_line="911" outright). Left alone, seven-figure restomods land in the
+    # donor generation and wreck its average — a $1.66M Singer against roughly
+    # $86k for a street 964. The title is the only place the builder is named.
+    coachbuilt = match_coachbuilt_line(title)
+    if coachbuilt:
+        model_line = coachbuilt
+
     if model_line == "911":
         generation = get_911_generation(year)
     elif model_line == "Cayman":
@@ -374,7 +383,13 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
     else:
         generation = model_line
 
-    if model_line in TRANSAXLE_LINES:
+    if coachbuilt:
+        # The donor's trim is not this car's variant: a "911 Carrera Classic
+        # Turbo by Singer" is a Singer, not a Turbo, and config_variant below
+        # would stamp the whole "964 Singer" config as "Singer" anyway. Matches
+        # how the other sources file coachbuilt cars.
+        variant = "base"
+    elif model_line in TRANSAXLE_LINES:
         # Runs before config_variant: the "944 Turbo" config would otherwise
         # stamp every lot it returns as "Turbo", including the Turbo S cars
         # and the Turbo Cup race cars.
@@ -428,10 +443,20 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-async def ingest(only: list[str] | None = None) -> None:
+# A config stops once this many consecutive pages yield nothing new. BaT sorts
+# newest-first (sort=td), so once a page is entirely records we already hold,
+# everything below it is older still. Two pages rather than one absorbs the odd
+# out-of-order result without walking the whole 16k-row history every run.
+STALE_PAGES_BEFORE_STOP = 2
+
+
+async def ingest(only: list[str] | None = None, full: bool = False) -> None:
     """
     only: optional list of substrings; a config is run only if its name contains
           at least one of them (case-insensitive). Pass None to run all configs.
+    full: page every config to the end instead of stopping at the first run of
+          already-seen pages. Needed only to backfill thumbnails onto old rows;
+          a routine "fetch what is new" run does not want it.
     """
     configs = CONFIGS
     if only:
@@ -451,9 +476,29 @@ async def ingest(only: list[str] | None = None) -> None:
         )
         existing: dict[str, str | None] = {row[0]: row[1] for row in rows.fetchall()}
 
-    total_fetched = total_skipped = 0
+    total_fetched = total_skipped = total_inserted = total_backfilled = 0
     to_insert:  list[dict] = []
     to_backfill: list[tuple[str, str]] = []  # (auction_url, thumbnail_url)
+
+    async def flush() -> None:
+        """Commit queued inserts and thumbnail backfills, then clear the queues."""
+        nonlocal to_insert, to_backfill, total_inserted, total_backfilled
+        if not to_insert and not to_backfill:
+            return
+        async with AsyncSessionLocal() as session:
+            if to_insert:
+                session.add_all([AuctionResult(**r) for r in to_insert])
+            for url, thumb in to_backfill:
+                await session.execute(
+                    update(AuctionResult)
+                    .where(AuctionResult.auction_url == url)
+                    .values(thumbnail_url=thumb)
+                )
+            await session.commit()
+        total_inserted += len(to_insert)
+        total_backfilled += len(to_backfill)
+        to_insert = []
+        to_backfill = []
 
     for cfg in configs:
         name        = cfg["name"]
@@ -463,19 +508,21 @@ async def ingest(only: list[str] | None = None) -> None:
 
         cfg_fetched = cfg_queued = cfg_updated = cfg_skipped = 0
         page = 1
+        stale_pages = 0
 
-        print(f"[{name}]")
+        print(f"[{name}]", flush=True)
         while MAX_PAGES is None or page <= MAX_PAGES:
             try:
                 items = fetch_page(ids, page)
             except Exception as exc:
-                print(f"  page {page} ERROR: {exc}")
+                print(f"  page {page} ERROR: {exc}", flush=True)
                 break
 
             if not items:
                 break
 
             cfg_fetched += len(items)
+            page_queued = page_updated = 0
 
             for raw in items:
                 rec = map_record(raw, model_line, cfg_variant)
@@ -489,6 +536,7 @@ async def ingest(only: list[str] | None = None) -> None:
                         to_backfill.append((url, rec["thumbnail_url"]))
                         existing[url] = rec["thumbnail_url"]  # prevent double-queue
                         cfg_updated += 1
+                        page_updated += 1
                     else:
                         cfg_skipped += 1
                     continue
@@ -496,31 +544,36 @@ async def ingest(only: list[str] | None = None) -> None:
                     existing[url] = rec.get("thumbnail_url")
                 to_insert.append(rec)
                 cfg_queued += 1
+                page_queued += 1
+
+            if page_queued or page_updated:
+                stale_pages = 0
+            else:
+                stale_pages += 1
+                if not full and stale_pages >= STALE_PAGES_BEFORE_STOP:
+                    break
 
             page += 1
             time.sleep(2)
 
         total_fetched += cfg_fetched
         total_skipped += cfg_skipped
-        print(f"  fetched: {cfg_fetched} | queued: {cfg_queued} | backfilled: {cfg_updated} | skipped: {cfg_skipped}")
+
+        # Commit after each config. Holding every row until the end meant one
+        # failure late in a 77-config run discarded all of it, and left a pooled
+        # connection idle for the whole crawl.
+        await flush()
+
+        print(f"  fetched: {cfg_fetched} | queued: {cfg_queued} | "
+              f"backfilled: {cfg_updated} | skipped: {cfg_skipped}", flush=True)
         time.sleep(5)
 
-    async with AsyncSessionLocal() as session:
-        if to_insert:
-            session.add_all([AuctionResult(**r) for r in to_insert])
-        for url, thumb in to_backfill:
-            await session.execute(
-                update(AuctionResult)
-                .where(AuctionResult.auction_url == url)
-                .values(thumbnail_url=thumb)
-            )
-        await session.commit()
+    await flush()
 
     print(
-        f"\nTotal — fetched: {total_fetched} | inserted: {len(to_insert)} | "
-        f"backfilled: {len(to_backfill)} | skipped: {total_skipped}"
+        f"\nTotal — fetched: {total_fetched} | inserted: {total_inserted} | "
+        f"backfilled: {total_backfilled} | skipped: {total_skipped}"
     )
-    print(f"Database: {DATABASE_PATH}")
     await engine.dispose()
 
 
@@ -531,6 +584,11 @@ if __name__ == "__main__":
         "--only", metavar="PATTERN",
         help="Comma-separated substrings; only run configs whose name contains one (e.g. '996,997,991,992')",
     )
+    parser.add_argument(
+        "--full", action="store_true",
+        help="Page every config to the end instead of stopping once results are "
+             "all already-seen. Only needed to backfill thumbnails onto old rows.",
+    )
     args = parser.parse_args()
     only = [p.strip() for p in args.only.split(",")] if args.only else None
-    asyncio.run(ingest(only=only))
+    asyncio.run(ingest(only=only, full=args.full))

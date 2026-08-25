@@ -97,6 +97,8 @@ _911_VARIANTS = [
     "Carrera 3.2", "Carrera 2.7",
     "Carrera", "Singer",
     "SC", "911S",
+    # Last: a bare "R" must only win when no longer name matched.
+    "R",
 ]
 
 _356_VARIANTS  = ["Speedster", "Roadster", "Cabriolet", "Coupe", "Notchback"]
@@ -150,14 +152,20 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
             if "SC" in text:                        return "SC"
             if "Carrera 3.2" in text or ("Carrera" in text and year >= 1984):
                                                     return "Carrera 3.2"
-            if "911S" in text or "911 S" in text:   return "911S"
-            return "base"
+            if re.search(r'\b911\s*(?:2\.\d\s*)?S\b', text): return "911S"
+            # The taxonomy's entry-level card for these generations is "911",
+            # not "base" — a plain "1966 Porsche 911 Coupe" has no card under
+            # "base" and renders nowhere.
+            return "911"
         if gen == "F-Body":
             if "Carrera RS 2.7" in text or "Carrera RS" in text: return "Carrera RS 2.7"
             if "Carrera 2.7" in text:               return "Carrera 2.7"
-            if "911S" in text:                      return "911S"
             if "Targa" in text:                     return "Targa"
-            return "base"
+            if re.search(r'\b911\s*(?:2\.\d\s*)?S\b', text): return "911S"
+            # The taxonomy's entry-level card for these generations is "911",
+            # not "base" — a plain "1966 Porsche 911 Coupe" has no card under
+            # "base" and renders nowhere.
+            return "911"
         return match_variant(_911_VARIANTS, text)
 
     if model_line == "356":

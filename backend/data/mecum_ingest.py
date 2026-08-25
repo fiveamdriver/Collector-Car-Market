@@ -36,6 +36,7 @@ from app.models.listing import AuctionResult
 from app.utils.color_parser import parse_color_from_phrase, scan_for_color
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
+from app.utils.model_lines import match_coachbuilt_line
 from app.utils.model_lines import match_model_line as match_model_line_shared
 from app.utils.variants import match_variant
 from app.utils.generations import (
@@ -121,6 +122,8 @@ _911_VARIANTS = [
     "Carrera 3.2", "Carrera 2.7",
     "Carrera", "Singer",
     "SC", "911S",
+    # Last: a bare "R" must only win when no longer name matched.
+    "R",
 ]
 
 _356_VARIANTS = ["Speedster", "Roadster", "Cabriolet", "Coupe", "Notchback"]
@@ -147,6 +150,14 @@ _API_MODEL_MAP = {
 
 
 def resolve_model_line(api_models: list[str], title: str) -> str | None:
+    # Mecum's API names the donor car, never the builder: a "911 Targa by Singer"
+    # comes through as model "911" and would be filed on the 911 line, where a
+    # $1.1M restomod distorts the donor generation's average. Only the title
+    # carries the builder, so it is checked before the API mapping.
+    coachbuilt = match_coachbuilt_line(title)
+    if coachbuilt:
+        return coachbuilt
+
     if api_models:
         for m in api_models:
             key = m.lower().strip()
@@ -200,14 +211,20 @@ def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
             if "SC" in combined:                        return "SC"
             if "Carrera 3.2" in combined or ("Carrera" in combined and year >= 1984):
                                                         return "Carrera 3.2"
-            if "911S" in combined or "911 S" in combined: return "911S"
-            return "base"
+            if re.search(r'\b911\s*(?:2\.\d\s*)?S\b', combined): return "911S"
+            # The taxonomy's entry-level card for these generations is "911",
+            # not "base" — a plain "1966 Porsche 911 Coupe" has no card under
+            # "base" and renders nowhere.
+            return "911"
         if gen == "F-Body":
             if "Carrera RS 2.7" in combined or "Carrera RS" in combined: return "Carrera RS 2.7"
             if "Carrera 2.7" in combined: return "Carrera 2.7"
-            if "911S" in combined:        return "911S"
             if "Targa" in combined:       return "Targa"
-            return "base"
+            if re.search(r'\b911\s*(?:2\.\d\s*)?S\b', combined): return "911S"
+            # The taxonomy's entry-level card for these generations is "911",
+            # not "base" — a plain "1966 Porsche 911 Coupe" has no card under
+            # "base" and renders nowhere.
+            return "911"
         return match_variant(_911_VARIANTS, combined)
 
     if model_line == "356":

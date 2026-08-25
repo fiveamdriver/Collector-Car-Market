@@ -48,9 +48,16 @@ from rms_ingest import parse_generation, parse_variant
 from sqlalchemy import select
 
 # Assigned by migration, not derivable from the title — never re-derive these.
+#
+# "550" was here until model_lines.py learned to match it. Nine Spyders totalling
+# $31.7M were sitting on the 911 line and could not leave: the guard blocks moves
+# *onto* a deliberate line as well as re-derivation of rows already on one. The
+# matcher now reads them off the title directly, with the ordering that keeps a
+# "Boxster S 550 Anniversary Edition" a Boxster and the existing mileage and
+# chassis-number guards preventing "550-Mile" or "Chassis no. 9113600550".
 DELIBERATE_LINES = {
     "911 Race", "944 Race", "924 Race", "968 Race", "928 Race", "Other",
-    "550", "911 GT1", "RS Spyder", "934", "935", "917", "956", "962",
+    "911 GT1", "RS Spyder", "934", "935", "917", "956", "962",
     "908", "907", "906", "904", "912",
 }
 
@@ -75,6 +82,13 @@ async def main() -> None:
             year = rec.year or 0
             generation = parse_generation(line, year, title)
             variant = parse_variant(line, year, title)
+
+            # "Modified" marks a replica, tribute or backdate. It survives a line
+            # move: re-deriving the variant from the title would quietly turn a
+            # "550 Spyder Beck Re-creation" into a base 550, filing a $30k kit car
+            # beside genuine Spyders that sell for five and six million.
+            if rec.variant == "Modified":
+                variant = "Modified"
 
             print(f"  #{rec.id}: {rec.model_line}/{rec.generation}/{rec.variant}"
                   f"  ->  {line}/{generation}/{variant}")

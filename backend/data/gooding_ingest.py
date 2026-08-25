@@ -24,7 +24,6 @@ BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BACKEND_DIR)
 
 import app.models  # noqa: F401
-from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
 from app.utils.color_parser import parse_color_from_phrase, scan_for_color
@@ -46,7 +45,38 @@ LOT_BASE_URL  = "https://www.goodingco.com/lot/"
 PAGE_DATA_URL = "https://www.goodingco.com/page-data/lot/"
 CDN_BASE      = "https://res.cloudinary.com/goodingco/image/upload/"
 HITS_PER_PAGE = 15
-QUERY_HASH    = "0749eee74b0c4cf20bde3cd2a79b36ca364b6d1e4364ce3295a1ae4dd090706a"
+
+# The site's own client uses Apollo automatic persisted queries — it sends only a
+# sha256 of the query document.  We sent that hash too, until a Gooding redeploy
+# rotated it and every request came back PersistedQueryNotFound.  The server also
+# accepts a plain inline query, so we send the document itself and the hash can
+# never go stale again.
+#
+# This is a trimmed version of the site's GetVehiclesAndFilters query: only the
+# fields map_record() consumes, plus the paging counts.  Requesting less means
+# fewer fields that can be renamed out from under us, and a rename now fails
+# loudly with a GraphQL validation error naming the field.
+#
+# Note the site's own copy carries an `@connection(...)` directive.  That is an
+# Apollo *client* directive which the client strips before sending; leaving it in
+# gets the request rejected with `Unknown directive "@connection"`.
+QUERY_DOCUMENT = """query GetVehiclesAndFilters($filtersInput: FiltersInput!, $pageNumber: Int, $sortBy: SortBy!) {
+  getVehicles(filtersInput: $filtersInput, pageNumber: $pageNumber, sortBy: $sortBy) {
+    vehicles {
+      modelYear
+      title
+      model
+      slug
+      salePrice
+      activeAuction
+      auctionName
+      auctionEndDate
+      cloudinaryImages { public_id }
+    }
+    nbPages
+    nbHits
+  }
+}"""
 
 # ── Mileage + color parsing from page-data.json highlights ────────────────────
 _SUBTITLE_MILEAGE_RE = re.compile(
@@ -129,6 +159,8 @@ _911_VARIANTS = [
     "Carrera 3.2", "Carrera 2.7",
     "Carrera", "Singer",
     "SC", "911S",
+    # Last: a bare "R" must only win when no longer name matched.
+    "R",
 ]
 
 _944_VARIANTS = ["Turbo S", "Turbo", "S2", "S"]
@@ -176,14 +208,20 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
             if "SC" in text:                   return "SC"
             if "Carrera 3.2" in text or ("Carrera" in text and year >= 1984):
                                                return "Carrera 3.2"
-            if "911S" in text or "911 S" in text: return "911S"
-            return "base"
+            if re.search(r'\b911\s*(?:2\.\d\s*)?S\b', text): return "911S"
+            # The taxonomy's entry-level card for these generations is "911",
+            # not "base" — a plain "1966 Porsche 911 Coupe" has no card under
+            # "base" and renders nowhere.
+            return "911"
         if gen == "F-Body":
             if "Carrera RS 2.7" in text or "Carrera RS" in text: return "Carrera RS 2.7"
             if "Carrera 2.7" in text:          return "Carrera 2.7"
-            if "911S" in text:                 return "911S"
             if "Targa" in text:                return "Targa"
-            return "base"
+            if re.search(r'\b911\s*(?:2\.\d\s*)?S\b', text): return "911S"
+            # The taxonomy's entry-level card for these generations is "911",
+            # not "base" — a plain "1966 Porsche 911 Coupe" has no card under
+            # "base" and renders nowhere.
+            return "911"
         return match_variant(_911_VARIANTS, text)
 
     if model_line == "356":
@@ -223,31 +261,53 @@ def parse_paint_to_sample(text: str) -> bool | None:
 
 # ── GraphQL fetch ─────────────────────────────────────────────────────────────
 
-def fetch_page(page_number: int) -> tuple[list[dict], int]:
-    """Return (vehicles, nb_pages) for the given 1-based page number."""
+def fetch_page(page_number: int, attempts: int = 3) -> tuple[list[dict], int]:
+    """
+    Return (vehicles, nb_pages) for the given 1-based page number.
+
+    We deliberately do not send hitsPerPage.  The server's default of 15 pages
+    cleanly to an empty tail page, whereas larger sizes make the final page 500
+    with an internal "Cannot read properties of undefined (reading 'make')" —
+    nbHits (934) overcounts the rows the backend can actually serve (~919).
+
+    Retries transient failures; raises once attempts are exhausted so that a
+    mid-run failure is reported rather than silently truncating the ingest.
+    """
     variables = {
         "filtersInput": {"make": ["Porsche"], "auctionType": [], "itemType": [], "venue": [], "auctionYear": []},
         "sortBy": "ENDING_SOONEST",
         "pageNumber": page_number,
     }
-    extensions = {"persistedQuery": {"version": 1, "sha256Hash": QUERY_HASH}}
-    params = urllib.parse.urlencode({
+    body = json.dumps({
         "operationName": "GetVehiclesAndFilters",
-        "variables":     json.dumps(variables, separators=(",", ":")),
-        "extensions":    json.dumps(extensions, separators=(",", ":")),
-    })
-    url = f"{GRAPHQL_URL}?{params}"
-    req = urllib.request.Request(url, headers={
+        "variables":     variables,
+        "query":         QUERY_DOCUMENT,
+    }).encode()
+    req = urllib.request.Request(GRAPHQL_URL, data=body, headers={
         "Accept":        "*/*",
         "Authorization": "Bearer",
         "Content-Type":  "application/json",
         "Origin":        "https://www.goodingco.com",
         "User-Agent":    "Mozilla/5.0",
     })
-    with urllib.request.urlopen(req, timeout=30, context=SSL_CTX) as resp:
-        payload = json.loads(resp.read().decode())
-    gv = payload["data"]["getVehicles"]
-    return gv["vehicles"], gv["nbPages"]
+
+    last_error = "unknown error"
+    for attempt in range(attempts):
+        try:
+            with urllib.request.urlopen(req, timeout=30, context=SSL_CTX) as resp:
+                payload = json.loads(resp.read().decode())
+            gv = (payload.get("data") or {}).get("getVehicles")
+            if gv:
+                return gv["vehicles"], gv["nbPages"]
+            last_error = json.dumps(payload.get("errors"))[:300]
+        except urllib.error.HTTPError as exc:
+            last_error = f"HTTP {exc.code}: {exc.read().decode(errors='replace')[:300]}"
+        except Exception as exc:  # noqa: BLE001 — network/JSON, retry then surface
+            last_error = f"{type(exc).__name__}: {exc}"
+        if attempt < attempts - 1:
+            time.sleep(2 * (attempt + 1))
+
+    raise RuntimeError(f"page {page_number} failed after {attempts} attempts — {last_error}")
 
 
 # ── Record mapper ─────────────────────────────────────────────────────────────
@@ -342,15 +402,26 @@ async def ingest() -> None:
 
     print(f"Existing Gooding records: {len(existing)}")
 
-    to_insert: list[dict] = []
-    total_fetched = total_skipped = 0
+    pending: list[dict] = []
+    total_fetched = total_skipped = total_inserted = 0
     page = 1
+
+    async def flush() -> None:
+        """Commit the queued rows through a short-lived session."""
+        nonlocal pending, total_inserted
+        if not pending:
+            return
+        async with AsyncSessionLocal() as session:
+            session.add_all([AuctionResult(**r) for r in pending])
+            await session.commit()
+        total_inserted += len(pending)
+        pending = []
 
     while True:
         try:
             vehicles, nb_pages = fetch_page(page)
         except Exception as exc:
-            print(f"  page {page} ERROR: {exc}")
+            print(f"  page {page} ERROR: {exc}", flush=True)
             break
 
         if not vehicles:
@@ -359,33 +430,44 @@ async def ingest() -> None:
         total_fetched += len(vehicles)
         for v in vehicles:
             slug = v.get("slug") or ""
+
+            # Check the URL before fetching highlights, not after. Highlights
+            # cost one HTTP request per lot and are the slowest part of the run;
+            # fetching them for a lot we already hold means ~900 requests to
+            # build records that are then thrown away on a re-ingest.
+            url = f"{LOT_BASE_URL}{slug}/" if slug else None
+            if url and url in existing:
+                total_skipped += 1
+                continue
+
             highlights = fetch_lot_highlights(slug) if slug else None
             rec = map_record(v, highlights=highlights)
             if rec is None:
                 total_skipped += 1
                 continue
-            url = rec.get("auction_url")
-            if url and url in existing:
-                total_skipped += 1
-                continue
             if url:
                 existing.add(url)
-            to_insert.append(rec)
+            pending.append(rec)
 
-        print(f"  page {page}/{nb_pages} — fetched {len(vehicles)}, queued {len(to_insert)} total")
+        # Commit as we go. The previous version held everything in memory and
+        # committed once at the end, so a stall on the final commit discarded the
+        # whole run — 48 minutes of fetching, zero rows written. Committing per
+        # page also keeps pooled connections from sitting idle for the length of
+        # the crawl, which is what killed that connection in the first place.
+        await flush()
+
+        print(f"  page {page}/{nb_pages} — fetched {len(vehicles)}, "
+              f"inserted {total_inserted} total", flush=True)
 
         if page >= nb_pages:
             break
         page += 1
         time.sleep(1)
 
-    async with AsyncSessionLocal() as session:
-        if to_insert:
-            session.add_all([AuctionResult(**r) for r in to_insert])
-            await session.commit()
+    await flush()
 
-    print(f"\nDone — fetched: {total_fetched} | inserted: {len(to_insert)} | skipped: {total_skipped}")
-    print(f"Database: {DATABASE_PATH}")
+    print(f"\nDone — fetched: {total_fetched} | inserted: {total_inserted} | "
+          f"skipped: {total_skipped}")
     await engine.dispose()
 
 

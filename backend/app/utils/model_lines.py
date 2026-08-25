@@ -53,11 +53,14 @@ PORSCHE_MODEL_LINES = [
     ("912",        "912"),
     ("356",        "356"),
     ("904",        "904"),
+    # After Boxster, which must win the "Boxster S 550 Anniversary Edition".
+    ("550",        "550"),
     ("962",        "962"),
     ("956",        "956"),
     ("935",        "935"),
     ("934",        "934"),
     ("917",        "917"),
+    ("910",        "910"),
     ("908",        "908"),
     ("907",        "907"),
     ("906",        "906"),
@@ -228,3 +231,22 @@ def match_model_line(text: str, transaxle_matcher=None) -> str:
             continue
         return line
     return "911"
+
+
+def match_coachbuilt_line(text: str) -> str | None:
+    """
+    Return the coachbuilder line named by `text`, or None.
+
+    Split out of match_model_line for the sources that do not derive the model
+    line from the title at all: bat_ingest takes it from a hardcoded query config
+    ("964 Singer" -> "911") and mecum_ingest prefers its API's model name. Both
+    therefore filed seven-figure Singers and Gunther Werks cars onto the 911 line,
+    where they inflate the donor generation's average — the very thing
+    COACHBUILT_LINES exists to prevent. Those sources call this first and let it
+    override.
+    """
+    scrubbed = scrub_descriptive_numbers(strip_identifier_tail(text))
+    for pattern, line in COACHBUILT_LINES:
+        if pattern.search(scrubbed):
+            return line
+    return None
