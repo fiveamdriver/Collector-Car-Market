@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(source venv/bin/activate)",
+      "Bash(source ../venv/bin/activate)",
+      "Bash(/Users/lance/Projects/CollectorCarMarket/venv/bin/python *)",
+      "Bash(/Users/lance/Projects/CollectorCarMarket/venv/bin/pip *)",
+      "Bash(../venv/bin/python *)",
+      "Bash(venv/bin/python *)",
+      "Bash(node scripts/preflight-taxonomy.mjs)",
+      "Bash(npm run preflight)",
+      "Bash(curl -s http://localhost:*)",
+      "Bash(curl -s http://127.0.0.1:*)",
+      "Bash(curl -s -o /dev/null *)",
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "mcp__claude-in-chrome__get_page_text",
+      "mcp__claude-in-chrome__read_network_requests",
+      "mcp__claude-in-chrome__read_console_messages",
+      "mcp__claude-in-chrome__read_page"
+    ],
+    "defaultMode": "bypassPermissions"
+  }
+}
