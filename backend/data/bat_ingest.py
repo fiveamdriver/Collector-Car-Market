@@ -28,7 +28,7 @@ from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
 from app.utils.color_parser import parse_exterior_color
 from app.utils.model_lines import match_coachbuilt_line
-from app.utils.variants import match_variant
+from app.utils.variants import match_variant, is_964_rs_38
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -397,6 +397,10 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
         generation = model_line
     elif generation == '964' and 'RS America' in title:
         variant = 'RS America'
+    elif generation == '964' and is_964_rs_38(title):
+        # Ahead of config_variant: the "964 Carrera RS" config stamps every lot
+        # it returns as "Carrera RS", including the separately-carded RS 3.8.
+        variant = 'RS 3.8'
     elif config_variant is not None:
         variant = config_variant
     elif generation == 'G-Body':

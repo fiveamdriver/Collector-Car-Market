@@ -38,7 +38,7 @@ from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
 from app.utils.model_lines import match_coachbuilt_line
 from app.utils.model_lines import match_model_line as match_model_line_shared
-from app.utils.variants import match_variant
+from app.utils.variants import match_variant, is_964_rs_38
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -198,6 +198,10 @@ def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
 
     if model_line == "911":
         gen = get_911_generation(year)
+        # Before the variant list, which stops at "Carrera RS" and would file the
+        # 964's separate RS 3.8 card onto the 3.6-litre one.
+        if gen == "964" and is_964_rs_38(combined):
+            return "RS 3.8"
         if gen == "G-Body":
             if "Slant Nose" in combined:                return "Turbo 3.3 Slant Nose"
             if "MFI" in combined:                       return "Carrera 2.7 MFI"

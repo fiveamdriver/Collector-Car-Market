@@ -57,3 +57,31 @@ def match_variant(patterns, text: str, default: str = "base") -> str:
         if variant_matches(pattern, text):
             return pattern
     return default
+
+
+# The 964 Carrera RS 3.8 is its own card in the taxonomy, separate from the 964
+# Carrera RS (3.6). Nothing in the variant lists can separate them: "Carrera RS
+# 3.8" matches "Carrera RS" long before the displacement is read, so every RS 3.8
+# lands on the plain RS card and drags a seven-figure sale into a card that
+# averages a fraction of it. migrate_964_38.py cleans this up after the fact; the
+# rule below stops the ingests from reintroducing it.
+#
+# 964 only. The 993 Carrera RS *is* the 3.8, and its titles say so — applying
+# this to the 993 would empty its RS card into a variant that generation's
+# taxonomy does not have.
+#
+# "RSR 3.8" does not match: the pattern needs "RS" followed by a space, and the
+# competition cars are routed to 911 Race / RSR 3.8 by migrate_race_cleanup.py.
+_RS_38 = re.compile(r'\bRS 3\.8')
+
+# Swaps, backdates and tributes carry the same "RS 3.8" text without being one of
+# the ~55 factory cars. Kept in sync with migrate_964_38.py.
+_RS_38_NOT_FACTORY = re.compile(
+    r'3\.8L?-Powered|Conversion|Tribute|Recreation|Replica|Evocation|Backdate',
+    re.IGNORECASE,
+)
+
+
+def is_964_rs_38(text: str) -> bool:
+    """True if `text` names a factory 964 Carrera RS 3.8 (the street car)."""
+    return bool(_RS_38.search(text)) and not _RS_38_NOT_FACTORY.search(text)
