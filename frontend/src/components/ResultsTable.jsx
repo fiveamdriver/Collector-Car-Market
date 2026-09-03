@@ -32,6 +32,7 @@ export default function ResultsTable({ results }) {
   const [dropPos, setDropPos] = useState({ top: 0, left: 0 })
   const [sortBy, setSortBy] = useState('date-desc')
   const [filterYear, setFilterYear] = useState(null)
+  const [view, setView] = useState('grid')
 
   useEffect(() => {
     if (!openCol) return
@@ -71,8 +72,68 @@ export default function ResultsTable({ results }) {
   const sortingByDate  = sortBy === 'date-desc' || sortBy === 'date-asc'
   const sortingByPrice = sortBy === 'price-desc' || sortBy === 'price-asc'
 
+  // The list view hangs its sort/filter controls off the table headers; the
+  // grid has no headers, so it gets the same dropdowns from a control bar.
+  const controls = [
+    { col: 'date',  label: 'Date',       arrow: dateArrow,  active: sortingByDate },
+    { col: 'year',  label: filterYear ?? 'Year', arrow: null, active: !!filterYear },
+    { col: 'price', label: 'Sold Price', arrow: priceArrow, active: sortingByPrice },
+  ]
+
   return (
     <>
+      <div className="results-toolbar">
+        <div className="results-toolbar-controls">
+          {view === 'grid' && controls.map(c => (
+            <button
+              key={c.col}
+              className={`grid-ctrl${openCol === c.col ? ' grid-ctrl--open' : ''}${c.active ? ' grid-ctrl--active' : ''}`}
+              onClick={e => openDropdown(c.col, e)}
+            >
+              {c.label}
+              {c.arrow && <span className="th-sort-arrow">{c.arrow}</span>}
+              <span className="th-chevron">▾</span>
+            </button>
+          ))}
+        </div>
+        <div className="view-toggle" role="group" aria-label="Result view">
+          <button
+            className={`view-toggle-btn${view === 'grid' ? ' is-active' : ''}`}
+            aria-pressed={view === 'grid'}
+            onClick={() => setView('grid')}
+          >Grid</button>
+          <button
+            className={`view-toggle-btn${view === 'list' ? ' is-active' : ''}`}
+            aria-pressed={view === 'list'}
+            onClick={() => setView('list')}
+          >List</button>
+        </div>
+      </div>
+
+      {view === 'grid' ? (
+        <div className="result-card-grid">
+          {visible.map(r => {
+            const inner = (
+              <>
+                {r.thumbnail_url
+                  ? <img src={r.thumbnail_url} alt="" loading="lazy" decoding="async" className="result-card-img" />
+                  : <div className="result-card-img result-card-img--empty">No photo</div>}
+                <div className="result-card-body">
+                  <span className="result-card-title">
+                    {truncate(stripColor(stripYear(r.lot_title, r.mileage != null), r.exterior_color), 44)}
+                  </span>
+                  <span className="result-card-price">{fmtPrice(r.sold_price)}</span>
+                  <span className="result-card-date">{fmtDate(r.sold_date)}</span>
+                  <span className="result-card-source">{r.auction_source}</span>
+                </div>
+              </>
+            )
+            return r.auction_url
+              ? <a key={r.id} href={r.auction_url} target="_blank" rel="noopener noreferrer" className="result-card">{inner}</a>
+              : <div key={r.id} className="result-card result-card--static">{inner}</div>
+          })}
+        </div>
+      ) : (
       <div className="table-wrapper">
         <table>
           <thead>
@@ -141,6 +202,7 @@ export default function ResultsTable({ results }) {
           </tbody>
         </table>
       </div>
+      )}
 
       {openCol && (
         <div
