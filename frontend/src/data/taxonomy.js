@@ -20,9 +20,11 @@ export const MODEL_LINE = {
   'singer':        'Singer',
   'gunther-werks': 'Gunther Werks',
   'emory':         'Emory',
+  'ruf':           'RUF',
   // Race cars
   '911-race':   '911 Race',
   '911-gt1':    '911 GT1',
+  'cayman-gt4-clubsport': 'Cayman Race',
   '917':        '917',
   '910':        '910',
   '956':        '956',
@@ -61,23 +63,26 @@ export const ALL_MODELS = [
   { slug: 'singer',        label: 'Singer',        type: 'standalone', category: 'restomod' },
   { slug: 'gunther-werks', label: 'Gunther Werks', type: 'standalone', category: 'restomod' },
   { slug: 'emory',         label: 'Emory Motorsports', type: 'standalone', category: 'restomod' },
+  // ── Tuners ────────────────────────────────────────────────────────────────────
+  { slug: 'ruf',           label: 'RUF',           type: 'standalone', category: 'ruf' },
   // ── Race Cars ─────────────────────────────────────────────────────────────────
   { slug: '911-race',   label: '911',        type: 'series',     category: 'race' },
   { slug: '911-gt1',   label: '911 GT1',    type: 'standalone', category: 'race' },
   { slug: '917',        label: '917',        type: 'standalone', category: 'race' },
-  { slug: '910',        label: '910',        type: 'standalone', category: 'race' },
-  { slug: '956',        label: '956',        type: 'standalone', category: 'race' },
+  { slug: '935',        label: '935',        type: 'series',     category: 'race' },
   { slug: '962',        label: '962',        type: 'standalone', category: 'race' },
-  { slug: '935',        label: '935',        type: 'standalone', category: 'race' },
-  { slug: '934',        label: '934',        type: 'standalone', category: 'race' },
-  { slug: '908',        label: '908',        type: 'standalone', category: 'race' },
-  { slug: '907',        label: '907',        type: 'standalone', category: 'race' },
-  { slug: '906',        label: '906',        type: 'standalone', category: 'race' },
-  { slug: '904',        label: '904',        type: 'standalone', category: 'race' },
   { slug: '550',        label: '550 Spyder', type: 'standalone', category: 'race' },
-  { slug: 'rs60',       label: 'RS60',       type: 'standalone', category: 'race' },
   { slug: '718-rsk',    label: '718 RSK',    type: 'standalone', category: 'race' },
+  { slug: 'rs60',       label: 'RS60',       type: 'standalone', category: 'race' },
+  { slug: '904',        label: '904',        type: 'standalone', category: 'race' },
+  { slug: '906',        label: '906',        type: 'standalone', category: 'race' },
+  { slug: '910',        label: '910',        type: 'standalone', category: 'race' },
+  { slug: '907',        label: '907',        type: 'standalone', category: 'race' },
+  { slug: '908',        label: '908',        type: 'standalone', category: 'race' },
+  { slug: '934',        label: '934',        type: 'standalone', category: 'race' },
+  { slug: '956',        label: '956',        type: 'standalone', category: 'race' },
   { slug: 'rs-spyder',  label: 'RS Spyder',  type: 'standalone', category: 'race' },
+  { slug: 'cayman-gt4-clubsport', label: 'Cayman GT4 Clubsport', type: 'standalone', category: 'race' },
 ]
 
 // Child model slugs for "group" models (a card that opens into several models,
@@ -134,6 +139,7 @@ export const GENERATIONS = {
   'cayman':   ['987', '981', '718'],
   'boxster':  ['986', '987', '981', '718'],
   '911-race': ['F-Body', 'G-Body', '964', '993', '996', '997', '991', '992'],
+  '935':      ['Classic', 'Modern'],
 }
 
 export const VARIANTS = {
@@ -144,56 +150,56 @@ export const VARIANTS = {
     ],
     'G-Body': [
       'Speedster', 'Turbo 3.3 Slant Nose', '930 Turbo',
-      'Carrera 2.7 MFI', 'Carrera 2.7', 'Carrera 3.2', 'SC', '911S', '911',
-      'Targa',
+      'Carrera 2.7 MFI', 'Carrera RS 3.0', 'Carrera 2.7', 'Carrera 3.2', 'SC', '911S', '911',
+      'Targa', 'Cabriolet',
     ],
     // Carrera 4 starts here — the 964 was the first all-wheel-drive 911.
     '964': [
-      // The 964 was marketed as Carrera 2 / Carrera 4; 'Carrera 4' was listed
-      // but its rear-drive twin was not, hiding every C2 the ingest classified.
-      'Carrera', 'Carrera 2', 'Carrera 4', 'Carrera RS', 'RS 3.8', 'RS America',
-      'Turbo', 'Turbo S', 'Speedster', 'Targa',
+      // The 964 was sold as the rear-drive Carrera 2 and the all-wheel-drive
+      // Carrera 4, so those are its cards; there is no generic 'Carrera'.
+      'Carrera 2', 'Carrera 4', 'Carrera RS', 'RS 3.8', 'RS America',
+      'Turbo', 'Turbo S', 'Speedster', 'Targa', 'Cabriolet',
     ],
     // Carrera 4S starts here, alongside the first glass-roof Targa.
     '993': [
       'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S', 'Carrera RS',
-      'Turbo', 'Turbo S', 'GT2', 'Targa',
+      'Turbo', 'Turbo S', 'GT2', 'Targa', 'Cabriolet',
     ],
     // No 996.1 Targa or 4S: both arrived with the MY2002 facelift.
-    '996.1': ['Carrera', 'Carrera 4', 'Carrera S', 'Turbo', 'GT3'],
+    '996.1': ['Carrera', 'Carrera 4', 'Turbo', 'GT3', 'GT2', 'Cabriolet'],
     '996.2': [
-      'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S',
-      'Turbo', 'Turbo S', 'GT3', 'GT3 RS', 'GT2', 'Targa',
+      'Carrera', 'Carrera 4', 'Carrera 4S',
+      'Turbo', 'Turbo S', 'GT3', 'GT3 RS', 'GT2', 'Targa', 'Cabriolet',
     ],
     '997.1': [
       'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S',
-      'Turbo', 'GT3', 'GT3 RS', 'GT2', 'Targa',
+      'Turbo', 'GT3', 'GT3 RS', 'GT2', 'Targa', 'Cabriolet',
     ],
     '997.2': [
       'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S', 'Carrera GTS',
       'Turbo', 'Turbo S',
-      'GT3', 'GT3 RS', 'GT3 RS 4.0', 'GT2 RS', 'Sport Classic', 'Speedster',
-      'Targa',
+      'GT3', 'GT3 RS', 'GT3 RS 4.0', 'GT2', 'GT2 RS', 'Sport Classic', 'Speedster',
+      'Targa', 'Cabriolet',
     ],
     '991.1': [
-      'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S', 'Carrera T', 'Carrera GTS',
+      'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S', 'Carrera GTS',
       'Turbo', 'Turbo S',
-      'GT3', 'GT3 RS', 'R', 'Targa',
+      'GT3', 'GT3 RS', 'R', 'Targa', 'Cabriolet',
     ],
     '991.2': [
       'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S', 'Carrera T', 'Carrera GTS',
       'Turbo', 'Turbo S',
-      'GT3', 'GT3 RS', 'GT2 RS', 'Speedster', 'Targa',
+      'GT3', 'GT3 RS', 'GT2 RS', 'Speedster', 'Targa', 'Cabriolet',
     ],
     '992.1': [
       'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S', 'Carrera T', 'Carrera GTS',
       'Turbo', 'Turbo S',
-      'GT3', 'GT3 RS', 'S/T', 'Sport Classic', 'Dakar', 'Targa',
+      'GT3', 'GT3 RS', 'S/T', 'Sport Classic', 'Dakar', 'Targa', 'Cabriolet',
     ],
     '992.2': [
       'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S', 'Carrera T', 'Carrera GTS',
       'Turbo', 'Turbo S',
-      'GT3', 'GT3 RS', 'Targa',
+      'GT3', 'GT3 RS', 'Targa', 'Cabriolet',
     ],
   },
   '356': {
@@ -210,70 +216,69 @@ export const VARIANTS = {
   },
   'boxster': {
     '986': ['base', 'S'],
-    '987.1': ['base', 'S'],
-    '987.2': ['base', 'S', 'Spyder', 'GTS'],
+    '987.1': ['base', 'S', 'RS 60 Spyder'],
+    '987.2': ['base', 'S', 'Spyder'],
     '981': ['base', 'S', 'GTS', 'Spyder'],
     '718': ['base', 'S', 'GTS', 'Spyder', 'Spyder RS'],
   },
   '911-race': {
     'F-Body':  ['RSR'],
     'G-Body':  ['RSR', 'RSR Turbo'],
-    '964':     ['RSR 3.8', 'Carrera Cup'],
-    '993':     ['GT2 R', 'Cup 3.8 RSR', 'Carrera Cup'],
-    '996':     ['GT3 Cup', 'GT3 RSR', 'Carrera Cup'],
-    '997':     ['GT3 RSR', 'GT3 Cup'],
-    '991':     ['RSR', 'GT2 RS Clubsport', 'GT3 Cup'],
-    '992':     ['GT3 Cup'],
+    '964':     ['RSR 3.8', 'Carrera Cup', 'Clubsport'],
+    '993':     ['GT2 R', 'Cup 3.8 RSR', 'Carrera Cup', 'Clubsport'],
+    '996':     ['GT3 Cup', 'GT3 RSR', 'GT3 R', 'Carrera Cup', 'Clubsport'],
+    '997':     ['GT3 RSR', 'GT3 Cup', 'Clubsport'],
+    '991':     ['RSR', 'GT3 R', 'GT2 RS Clubsport', 'GT3 Cup', 'Clubsport'],
+    '992':     ['GT3 Cup', 'GT3 R', 'GT2 RS Clubsport'],
+  },
+  // One variant per era, so each generation card opens straight to its results.
+  '935': {
+    'Classic': ['base'],
+    'Modern':  ['base'],
   },
 }
 
-// Hero image filename (served from /images/variants/) for each variant.
-const _h = (variants, img) => Object.fromEntries(variants.map(v => [v, img]))
+// Hero image for each variant, as a full path under /images. Variants not
+// listed here have no photo yet and show the empty hero panel.
 
 export const VARIANT_HERO = {
   '911': {
-    'F-Body':  _h(VARIANTS['911']['F-Body'],  null),
-    'G-Body':  _h(VARIANTS['911']['G-Body'],  null),
-    '964':     _h(VARIANTS['911']['964'],     null),
-    '993': {
-      ..._h(VARIANTS['911']['993'],  null),
-      'Carrera RS': '911_993_rs.jpg',
-      'Turbo':      '911_993_turbo.jpg',
-      'Turbo S':    '911_993_turbo.jpg',
-    },
-    '996.1':   _h(VARIANTS['911']['996.1'],  null),
-    '996.2':   _h(VARIANTS['911']['996.2'],  null),
-    '997.1': {
-      ..._h(VARIANTS['911']['997.1'], null),
-      'GT3':    '911_997-1_gt3.jpg',
-      'GT3 RS': '911_997-1_gt3rs.jpg',
-      'GT2':    '911_997-2_gt2.jpg',
-    },
-    '997.2': {
-      ..._h(VARIANTS['911']['997.2'], null),
-      'GT3 RS': '911_997-2_gt3rs.jpg',
-      'GT2 RS': '911_997-2_gt2rs.jpg',
-    },
-    '991.1':   _h(VARIANTS['911']['991.1'],  null),
-    '991.2':   _h(VARIANTS['911']['991.2'],  null),
-    '992.1':   _h(VARIANTS['911']['992.1'],  null),
-    '992.2':   _h(VARIANTS['911']['992.2'],  null),
+    'F-Body': { '911R': '/images/911_gen_page_cards/911R(1967)Fbodygenpic.jpeg' },
+    'G-Body': { '930 Turbo': '/images/911_gen_page_cards/930turbogbodygen.jpg' },
+    '964':    { 'Carrera RS': '/images/911_gen_page_cards/porsche964CarreraRS.png' },
+    '993':    { 'GT2': '/images/911_gen_page_cards/993GT2.png' },
+    '996.2':  { 'Carrera': '/images/911_gen_page_cards/996.2_carrera.jpeg' },
+    '997.1':  { 'GT2': '/images/911_gen_page_cards/997GT2.png' },
+    '997.2':  { 'GT3 RS 4.0': '/images/Front_page_cards/Regular_models/997RS4.0v2.png' },
+    '991.2':  { 'GT2 RS': '/images/911_gen_page_cards/991gt2rs.png' },
+    '992.1':  { 'S/T': '/images/911_gen_page_cards/992ST_.jpg' },
   },
   '356':     {},
   'cayman':  {
-    '718': {
-      ..._h(VARIANTS['cayman']['718'], null),
-      'GT4':    'cayman_718_gt4.jpeg',
-      'GT4 RS': 'cayman_718_gt4.jpeg',
-    },
+    '987.1': { 'base': '/images/987 cayman.jpg' },
+    '981':   { 'GT4': '/images/911_variants/cayman_718_gt4.jpeg' },
+    '718':   { 'GT4 RS': '/images/Front_page_cards/Regular_models/GT4RS.png' },
   },
   'boxster':  {
-    '718': {
-      ..._h(VARIANTS['boxster']['718'], null),
-      'Spyder RS': 'boxster_718_spyder_rs.webp',
-    },
+    '987.2': { 'Spyder': '/images/boxsterspyder.png' },
+    '981':   { 'Spyder': '/images/981spyder.jpg' },
+    '718':   { 'Spyder RS': '/images/spyderrs.png' },
+  },
+  // Variant-models have no generation level, so these are keyed [slug][variant].
+  '924': { 'Carrera GT': '/images/Front_page_cards/Regular_models/924_CarreraGT.png' },
+  '944': {
+    'Turbo': '/images/944 turbo.jpg',
+    'base':  '/images/944.jpg',
+  },
+  '914': {
+    '914/6': '/images/914 photos/914:6GT.jpeg',
+    'base':  '/images/914 photos/1970-914:4.jpg',
   },
   '911-race': {},
+  '935': {
+    'Classic': { 'base': '/images/Front_page_cards/Racecars/935.png' },
+    'Modern':  { 'base': '/images/modern_935_web.jpg' },
+  },
 }
 
 // Lots cross-listed onto a second market page.  Keyed
@@ -296,6 +301,41 @@ export const CROSS_LISTINGS = {
   },
 }
 
+// Front-page card photo per model slug. Standalone model pages reuse it as
+// their hero when MODEL_HERO has no dedicated image.
+export const MODEL_IMAGES = {
+  '911':        '/images/Front_page_cards/Regular_models/997RS4.0v2.png',
+  '356':        '/images/Front_page_cards/Regular_models/356(frontpage).png',
+  'transaxle':  '/images/Front_page_cards/Regular_models/924_CarreraGT.png',
+  'cayman':     '/images/Front_page_cards/Regular_models/GT4RS.png',
+  'boxster':    '/images/Front_page_cards/Regular_models/spyderrsfront.png',
+  '914':        '/images/Front_page_cards/Regular_models/porsche 914.jpg',
+  '959':        '/images/Front_page_cards/Specialty/959hero.jpg',
+  'carrera-gt': '/images/Front_page_cards/Specialty/cgthero.jpeg',
+  '918-spyder': '/images/Front_page_cards/Specialty/918hero.png',
+  'singer':        '/images/Front_page_cards/Restomod/singer_dls.jpg',
+  'gunther-werks': '/images/Front_page_cards/Restomod/gunther_werks_f26.jpg',
+  'emory':         '/images/Front_page_cards/Restomod/emory_motorsports.jpg',
+  'ruf':           '/images/Front_page_cards/RUFCTR_YELLOWBIRD.jpeg',
+  '911-race':   '/images/Front_page_cards/Racecars/RSR.jpg',
+  '911-gt1':    '/images/Front_page_cards/Racecars/gt1.png',
+  'cayman-gt4-clubsport': '/images/Front_page_cards/Racecars/cayman_gt4rs_clubsport.jpg',
+  '917':        '/images/Front_page_cards/Racecars/917.png',
+  '910':        '/images/Front_page_cards/Racecars/910_1.jpeg',
+  '956':        '/images/Front_page_cards/Racecars/956.jpg',
+  '962':        '/images/Front_page_cards/Racecars/962.png',
+  '935':        '/images/Front_page_cards/Racecars/935.png',
+  '934':        '/images/Front_page_cards/Racecars/934.png',
+  '908':        '/images/Front_page_cards/Racecars/908.jpg',
+  '907':        '/images/Front_page_cards/Racecars/907.png',
+  '906':        '/images/Front_page_cards/Racecars/906.jpg',
+  '904':        '/images/Front_page_cards/Racecars/904.jpg',
+  '550':        '/images/Front_page_cards/Racecars/550 spyder.jpg',
+  'rs60':       '/images/Front_page_cards/Racecars/RS60.jpg',
+  '718-rsk':    '/images/Front_page_cards/Racecars/RSK.jpg',
+  'rs-spyder':  '/images/Front_page_cards/Racecars/RS spyder (racecar).jpg',
+}
+
 // Hero image for standalone models
 export const MODEL_HERO = {
   '959':        null,
@@ -305,11 +345,11 @@ export const MODEL_HERO = {
   'gunther-werks': '/images/Front_page_cards/Restomod/gunther_werks_f26.jpg',
   'emory':         '/images/Front_page_cards/Restomod/emory_motorsports.jpg',
   '911-gt1':    null,
+  'cayman-gt4-clubsport': null,
   '917':        null,
   '910':        null,
   '956':        null,
   '962':        null,
-  '935':        null,
   '934':        null,
   '908':        null,
   '907':        null,
@@ -327,20 +367,21 @@ export const GEN_IMAGES = {
   '356 A':  '/images/Canepa Images/356.jpeg',
   'F-Body': '/images/911_gen_page_cards/911R(1967)Fbodygenpic.jpeg',
   'G-Body': '/images/911_gen_page_cards/930turbogbodygen.jpg',
-  '964':    '/images/911_gen_page_cards/porsche964RS.png',
+  '964':    '/images/911_gen_page_cards/porsche964CarreraRS.png',
   '993':    '/images/911_gen_page_cards/993GT2.png',
-  '996':    '/images/911_gen_page_cards/996.jpeg',
-  '996.1':  '/images/911_gen_page_cards/996.jpeg',
-  '996.2':  '/images/911_gen_page_cards/996.jpeg',
+  '996':    '/images/911_gen_page_cards/996.2_carrera.jpeg',
+  '996.2':  '/images/911_gen_page_cards/996.2_carrera.jpeg',
   '997':    '/images/911_gen_page_cards/997GT2.png',
   '997.1':  '/images/911_gen_page_cards/997GT2.png',
   '997.2':  '/images/911_gen_page_cards/997GT2.png',
   '991':    '/images/911_gen_page_cards/991gt2rs.png',
   '991.1':  '/images/911_gen_page_cards/991gt2rs.png',
   '991.2':  '/images/911_gen_page_cards/991gt2rs.png',
-  '992':    '/images/911_gen_page_cards/911st.png',
-  '992.1':  '/images/911_gen_page_cards/911st.png',
-  '992.2':  '/images/911_gen_page_cards/911st.png',
+  '992':    '/images/911ST.jpg',
+  '992.1':  '/images/911ST.jpg',
+  '992.2':  '/images/911ST.jpg',
+  'Classic': '/images/Front_page_cards/Racecars/935.png',
+  'Modern':  '/images/modern_935_web.jpg',
 }
 
 // Production year spans for all generations and sub-generations.
@@ -369,5 +410,11 @@ export const GEN_YEARS = {
   '987.2':  '2008–2012',
   '981':    '2012–2016',
   '718':    '2016–present',
+}
+
+// Display names for generations whose URL slug isn't what the page should show
+export const GEN_LABELS = {
+  'Classic': '1976–1979',
+  'Modern':  '2019–2020',
 }
 

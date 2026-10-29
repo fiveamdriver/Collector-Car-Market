@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ALL_MODELS, MODEL_LINE, GROUP_CHILDREN } from '../data/taxonomy'
+import { ALL_MODELS, MODEL_LINE, GROUP_CHILDREN, MODEL_IMAGES } from '../data/taxonomy'
 import { fetchModelLineStats } from '../api/client'
 
 // Drives both the side nav and the sections themselves, so the two can't drift.
@@ -8,6 +8,7 @@ const SECTIONS = [
   { id: 'model-lines', label: 'Model Lines',      category: 'series' },
   { id: 'specialty',   label: 'Specialty Models', category: 'specialty' },
   { id: 'race',        label: 'Race Cars',        category: 'race' },
+  { id: 'ruf',         label: 'RUF',              category: 'ruf' },
   { id: 'restomods',   label: 'Restomods',        category: 'restomod' },
 ]
 
@@ -24,13 +25,15 @@ const MODEL_YEARS = {
   'singer':        '2009–present',
   'gunther-werks': '2017–present',
   'emory':         '1996–present',
+  'ruf':           '1977–present',
   '911-race':   '1973–present',
   '911-gt1':    '1996–1998',
+  'cayman-gt4-clubsport': '2016–present',
   '917':        '1969–1973',
   '910':        '1966–1967',
   '956':        '1982–1985',
   '962':        '1984–1991',
-  '935':        '1976–1981',
+  '935':        '1976–1979 & 2019–2020',
   '934':        '1976–1979',
   '908':        '1968–1971',
   '907':        '1967–1968',
@@ -47,36 +50,6 @@ const IMAGE_POSITION = {
 }
 
 
-const MODEL_IMAGES = {
-  '911':        '/images/Front_page_cards/Regular_models/997RS4.0v2.png',
-  '356':        '/images/Front_page_cards/Regular_models/356(frontpage).png',
-  'transaxle':  '/images/Front_page_cards/Regular_models/924_CarreraGT.png',
-  'cayman':     '/images/Front_page_cards/Regular_models/GT4RS.png',
-  'boxster':    '/images/Front_page_cards/Regular_models/spyderrsfront.png',
-  '914':        '/images/Front_page_cards/Regular_models/porsche 914.jpg',
-  '959':        '/images/Front_page_cards/Specialty/959hero.jpg',
-  'carrera-gt': '/images/Front_page_cards/Specialty/cgthero.jpeg',
-  '918-spyder': '/images/Front_page_cards/Specialty/918hero.png',
-  'singer':        '/images/Front_page_cards/Restomod/singer_dls.jpg',
-  'gunther-werks': '/images/Front_page_cards/Restomod/gunther_werks_f26.jpg',
-  'emory':         '/images/Front_page_cards/Restomod/emory_motorsports.jpg',
-  '911-race':   '/images/Front_page_cards/Racecars/RSR.jpg',
-  '911-gt1':    '/images/Front_page_cards/Racecars/gt1.png',
-  '917':        '/images/Front_page_cards/Racecars/917.png',
-  '910':        '/images/Front_page_cards/Racecars/910_1.jpeg',
-  '956':        '/images/Front_page_cards/Racecars/956.jpg',
-  '962':        '/images/Front_page_cards/Racecars/962.png',
-  '935':        '/images/Front_page_cards/Racecars/935.png',
-  '934':        '/images/Front_page_cards/Racecars/934.png',
-  '908':        '/images/Front_page_cards/Racecars/908.jpg',
-  '907':        '/images/Front_page_cards/Racecars/907.png',
-  '906':        '/images/Front_page_cards/Racecars/906.jpg',
-  '904':        '/images/Front_page_cards/Racecars/904.jpg',
-  '550':        '/images/Front_page_cards/Racecars/550 spyder.jpg',
-  'rs60':       '/images/Front_page_cards/Racecars/RS60.jpg',
-  '718-rsk':    '/images/Front_page_cards/Racecars/RSK.jpg',
-  'rs-spyder':  '/images/Front_page_cards/Racecars/RS spyder (racecar).jpg',
-}
 
 // Top-level so React reconciles cards across renders instead of remounting
 // them (a component defined inside the render body is a new element type on

@@ -207,12 +207,12 @@ const VARIANT_DESCRIPTIONS = {
     '987.1': {
       'base': 'The 987.1 Boxster refreshed the platform with a 2.7-liter engine producing 240 horsepower and revised styling that gave the car a more distinct visual identity. It remains an engaging and accessible entry-level Porsche with a strong enthusiast following and broad mechanical support.',
       'S':    'The 987.1 Boxster S used a 3.2-liter engine producing 280 horsepower with PASM available, offering near-Cayman S performance in an open-top roadster. It is the most desirable 987.1 Boxster specification and holds up well in both use and value.',
+      'RS 60 Spyder': 'A 2008 limited edition built to celebrate the 1960 RS 60 Spyder\'s overall win at the 12 Hours of Sebring, the RS 60 Spyder was based on the Boxster S and limited to 1,960 cars. It carries the 3.4-liter flat-six at 303 horsepower in its own Spyder-style trim, and it trades as a collector car at a clear premium to the standard 987.1 Boxsters.',
     },
     '987.2': {
       'base':   'The 987.2 Boxster updated the formula with a new 2.9-liter DFI engine producing 255 horsepower and improved interior quality in a refinement of the well-regarded 987.1. It is a capable and well-sorted open-air sports car that represents strong value in the used Porsche market.',
       'S':      'The 987.2 Boxster S used a 3.4-liter DFI engine producing 310 horsepower with revised suspension and styling updates. It is the most popular 987.2 Boxster configuration and consistently holds its value on the secondary market.',
       'Spyder': 'The 987.2 Boxster Spyder stripped the roadster to minimum weight by removing sound deadening, the power soft top, and most luxury features while fitting a manual-only transmission in a car weighing just 1,275 kilograms. Approximately 2,000 were produced for the 2011 model year, making it the most collectible 987.2 Boxster variant.',
-      'GTS':    'The 987.2 Boxster GTS offered a 330-horsepower engine with sport exhaust, PASM, and visual upgrades in a high-specification version of the outgoing 987.2 platform. Produced in limited numbers at the end of the 987 generation, it is the most desirable naturally aspirated standard variant.',
     },
     '981': {
       'base':   'The 981 Boxster brought a longer wheelbase, wider track, and a 265-horsepower 2.7-liter flat-six to the roadster format, substantially improving dynamics and rigidity over the outgoing 987.2. It is widely regarded as the best-balanced entry-level Boxster to date.',
@@ -265,6 +265,14 @@ const VARIANT_DESCRIPTIONS = {
   },
   // Variant-models (924/944/968/928/914) have no generation level, so these
   // are keyed [modelSlug][variant] directly.
+  '935': {
+    'Classic': {
+      'base': 'Developed from the 930 Turbo for Group 5, the original 935 reached 845 horsepower in its most extreme factory form and won Le Mans outright in 1979 in the hands of the privateer Kremer K3. Period-raced examples, particularly the slant-nose 935/77 and the later evolutions, are among the most valuable 911-derived racing cars.',
+    },
+    'Modern': {
+      'base': 'Revealed at Rennsport Reunion VI in 2018, the modern 935 is a track-only homage to the 1978 Moby Dick, built on the 991 GT2 RS and limited to 77 cars. Its twin-turbocharged 3.8-liter flat-six makes 700 horsepower, and the Martini-liveried launch car became the face of the program.',
+    },
+  },
   '914': {
     '914/6':'The 914/6 used the 110-horsepower 2.0-liter flat-six from the 911T in the mid-engined 914 chassis, assembled by Porsche rather than Karmann and fitted with five-lug wheels and 911 brakes. Approximately 3,300 were built across 1970 and 1971, and they are the most collectible 914s by a wide margin.',
     'base': 'The four-cylinder 914, sold with 1.7-, 1.8-, and 2.0-liter Volkswagen-sourced engines, was Porsche\'s mid-engined entry model and the best-selling car in the company\'s range at the time, with well over 100,000 built. Long overlooked, clean 2.0-liter examples have appreciated as the mid-engined handling and period design find a new audience.',
@@ -300,6 +308,12 @@ export default VARIANT_DESCRIPTIONS
 // Keyed [generation][variant], or [modelSlug][variant] for the variant-models
 // at the end — only variants with confirmed limited production numbers
 export const PRODUCTION_NUMBERS = {
+  '987.1': {
+    'RS 60 Spyder': 1960,
+  },
+  'Modern': {
+    'base': 77,
+  },
   'F-Body': {
     'Carrera RS 2.7': 1583,
   },
@@ -383,6 +397,8 @@ export const MODEL_DESCRIPTIONS = {
   '956':          'The 956 brought an aluminum monocoque and ground-effect aerodynamics to Group C, winning Le Mans four years running from 1982 and setting a Nürburgring lap record that stood for decades. Twenty-eight were built, ten for the works team and the remainder for customers, and documented race-winning chassis trade in the eight figures.',
   '962':          'The 962 evolved the 956 with a longer wheelbase that moved the driver\'s feet behind the front axle for IMSA compliance, winning Le Mans in 1986 and 1987 and dominating IMSA GTP through the decade. Porsche built around 90 chassis, with many more assembled by Kremer, Joest, and other customer teams, making the 962 the most prolific and most campaigned of all Porsche prototypes.',
   '935':          'Developed from the 930 Turbo for Group 5, the 935 reached 845 horsepower in its most extreme factory form and won Le Mans outright in 1979 in the hands of the privateer Kremer K3. Porsche built roughly 35 customer cars alongside the works entries, and period-raced examples — particularly the slant-nose 935/77 and the later evolutions — are among the most valuable 911-derived racing cars.',
+  'cayman-gt4-clubsport': 'Built by Porsche Motorsport for customer teams, the Cayman GT4 Clubsport has been the entry point to GT4 racing since 2016 on the 981, carried into the 718 generation and joined later by the GT4 RS Clubsport. Sold at auction as ready-to-race cars, they price on competition history and series eligibility rather than as road cars, so they are kept apart from the street GT4s.',
+  'ruf':          'RUF Automobile of Pfaffenhausen, Germany, has built Porsche-based cars since the late 1970s and is registered as its own manufacturer rather than a modifier. Its 1987 CTR "Yellowbird", a twin-turbo 911 that reached 211 mph, made its name, and the BTR, Turbo R, Rt12 and RGT that followed are bought for their performance and rarity. Cars here are RUF-built or RUF-modified, priced separately from the donor 911s.',
   '934':          'The 934 was the Group 4 racing version of the 930 Turbo, retaining the road car\'s steel bodywork and even its electric windows while producing 485 horsepower from a turbocharged 3.0-liter flat-six. Thirty-one were built for 1976, followed by ten uprated 934/5s for American competition, and they remain mainstays of historic GT racing.',
   '908':          'The 908 was Porsche\'s three-liter prototype from 1968 to 1971, built when a new capacity limit finally let the company contest outright victory with an engine of its own design. It won the Targa Florio, the Nürburgring 1000 Kilometres, and the 1970 Sebring 12 Hours, and the open 908/03 Spyders are the most sought-after cars of the family.',
   '907':          'The 907 brought right-hand drive and low-drag long-tail bodywork to Porsche\'s prototype program for 1967 and 1968, powered first by flat-six and then by flat-eight engines. It delivered Porsche\'s first outright Daytona victory with a 1-2-3 finish in 1968, then won that year\'s Sebring 12 Hours and Targa Florio.',

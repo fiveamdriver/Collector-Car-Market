@@ -7,6 +7,7 @@ import {
   statsFromGroup, toMonthlySeries,
 } from '../utils/aggregation'
 import { toSlug } from '../utils/slugs'
+import { variantLabel } from '../utils/variantLabel'
 import Breadcrumb from '../components/Breadcrumb'
 import Sparkline from '../components/Sparkline'
 import { fmtVal } from '../utils/formatters'
@@ -171,7 +172,7 @@ export default function VariantIndex() {
                 className="index-card"
               >
                 <div className="index-card-header">
-                  <span className="index-card-name">{variant}</span>
+                  <span className="index-card-name">{variantLabel(model, variant)}</span>
                   <span className="index-card-count">{stats.count} sold</span>
                 </div>
                 {stats.count > 0 && (

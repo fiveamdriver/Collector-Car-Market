@@ -4,6 +4,7 @@ import { ALL_MODELS, MODEL_LINE, VARIANT_MODELS, TRANSAXLE_META, GROUP_CHILDREN 
 import { fetchAggregateStats } from '../api/client'
 import { indexByKey, statsFromGroup, toMonthlySeries } from '../utils/aggregation'
 import { toSlug } from '../utils/slugs'
+import { variantLabel } from '../utils/variantLabel'
 import Breadcrumb from '../components/Breadcrumb'
 import Sparkline from '../components/Sparkline'
 
@@ -66,7 +67,7 @@ export default function VariantModelIndex() {
             const group   = byVariant[variant]
             const stats   = statsFromGroup(group)
             const monthly = toMonthlySeries(group?.monthly)
-            const label   = variant === 'base' ? model.label : variant
+            const label   = variantLabel(model, variant)
             return (
               <Link key={variant} to={`/${modelSlug}/${toSlug(variant)}`} className="index-card">
                 <div className="index-card-header">

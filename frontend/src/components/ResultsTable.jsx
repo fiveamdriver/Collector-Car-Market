@@ -11,8 +11,18 @@ function fmtDate(s) {
   const [y, m, d] = s.split('-').map(Number)
   return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
+// Factory option codes (M491, M505, M491/M470) are what enthusiasts shop for, so
+// a long title is shortened around them instead of being cut off before them.
+const OPTION_CODE = /\bM\d{3}(?:\/M\d{3})?\b/
 function truncate(s, n) {
-  return s && s.length > n ? s.slice(0, n) + '…' : (s ?? '—')
+  if (!s) return '—'
+  if (s.length <= n) return s
+  const m = OPTION_CODE.exec(s)
+  if (m && m.index + m[0].length > n) {
+    const head = s.slice(0, Math.max(0, n - m[0].length - 2)).trimEnd()
+    return `${head}… ${m[0]}`
+  }
+  return s.slice(0, n) + '…'
 }
 function stripYear(s, hasMileage) {
   if (!s) return s

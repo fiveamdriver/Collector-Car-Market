@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, GENERATIONS, GEN_IMAGES, GEN_YEARS, MODEL_LINE } from '../data/taxonomy'
+import { ALL_MODELS, GENERATION_GROUPS, GENERATIONS, GEN_IMAGES, GEN_LABELS, GEN_YEARS, MODEL_LINE } from '../data/taxonomy'
 import { fetchAggregateStats } from '../api/client'
 import { combineStats, indexByKey, statsFromGroup } from '../utils/aggregation'
 import Breadcrumb from '../components/Breadcrumb'
@@ -60,13 +60,13 @@ export default function GenerationIndex() {
               <Link key={gen} to={`/${modelSlug}/${gen}`} className="index-card">
                 {GEN_IMAGES[gen] && (
                   <div className="index-card-img-wrap">
-                    <img src={GEN_IMAGES[gen]} alt={gen} className="index-card-img"
+                    <img src={GEN_IMAGES[gen]} alt={GEN_LABELS[gen] ?? gen} className="index-card-img"
                       loading="lazy" decoding="async"
                       style={GEN_IMAGE_POSITION[gen] ? { objectPosition: GEN_IMAGE_POSITION[gen] } : undefined} />
                   </div>
                 )}
                 <div className="index-card-body">
-                  <span className="index-card-name">{gen}</span>
+                  <span className="index-card-name">{GEN_LABELS[gen] ?? gen}</span>
                   {GEN_YEARS[gen] && (
                     <span className="index-card-years">{GEN_YEARS[gen]}</span>
                   )}
