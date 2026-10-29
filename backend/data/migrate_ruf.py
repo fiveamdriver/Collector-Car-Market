@@ -28,6 +28,7 @@ from app.database import AsyncSessionLocal
 from app.models.listing import AuctionResult
 from app.utils.model_lines import match_coachbuilt_line
 from sqlalchemy import select
+from migrate_ruf_dealer_kits import RUF_KIT_ELSEWHERE
 
 
 async def main() -> None:
@@ -41,6 +42,9 @@ async def main() -> None:
         rows = []
         for rec in result.scalars().all():
             if match_coachbuilt_line(rec.lot_title or "") != "RUF":
+                continue
+            if rec.auction_url in RUF_KIT_ELSEWHERE:
+                # RUF parts fitted by a dealer — kept on the donor card.
                 continue
             plan[(rec.model_line, rec.generation, rec.variant)] += 1
             rows.append(rec)

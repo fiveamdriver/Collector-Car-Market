@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE, VARIANTS, CROSS_LISTINGS } from '../data/taxonomy'
+import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE, VARIANTS, VARIANT_HERO, CROSS_LISTINGS } from '../data/taxonomy'
 import { fetchAggregateStats, fetchAuctionResults } from '../api/client'
 import {
   combineStats, groupStatsFromRows, indexByKey, mergeGroups,
@@ -97,6 +97,11 @@ export default function VariantIndex() {
       statsFromGroup(byVariant[b]).avg - statsFromGroup(byVariant[a]).avg)
   ), [variants, byVariant])
 
+  // Photo cards only when every variant has a photo — a grid where some cards
+  // have one and some don't reads as broken.
+  const variantPhotos = VARIANT_HERO[modelSlug]?.[generation] ?? {}
+  const showPhotos = variants.length > 0 && variants.every(v => variantPhotos[v])
+
   if (!model) return <Navigate to="/" replace />
 
   if (variants.length === 1) {
@@ -160,7 +165,7 @@ export default function VariantIndex() {
       {error   && <p className="status error">Error: {error}</p>}
 
       {!loading && !error && (
-        <div className="card-grid">
+        <div className={`card-grid${showPhotos ? ' card-grid--photo' : ''}`}>
           {sortedVariants.map(variant => {
             const group   = byVariant[variant]
             const stats   = statsFromGroup(group)
@@ -169,8 +174,17 @@ export default function VariantIndex() {
               <Link
                 key={variant}
                 to={`${variantBase}/${toSlug(variant)}`}
-                className="index-card"
+                className={`index-card${showPhotos ? ' index-card--bg' : ''}`}
               >
+                {showPhotos && (
+                  <img
+                    src={variantPhotos[variant]}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="index-card-bg-img"
+                  />
+                )}
                 <div className="index-card-header">
                   <span className="index-card-name">{variantLabel(model, variant)}</span>
                   <span className="index-card-count">{stats.count} sold</span>
@@ -178,7 +192,7 @@ export default function VariantIndex() {
                 {stats.count > 0 && (
                   <div className="index-card-avg">${stats.avg.toLocaleString()} avg</div>
                 )}
-                <Sparkline data={monthly} />
+                {!showPhotos && <Sparkline data={monthly} />}
               </Link>
             )
           })}

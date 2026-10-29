@@ -145,8 +145,9 @@ export const GENERATIONS = {
 export const VARIANTS = {
   '911': {
     'F-Body': [
+      // 'S/T' left out until a sale comes in — its photo stays in VARIANT_HERO.
       '911', '911S', '911T', '911E', '911L', '911R',
-      'Carrera RS 2.7', 'S/T', 'Targa',
+      'Carrera RS 2.7', 'Targa',
     ],
     'G-Body': [
       'Speedster', 'Turbo 3.3 Slant Nose', '930 Turbo',
@@ -243,7 +244,17 @@ export const VARIANTS = {
 
 export const VARIANT_HERO = {
   '911': {
-    'F-Body': { '911R': '/images/911_gen_page_cards/911R(1967)Fbodygenpic.jpeg' },
+    'F-Body': {
+      '911': '/images/911_variants/F-Body/1965_911.png',
+      '911S': '/images/911_variants/F-Body/1967_911S.png',
+      '911T': '/images/911_variants/F-Body/911T_FBODY.jpg',
+      '911E': '/images/911_variants/F-Body/911E.jpeg',
+      '911L': '/images/911_variants/F-Body/1968_911L.jpeg',
+      '911R': '/images/911_variants/F-Body/1967_911R.jpg',
+      'Carrera RS 2.7': '/images/911_variants/F-Body/1973_RS2.7.png',
+      'S/T': '/images/911_variants/F-Body/1970_ST.jpg',
+      'Targa': '/images/911_variants/F-Body/1967_911sTARGA.png',
+    },
     'G-Body': { '930 Turbo': '/images/911_gen_page_cards/930turbogbodygen.jpg' },
     '964':    { 'Carrera RS': '/images/911_gen_page_cards/porsche964CarreraRS.png' },
     '993':    { 'GT2': '/images/911_gen_page_cards/993GT2.png' },
@@ -377,7 +388,7 @@ export const GEN_IMAGES = {
   '991':    '/images/911_gen_page_cards/991gt2rs.png',
   '991.1':  '/images/911_gen_page_cards/991gt2rs.png',
   '991.2':  '/images/911_gen_page_cards/991gt2rs.png',
-  '992':    '/images/911ST.jpg',
+  '992':    '/images/911_gen_page_cards/992ST_card.jpg',
   '992.1':  '/images/911ST.jpg',
   '992.2':  '/images/911ST.jpg',
   'Classic': '/images/Front_page_cards/Racecars/935.png',

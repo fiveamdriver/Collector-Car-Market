@@ -358,7 +358,7 @@ def map_schema_car(schema: dict) -> dict | None:
 
 async def fetch_results_page(page, page_num: int) -> list[dict]:
     url = f"{RESULTS_BASE}?makes=Porsche&per_page={PAGE_SIZE}&page={page_num}"
-    await page.goto(url, wait_until="networkidle", timeout=60_000)
+    await page.goto(url, wait_until="networkidle", timeout=120_000)
     schemas = await page.evaluate("""() =>
         Array.from(document.querySelectorAll('script[type="application/ld+json"]'))
             .map(s => { try { return JSON.parse(s.textContent) } catch(e) { return null } })
@@ -399,10 +399,16 @@ async def ingest() -> None:
 
         page_num = 1
         while True:
-            try:
-                schemas = await fetch_results_page(page, page_num)
-            except Exception as exc:
-                print(f"  page {page_num} ERROR: {exc}")
+            schemas = None
+            for attempt in range(1, 4):
+                try:
+                    schemas = await fetch_results_page(page, page_num)
+                    break
+                except Exception as exc:
+                    print(f"  page {page_num} attempt {attempt}/3 ERROR: {exc}")
+                    await asyncio.sleep(5 * attempt)
+            if schemas is None:
+                print(f"  page {page_num} failed after 3 attempts — stopping")
                 break
 
             if not schemas:

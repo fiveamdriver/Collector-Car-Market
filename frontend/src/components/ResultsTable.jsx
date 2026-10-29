@@ -130,9 +130,13 @@ export default function ResultsTable({ results }) {
                   : <div className="result-card-img result-card-img--empty">No photo</div>}
                 <div className="result-card-body">
                   <span className="result-card-title">
+                    {r.year ? `${r.year} ` : ''}
                     {truncate(stripColor(stripYear(r.lot_title, r.mileage != null), r.exterior_color), 44)}
                   </span>
                   <span className="result-card-price">{fmtPrice(r.sold_price)}</span>
+                  {r.mileage != null && (
+                    <span className="result-card-mileage">{fmtMileage(r.mileage)} mi</span>
+                  )}
                   <span className="result-card-date">{fmtDate(r.sold_date)}</span>
                   <span className="result-card-source">{r.auction_source}</span>
                 </div>

@@ -23,6 +23,14 @@ from app.utils.variants import is_early_carrera_4
 
 _CARRERA_S = re.compile(r"Carrera S\b(?!\s*GTS)", re.IGNORECASE)
 
+# The 992.2 facelift rolled out model by model, not all at once for MY2025. These
+# stayed 992.1 through 2025: the GT3 RS (no 992.2 RS has been delivered yet), the
+# Turbo / Turbo S (992.2 Turbo S launched as a 2026 model; the 2025 Turbo 50
+# Years is a 992.1), and the 992.1-only specials S/T, Dakar and Sport Classic.
+_992_1_IN_2025 = re.compile(
+    r"\bGT3\s*RS\b|\bTurbo\b|\bS/T\b|\bDakar\b|\bSport Classic\b", re.IGNORECASE
+)
+
 
 def get_911_generation(year: int, title: str = "") -> str:
     """
@@ -48,6 +56,7 @@ def get_911_generation(year: int, title: str = "") -> str:
     if year <= 2019: return "991.2"
     # The 992.2 facelift arrived for the 2025 model year.
     if year <= 2024: return "992.1"
+    if year == 2025 and title and _992_1_IN_2025.search(title): return "992.1"
     return "992.2"
 
 
