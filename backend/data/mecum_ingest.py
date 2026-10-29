@@ -36,6 +36,9 @@ from app.models.listing import AuctionResult
 from app.utils.color_parser import parse_color_from_phrase, scan_for_color
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
+from app.utils.model_lines import match_coachbuilt_line
+from app.utils.model_lines import match_model_line as match_model_line_shared
+from app.utils.variants import match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base, parse_356_variant
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -107,36 +110,6 @@ query PorscheSoldLots($size: Int!, $offset: Int!) {
 
 # ── Model / variant parsing ───────────────────────────────────────────────────
 
-PORSCHE_MODEL_LINES = [
-    ("918 Spyder", "918 Spyder"),
-    ("959",         "959"),
-    ("Cayenne",     "Cayenne"),
-    ("Panamera",    "Panamera"),
-    ("Macan",       "Macan"),
-    ("Taycan",      "Taycan"),
-    ("Boxster",     "Boxster"),
-    ("Cayman",      "Cayman"),
-    ("968",         "968"),
-    ("944",         "944"),
-    ("930",         "911"),
-    ("928",         "928"),
-    ("924",         "924"),
-    ("914",         "914"),
-    ("912E",        "912"),
-    ("912",         "912"),
-    ("356",         "356"),
-    ("904",         "904"),
-    ("962",         "962"),
-    ("956",         "956"),
-    ("935",         "935"),
-    ("934",         "934"),
-    ("917",         "917"),
-    ("908",         "908"),
-    ("907",         "907"),
-    ("906",         "906"),
-    ("Carrera GT",  "Carrera GT"),
-    ("911",         "911"),
-]
 
 _911_VARIANTS = [
     "GT3 RS 4.0", "GT3 RS", "GT3",
@@ -149,6 +122,8 @@ _911_VARIANTS = [
     "Carrera 3.2", "Carrera 2.7",
     "Carrera", "Singer",
     "SC", "911S",
+    # Last: a bare "R" must only win when no longer name matched.
+    "R",
 ]
 
 _356_VARIANTS = ["Speedster", "Roadster", "Cabriolet", "Coupe", "Notchback"]
@@ -159,16 +134,9 @@ YEAR_RE = re.compile(r'\b(19|20)\d{2}\b')
 
 
 def parse_model_line(text: str) -> str:
-    for token, ml in PORSCHE_MODEL_LINES:
-        if token == "Carrera GT":
-            if re.search(r'\bCarrera GT\b', text): return ml
-        elif token[0].isdigit():
-            # Match "356", "356A", "356B", "356C" etc. — Mecum titles use "356B" not "356 B"
-            if re.search(r'\b' + re.escape(token) + r'[A-Z]?\b', text): return ml
-        elif token in text:
-            return ml
-    return "911"
-
+    if is_not_a_car(text):
+        return "Other"  # engines, parts, memorabilia — see app/utils/variants.py
+    return match_model_line_shared(text, match_transaxle_line)
 
 # Maps Mecum API model names (from models.nodes) to our model_line values.
 _API_MODEL_MAP = {
@@ -184,6 +152,14 @@ _API_MODEL_MAP = {
 
 
 def resolve_model_line(api_models: list[str], title: str) -> str | None:
+    # Mecum's API names the donor car, never the builder: a "911 Targa by Singer"
+    # comes through as model "911" and would be filed on the 911 line, where a
+    # $1.1M restomod distorts the donor generation's average. Only the title
+    # carries the builder, so it is checked before the API mapping.
+    coachbuilt = match_coachbuilt_line(title)
+    if coachbuilt:
+        return coachbuilt
+
     if api_models:
         for m in api_models:
             key = m.lower().strip()
@@ -200,7 +176,7 @@ def resolve_model_line(api_models: list[str], title: str) -> str | None:
 
 
 def parse_generation(model_line: str, year: int, text: str) -> str:
-    if model_line == "911":      return get_911_generation(year)
+    if model_line == "911":      return get_911_generation(year, text)
     if model_line == "Cayman":   return get_cayman_generation(year)
     if model_line == "Boxster":  return get_boxster_generation(year)
     if model_line == "356":
@@ -215,7 +191,7 @@ def parse_generation(model_line: str, year: int, text: str) -> str:
     return model_line
 
 
-def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
+def _parse_variant_raw(model_line: str, year: int, text: str, trim: str) -> str:
     # Prefer trimSubModel from API over title parsing when available
     combined = f"{text} {trim}".strip()
 
@@ -223,7 +199,12 @@ def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
         return "914/6" if re.search(r'914[/-]6', combined) else "base"
 
     if model_line == "911":
-        gen = get_911_generation(year)
+        gen = get_911_generation(year, combined)
+        combined = strip_turbo_impostor(combined)
+        # Before the variant list, which stops at "Carrera RS" and would file the
+        # 964's separate RS 3.8 card onto the 3.6-litre one.
+        if gen == "964" and is_964_rs_38(combined):
+            return "RS 3.8"
         if gen == "G-Body":
             if "Slant Nose" in combined:                return "Turbo 3.3 Slant Nose"
             if "MFI" in combined:                       return "Carrera 2.7 MFI"
@@ -237,22 +218,25 @@ def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
             if "SC" in combined:                        return "SC"
             if "Carrera 3.2" in combined or ("Carrera" in combined and year >= 1984):
                                                         return "Carrera 3.2"
-            if "911S" in combined or "911 S" in combined: return "911S"
-            return "base"
+            if re.search(r'\b911\s*(?:2\.\d\s*)?S\b', combined): return "911S"
+            # The taxonomy's entry-level card for these generations is "911",
+            # not "base" — a plain "1966 Porsche 911 Coupe" has no card under
+            # "base" and renders nowhere.
+            return "911"
         if gen == "F-Body":
             if "Carrera RS 2.7" in combined or "Carrera RS" in combined: return "Carrera RS 2.7"
             if "Carrera 2.7" in combined: return "Carrera 2.7"
-            if "911S" in combined:        return "911S"
             if "Targa" in combined:       return "Targa"
-            return "base"
-        for pat in _911_VARIANTS:
-            if pat in combined: return pat
-        return "base"
+            if re.search(r'\b911\s*(?:2\.\d\s*)?S\b', combined): return "911S"
+            # The taxonomy's entry-level card for these generations is "911",
+            # not "base" — a plain "1966 Porsche 911 Coupe" has no card under
+            # "base" and renders nowhere.
+            return "911"
+        variant = match_variant(_911_VARIANTS, combined)
+        return fix_964_carrera(variant, combined) if gen == "964" else variant
 
     if model_line == "356":
-        for pat in _356_VARIANTS:
-            if pat in combined: return pat
-        return "base"
+        return parse_356_variant(combined)
 
     if model_line == "944":
         for pat in _944_VARIANTS:
@@ -265,6 +249,8 @@ def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
         return "base"
 
     if model_line in ("Cayman", "Boxster"):
+        if model_line == "Boxster" and is_boxster_rs60(combined):
+            return "RS 60 Spyder"
         for pat in ["GT4 RS", "GT4", "GTS", "Spyder RS", "Spyder"]:
             if pat in combined: return pat
         if re.search(r'\bR\b', combined): return "R"
@@ -272,6 +258,17 @@ def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
         return "base"
 
     return "base"
+
+
+def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
+    variant = _parse_variant_raw(model_line, year, text, trim)
+    if model_line == "911":
+        # One Cabriolet card per generation, 2WD and 4WD together.
+        combined = f"{text} {trim}".strip()
+        if variant == "base":
+            variant = resolve_911_base(parse_generation(model_line, year, combined), combined)
+        variant = cabriolet_variant(parse_generation(model_line, year, combined), variant, combined)
+    return variant
 
 
 # ── Field parsers ─────────────────────────────────────────────────────────────

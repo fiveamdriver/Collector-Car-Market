@@ -48,7 +48,7 @@ TARGA       = re.compile(r'Targa', re.IGNORECASE)
 def classify(title: str) -> str:
     if RS_27.search(title):     return "Carrera RS 2.7"
     if S_T.search(title):       return "S/T"
-    if R_SLASH_T.search(title): return "Modified"
+    if R_SLASH_T.search(title): return "911"
     if T_SLASH_R.search(title): return "911T"
     if R_911.search(title):     return "911R"
     if L_911.search(title):     return "911L"
@@ -75,8 +75,6 @@ async def main() -> None:
 
             if NOT_A_CAR.search(t):
                 target = ("Other", "Other", "base")
-            elif rec.variant == "Modified":
-                target = ("911", "F-Body", "Modified")
             else:
                 target = ("911", "F-Body", classify(t))
 

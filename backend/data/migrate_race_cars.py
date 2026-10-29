@@ -31,6 +31,12 @@ def get_911_generation(year: int) -> str:
     return "992"
 
 
+def get_935_generation(year: int) -> str:
+    # Original Group 5 cars (1976-1981, plus Kremer's 1980s builds) vs. the
+    # 2018 GT2 RS-based 935 homage.
+    return "Modern" if year >= 2018 else "Classic"
+
+
 def classify(title: str, year: int) -> tuple[str, str, str] | None:
     """Return (model_line, generation, variant) or None if not a race car."""
     t = title
@@ -66,7 +72,7 @@ def classify(title: str, year: int) -> tuple[str, str, str] | None:
         return ("956", "956", "base")
 
     if re.search(r'\b935\b', t):
-        return ("935", "935", "base")
+        return ("935", get_935_generation(year), "base")
 
     if re.search(r'\b934\b', t):
         return ("934", "934", "base")

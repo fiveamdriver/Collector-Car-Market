@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
 import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE } from '../data/taxonomy'
-import { fetchAuctionResults } from '../api/client'
-import { calcStats, groupByField, groupByMonth } from '../utils/aggregation'
+import { fetchAggregateStats } from '../api/client'
+import { combineMonthly, combineStats, indexByKey, statsFromGroup, toMonthlySeries } from '../utils/aggregation'
 import Breadcrumb from '../components/Breadcrumb'
 import PriceHistoryChart from '../components/LazyPriceHistoryChart'
 import Sparkline from '../components/Sparkline'
@@ -21,7 +21,7 @@ export default function SubGenerationIndex() {
   const modelLine = MODEL_LINE[modelSlug]
   const subGens  = GENERATION_GROUPS[modelSlug]?.[seg1] ?? []
 
-  const [results, setResults] = useState([])
+  const [groupStats, setGroupStats] = useState([])
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
 
@@ -29,19 +29,16 @@ export default function SubGenerationIndex() {
     let stale = false // ignore responses that land after a navigation
     setLoading(true)
     setError(null)
-    // limit must match GenerationIndex — without it the API returns only the
-    // 500 newest rows across ALL generations, so the per-card "N sold" counts
-    // and averages were computed from an arbitrary recent slice.
-    fetchAuctionResults({ model_line: modelLine, limit: 10000 })
-      .then(data => { if (!stale) setResults(data.filter(r => subGens.includes(r.generation))) })
+    fetchAggregateStats({ model_line: modelLine, group_by: 'generation', monthly: true })
+      .then(data => { if (!stale) setGroupStats(data.filter(g => subGens.includes(g.key))) })
       .catch(e => { if (!stale) setError(e.message) })
       .finally(() => { if (!stale) setLoading(false) })
     return () => { stale = true }
   }, [modelLine, seg1])
 
-  const byGen      = useMemo(() => groupByField(results, 'generation'), [results])
-  const heroStats  = useMemo(() => calcStats(results),    [results])
-  const monthlyData = useMemo(() => groupByMonth(results), [results])
+  const byGen       = useMemo(() => indexByKey(groupStats), [groupStats])
+  const heroStats   = useMemo(() => combineStats(groupStats), [groupStats])
+  const monthlyData = useMemo(() => combineMonthly(groupStats), [groupStats])
 
   if (!model) return <Navigate to="/" replace />
 
@@ -99,9 +96,9 @@ export default function SubGenerationIndex() {
       {!loading && !error && (
         <div className="card-grid">
           {subGens.map(subGen => {
-            const genResults = byGen[subGen] ?? []
-            const stats   = calcStats(genResults)
-            const monthly = groupByMonth(genResults)
+            const group   = byGen[subGen]
+            const stats   = statsFromGroup(group)
+            const monthly = toMonthlySeries(group?.monthly)
             return (
               <Link key={subGen} to={`/${modelSlug}/${seg1}/${subGen}`} className="index-card">
                 <div className="index-card-header">

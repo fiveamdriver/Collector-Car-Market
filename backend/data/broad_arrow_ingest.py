@@ -18,6 +18,7 @@ Before each new auction season, verify AUCTION_EVENTS below and add new entries.
 Unknown event codes are logged as warnings; those records get sold_date = NULL.
 """
 import asyncio
+import html
 import os
 import re
 import sys
@@ -32,6 +33,8 @@ from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
+from app.utils.model_lines import match_model_line as match_model_line_shared
+from app.utils.variants import match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base, parse_356_variant
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -46,30 +49,73 @@ PAGE_SIZE    = 50
 # ── Auction event code → sold date ────────────────────────────────────────────
 # The event code is the first segment of the lot URL slug:
 #   /vehicles/am26_r0191/... → "am26"
-# Check https://www.broadarrowauctions.com/auctions to look up event dates.
-# Dates are approximate (first day of the auction event).
+#
+# Regenerate this table with `python data/broad_arrow_events.py`, which joins the
+# event listings (name + date) to each event's lots (code) and prints a ready-to-
+# paste block.  Run it before each new auction season.
+#
+# Dates are the first day of a multi-day event.  Only three codes used to be
+# listed here and everything else silently fell back to January 1 of the code's
+# year — 396 of 478 stored rows (83%) carried that fabricated date, which is why
+# the table is now exhaustive and the fallback returns None instead.
 AUCTION_EVENTS: dict[str, date] = {
-    "am24": date(2024, 3,  1),   # The Amelia Auction 2024
-    "am25": date(2025, 3,  7),   # The Amelia Auction 2025
-    "am26": date(2026, 3,  7),   # The Amelia Auction 2026
+    "jc22":  date(2022,  8, 18),  # Monterey Jet Center 2022
+    "tj22":  date(2022, 10, 14),  # Passion for the Drive: The Cars of Jim Taylor
+    "pb22":  date(2022, 11, 18),  # West Palm Beach
+    "am23":  date(2023,  3,  4),  # The Amelia Auction 2023
+    "po23":  date(2023,  6,  1),  # Porsche 75th Anniversary Auction
+    "jc23":  date(2023,  8, 17),  # Monterey Jet Center 2023
+    "am24":  date(2024,  3,  1),  # The Amelia Auction 2024
+    "po24":  date(2024,  4, 27),  # The Porsche Air|Water Auction
+    "jc24":  date(2024,  8, 14),  # Monterey Jet Center 2024
+    "ch24":  date(2024, 10, 12),  # The Chattanooga Auction 2024
+    "sf25":  date(2025,  2, 15),  # The Academy of Art University Collection
+    "am25":  date(2025,  3,  7),  # The Amelia Auction 2025
+    "po25":  date(2025,  4, 26),  # The Porsche Air|Water Auction 2025
+    "ve25":  date(2025,  5, 24),  # Concorso d'Eleganza Villa d'Este 2025
+    "jc25":  date(2025,  8, 13),  # Monterey Jet Center 2025
+    "zt25":  date(2025, 10, 10),  # Zoute Concours Auction 2025
+    "lv25":  date(2025, 10, 31),  # The Las Vegas Auction 2025
+    "dg25":  date(2025, 11,  1),  # The Zurich Auction 2025 (Dolder Grand)
+    "gi26e": date(2026,  1, 23),  # Global Icons: Europe Online
+    "gi26u": date(2026,  1, 23),  # Global Icons: UK Online
+    "am26":  date(2026,  3,  6),  # The Amelia Auction 2026
+    "cm26":  date(2026,  4, 21),  # California Mille: A Unique Opportunity
+    "po26":  date(2026,  4, 25),  # The Porsche Air|Water Auction 2026
+    "gi26v": date(2026,  5, 11),  # Global Icons: Spring Online Auction 2026
+    "ve26":  date(2026,  5, 16),  # Concorso d'Eleganza Villa d'Este 2026
+    "mb26":  date(2026,  8, 10),  # Global Icons: The Patina Collective
+    "ql26":  date(2026,  8, 13),  # The Quail Auction 2026
+    "ad26":  date(2026, 10,  2),  # The Audrain Auction 2026
+    "gi26z": date(2026, 10,  5),  # Global Icons: Zoute Online 2026
+    "zt26":  date(2026, 10,  9),  # The Zoute Concours Auction 2026
+    "dg26":  date(2026, 11,  7),  # The Zurich Auction 2026 (Dolder Grand)
 }
 
 # Non-USD events: event_code → USD conversion rate (local_price × rate = USD)
 # Schema.org hardcodes priceCurrency="USD" even for EUR/GBP/CHF auctions.
 # Rates are approximate mid-market for the auction period.
+#
+# Every non-USD event needs an entry: a code that is missing here is not flagged,
+# it is silently treated as already-USD, so a €500k lot is stored as $500k.  Keep
+# this in step with AUCTION_EVENTS whenever a European sale is added.
 NON_USD_RATES: dict[str, float] = {
-    "ve24":  1.08,   # Villa d'Este 2024 (EUR)
     "ve25":  1.11,   # Villa d'Este 2025 (EUR)
     "ve26":  1.13,   # Villa d'Este 2026 (EUR)
     "zt25":  1.09,   # Zoute Concours 2025 (EUR, Belgium)
+    "zt26":  1.13,   # Zoute Concours 2026 (EUR, Belgium)
     "gi26e": 1.12,   # Global Icons: Europe Online (EUR)
     "gi26v": 1.12,   # Global Icons: Spring Online 2026 (EUR)
+    "gi26z": 1.13,   # Global Icons: Zoute Online 2026 (EUR)
     "gi26u": 1.28,   # Global Icons: UK Online (GBP)
     "dg25":  1.11,   # Zurich Auction 2025 (CHF)
+    "dg26":  1.13,   # Zurich Auction 2026 (CHF)
 }
 
-_EVENT_CODE_RE  = re.compile(r'/vehicles/([a-z]{2,4}\d{2})_', re.IGNORECASE)
-_EVENT_YEAR_RE  = re.compile(r'(\d{2})$')
+# The trailing letter is not optional decoration: the Global Icons sales encode
+# their region there (gi26e / gi26u / gi26v).  Without it the pattern failed to
+# match those slugs at all, so 114 lots resolved to no event code and no date.
+_EVENT_CODE_RE  = re.compile(r'/vehicles/([a-z]{2,4}\d{2}[a-z]?)_', re.IGNORECASE)
 
 
 def extract_event_code(url: str) -> str | None:
@@ -78,50 +124,24 @@ def extract_event_code(url: str) -> str | None:
 
 
 def event_date(code: str | None) -> date | None:
+    """
+    Resolve an event code to the auction's start date, or None if unknown.
+
+    An unknown code used to fall back to January 1 of the code's year.  That is
+    worse than no date: a fabricated January 1 is indistinguishable from a real
+    sale date downstream, and it dragged every affected lot to the wrong end of
+    the price-history time series.  Unknown codes now return None and are
+    reported at the end of the run so the table can be extended.
+    """
     if not code:
         return None
-    if code in AUCTION_EVENTS:
-        return AUCTION_EVENTS[code]
-    # Fallback: derive year from last two digits of code (e.g. "po25" → 2025-01-01)
-    m = _EVENT_YEAR_RE.search(code)
-    if m:
-        return date(2000 + int(m.group(1)), 1, 1)
-    return None
+    return AUCTION_EVENTS.get(code)
 
 
 # ── Model / variant parsing ───────────────────────────────────────────────────
 
 YEAR_RE = re.compile(r'\b(19|20)\d{2}\b')
 
-PORSCHE_MODEL_LINES = [
-    ("918 Spyder", "918 Spyder"),
-    ("959",         "959"),
-    ("Cayenne",     "Cayenne"),
-    ("Panamera",    "Panamera"),
-    ("Taycan",      "Taycan"),
-    ("Boxster",     "Boxster"),
-    ("Cayman",      "Cayman"),
-    ("968",         "968"),
-    ("944",         "944"),
-    ("930",         "911"),
-    ("928",         "928"),
-    ("924",         "924"),
-    ("914",         "914"),
-    ("912E",        "912"),
-    ("912",         "912"),
-    ("356",         "356"),
-    ("904",         "904"),
-    ("962",         "962"),
-    ("956",         "956"),
-    ("935",         "935"),
-    ("934",         "934"),
-    ("917",         "917"),
-    ("908",         "908"),
-    ("907",         "907"),
-    ("906",         "906"),
-    ("Carrera GT",  "Carrera GT"),
-    ("911",         "911"),
-]
 
 _911_VARIANTS = [
     "GT3 RS 4.0", "GT3 RS", "GT3",
@@ -134,6 +154,8 @@ _911_VARIANTS = [
     "Carrera 3.2", "Carrera 2.7",
     "Carrera", "Singer",
     "SC", "911S",
+    # Last: a bare "R" must only win when no longer name matched.
+    "R",
 ]
 
 _356_VARIANTS = ["Speedster", "Roadster", "Cabriolet", "Coupe", "Notchback"]
@@ -142,26 +164,14 @@ _924_VARIANTS = ["Carrera GT", "Carrera GTS", "Turbo"]
 
 
 def parse_model_line(text: str) -> str:
-    # Transaxle first: "924S" / "944S" / "928S4" carry a suffix that \b924\b
-    # cannot match, so these cars fell through to the "911" default below.
-    transaxle = match_transaxle_line(text)
-    if transaxle:
-        return transaxle
-    for token, ml in PORSCHE_MODEL_LINES:
-        if token == "Carrera GT":
-            if re.search(r'\bCarrera GT\b', text):
-                return ml
-        elif token[0].isdigit():
-            if re.search(r'\b' + re.escape(token) + r'\b', text):
-                return ml
-        elif token in text:
-            return ml
-    return "911"
+    if is_not_a_car(text):
+        return "Other"  # engines, parts, memorabilia — see app/utils/variants.py
+    return match_model_line_shared(text, match_transaxle_line)
 
 
 def parse_generation(model_line: str, year: int, text: str) -> str:
     if model_line == "911":
-        return get_911_generation(year)
+        return get_911_generation(year, text)
     if model_line == "Cayman":
         return get_cayman_generation(year)
     if model_line == "Boxster":
@@ -178,11 +188,16 @@ def parse_generation(model_line: str, year: int, text: str) -> str:
     return model_line
 
 
-def parse_variant(model_line: str, year: int, text: str) -> str:
+def _parse_variant_raw(model_line: str, year: int, text: str) -> str:
     if model_line == "914":
         return "914/6" if re.search(r'914[/-]6', text) else "base"
     if model_line == "911":
-        gen = get_911_generation(year)
+        gen = get_911_generation(year, text)
+        text = strip_turbo_impostor(text)
+        # Before the variant list, which stops at "Carrera RS" and would file the
+        # 964's separate RS 3.8 card onto the 3.6-litre one.
+        if gen == "964" and is_964_rs_38(text):
+            return "RS 3.8"
         if gen == "G-Body":
             if "Slant Nose" in text:                return "Turbo 3.3 Slant Nose"
             if "MFI" in text:                       return "Carrera 2.7 MFI"
@@ -196,23 +211,25 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
             if "SC" in text:                        return "SC"
             if "Carrera 3.2" in text or ("Carrera" in text and year >= 1984):
                                                     return "Carrera 3.2"
-            if "911S" in text or "911 S" in text:   return "911S"
-            return "base"
+            if re.search(r'\b911\s*(?:2\.\d\s*)?S\b', text): return "911S"
+            # The taxonomy's entry-level card for these generations is "911",
+            # not "base" — a plain "1966 Porsche 911 Coupe" has no card under
+            # "base" and renders nowhere.
+            return "911"
         if gen == "F-Body":
             if "Carrera RS 2.7" in text or "Carrera RS" in text: return "Carrera RS 2.7"
             if "Carrera 2.7" in text:               return "Carrera 2.7"
-            if "911S" in text:                      return "911S"
             if "Targa" in text:                     return "Targa"
-            return "base"
-        for pat in _911_VARIANTS:
-            if pat in text:
-                return pat
-        return "base"
+            if re.search(r'\b911\s*(?:2\.\d\s*)?S\b', text): return "911S"
+            # The taxonomy's entry-level card for these generations is "911",
+            # not "base" — a plain "1966 Porsche 911 Coupe" has no card under
+            # "base" and renders nowhere.
+            return "911"
+        variant = match_variant(_911_VARIANTS, text)
+        return fix_964_carrera(variant, text) if gen == "964" else variant
 
     if model_line == "356":
-        for pat in _356_VARIANTS:
-            if pat in text: return pat
-        return "base"
+        return parse_356_variant(text)
 
     if model_line == "944":
         for pat in _944_VARIANTS:
@@ -225,6 +242,8 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
         return "base"
 
     if model_line in ("Cayman", "Boxster"):
+        if model_line == "Boxster" and is_boxster_rs60(text):
+            return "RS 60 Spyder"
         for pat in ["GT4 RS", "GT4", "GTS", "Spyder RS", "Spyder"]:
             if pat in text: return pat
         if re.search(r'\bR\b', text): return "R"
@@ -232,6 +251,16 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
         return "base"
 
     return "base"
+
+
+def parse_variant(model_line: str, year: int, text: str) -> str:
+    variant = _parse_variant_raw(model_line, year, text)
+    if model_line == "911":
+        # One Cabriolet card per generation, 2WD and 4WD together.
+        if variant == "base":
+            variant = resolve_911_base(parse_generation(model_line, year, text), text)
+        variant = cabriolet_variant(parse_generation(model_line, year, text), variant, text)
+    return variant
 
 
 # ── Schema.org car mapper ─────────────────────────────────────────────────────
@@ -285,8 +314,9 @@ def map_schema_car(schema: dict) -> dict | None:
     if year < 1948 or year > 2030:
         return None
 
-    # Title
-    model_name = schema.get("model") or ""
+    # Title. The JSON-LD carries HTML-escaped text, so "911 Turbo S &quot;Package&quot;"
+    # would otherwise be stored — and displayed — with the entities intact.
+    model_name = html.unescape(schema.get("model") or "")
     title      = f"{year} Porsche {model_name}".strip()
 
     model_line = parse_model_line(title)
@@ -328,7 +358,7 @@ def map_schema_car(schema: dict) -> dict | None:
 
 async def fetch_results_page(page, page_num: int) -> list[dict]:
     url = f"{RESULTS_BASE}?makes=Porsche&per_page={PAGE_SIZE}&page={page_num}"
-    await page.goto(url, wait_until="networkidle", timeout=60_000)
+    await page.goto(url, wait_until="networkidle", timeout=120_000)
     schemas = await page.evaluate("""() =>
         Array.from(document.querySelectorAll('script[type="application/ld+json"]'))
             .map(s => { try { return JSON.parse(s.textContent) } catch(e) { return null } })
@@ -369,10 +399,16 @@ async def ingest() -> None:
 
         page_num = 1
         while True:
-            try:
-                schemas = await fetch_results_page(page, page_num)
-            except Exception as exc:
-                print(f"  page {page_num} ERROR: {exc}")
+            schemas = None
+            for attempt in range(1, 4):
+                try:
+                    schemas = await fetch_results_page(page, page_num)
+                    break
+                except Exception as exc:
+                    print(f"  page {page_num} attempt {attempt}/3 ERROR: {exc}")
+                    await asyncio.sleep(5 * attempt)
+            if schemas is None:
+                print(f"  page {page_num} failed after 3 attempts — stopping")
                 break
 
             if not schemas:
@@ -408,9 +444,12 @@ async def ingest() -> None:
         await browser.close()
 
     if unknown_events:
-        print(f"\nWARNING: unknown event codes (sold_date set by year fallback): "
-              f"{sorted(unknown_events)}")
-        print("  Add exact dates to AUCTION_EVENTS for better accuracy.")
+        print(f"\nWARNING: {len(unknown_events)} unknown event code(s) — those lots "
+              f"were stored with sold_date = NULL and will not appear in any price "
+              f"history: {sorted(unknown_events)}")
+        print("  Run `python data/broad_arrow_events.py` to regenerate AUCTION_EVENTS,")
+        print("  then `python data/migrate_broad_arrow_dates.py --apply` to date the")
+        print("  affected rows — re-running this ingest will not, it skips known URLs.")
 
     async with AsyncSessionLocal() as session:
         if to_insert:

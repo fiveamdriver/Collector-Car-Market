@@ -9,6 +9,7 @@ No API key required. Re-running is safe — duplicates are skipped by auction_ur
 """
 import asyncio
 import certifi
+import html
 import json
 import os
 import re
@@ -23,10 +24,11 @@ BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BACKEND_DIR)
 
 import app.models  # noqa: F401
-from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
 from app.utils.color_parser import parse_exterior_color
+from app.utils.model_lines import match_coachbuilt_line
+from app.utils.variants import match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, is_early_carrera_4, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -65,6 +67,7 @@ CONFIGS = [
     {"name": "964 Turbo",         "ids": [1833043],                               "model_line": "911",        "variant": None},
     {"name": "964 Speedster",     "ids": [107034406],                             "model_line": "911",        "variant": "Speedster"},
     {"name": "964 Singer",        "ids": [49009648],                              "model_line": "911",        "variant": "Singer"},
+    {"name": "964 Carrera 4",    "ids": [118540688],                      "model_line": "911",        "variant": "Carrera 4"},
     # ── 993 ──────────────────────────────────────────────────────────────────
     {"name": "993 Carrera",       "ids": [1833039],                               "model_line": "911",        "variant": "Carrera"},
     {"name": "993 Carrera 4",     "ids": [113028272],                             "model_line": "911",        "variant": "Carrera 4"},
@@ -77,6 +80,10 @@ CONFIGS = [
     {"name": "996 Carrera",       "ids": [1833242],                               "model_line": "911",        "variant": "Carrera"},
     {"name": "996 Turbo",         "ids": [1833045],                               "model_line": "911",        "variant": "Turbo"},
     {"name": "996 GT2",           "ids": [55777735],                              "model_line": "911",        "variant": "GT2"},
+    {"name": "996 Carrera 4",    "ids": [107032889],                      "model_line": "911",        "variant": "Carrera 4"},
+    {"name": "996 Carrera 4S",   "ids": [107033029],                      "model_line": "911",        "variant": "Carrera 4S"},
+    {"name": "996 Targa",        "ids": [107032932],                      "model_line": "911",        "variant": "Targa"},
+    {"name": "996 Turbo S",      "ids": [123836690],                      "model_line": "911",        "variant": "Turbo S"},
     # ── 997 ──────────────────────────────────────────────────────────────────
     {"name": "997 Carrera",       "ids": [107031422],                             "model_line": "911",        "variant": "Carrera"},
     {"name": "997 Carrera S",     "ids": [1833041],                               "model_line": "911",        "variant": "Carrera S"},
@@ -85,6 +92,12 @@ CONFIGS = [
     {"name": "997 Sport Classic", "ids": [107031857],                             "model_line": "911",        "variant": "Sport Classic"},
     {"name": "997 GT2",           "ids": [55777781],                              "model_line": "911",        "variant": None},
     {"name": "997 Speedster",     "ids": [107032063],                             "model_line": "911",        "variant": "Speedster"},
+    {"name": "997 Carrera 4",    "ids": [107031478],                      "model_line": "911",        "variant": "Carrera 4"},
+    {"name": "997 Carrera 4S",   "ids": [107031540],                      "model_line": "911",        "variant": "Carrera 4S"},
+    {"name": "997 Carrera 4 GTS","ids": [107031824],                      "model_line": "911",        "variant": "Carrera GTS"},
+    {"name": "997 Targa 4",      "ids": [107031698],                      "model_line": "911",        "variant": "Targa"},
+    {"name": "997 Targa 4S",     "ids": [107031738],                      "model_line": "911",        "variant": "Targa"},
+    {"name": "997 Turbo S",      "ids": [124879821],                      "model_line": "911",        "variant": "Turbo S"},
     # ── 991 ──────────────────────────────────────────────────────────────────
     {"name": "991 Carrera",       "ids": [107019763],                             "model_line": "911",        "variant": "Carrera"},
     {"name": "991 Carrera S",     "ids": [4247680],                               "model_line": "911",        "variant": "Carrera S"},
@@ -94,6 +107,12 @@ CONFIGS = [
     {"name": "991 GT2 RS",        "ids": [12792997],                              "model_line": "911",        "variant": None},
     {"name": "991 R",             "ids": [107021997],                             "model_line": "911",        "variant": "R"},
     {"name": "991 Speedster",     "ids": [107022050],                             "model_line": "911",        "variant": "Speedster"},
+    {"name": "991 Carrera 4",    "ids": [107019796],                      "model_line": "911",        "variant": "Carrera 4"},
+    {"name": "991 Carrera 4S",   "ids": [107020208],                      "model_line": "911",        "variant": "Carrera 4S"},
+    {"name": "991 Carrera 4 GTS","ids": [107020744],                      "model_line": "911",        "variant": "Carrera GTS"},
+    {"name": "991 Targa 4",      "ids": [107020867],                      "model_line": "911",        "variant": "Targa"},
+    {"name": "991 Targa 4 GTS",  "ids": [107021260],                      "model_line": "911",        "variant": "Targa"},
+    {"name": "991 Targa 4S",     "ids": [107021117],                      "model_line": "911",        "variant": "Targa"},
     # ── 992 ──────────────────────────────────────────────────────────────────
     {"name": "992 Carrera",       "ids": [107008946],                             "model_line": "911",        "variant": "Carrera"},
     {"name": "992 Carrera S",     "ids": [40032430],                              "model_line": "911",        "variant": "Carrera S"},
@@ -104,6 +123,12 @@ CONFIGS = [
     {"name": "992 S/T",           "ids": [106842163],                             "model_line": "911",        "variant": "S/T"},
     {"name": "992 Sport Classic", "ids": [106277777],                             "model_line": "911",        "variant": "Sport Classic"},
     {"name": "992 Dakar",         "ids": [106526993],                             "model_line": "911",        "variant": "Dakar"},
+    {"name": "992 Carrera 4",    "ids": [107009227],                      "model_line": "911",        "variant": "Carrera 4"},
+    {"name": "992 Carrera 4S",   "ids": [107009438],                      "model_line": "911",        "variant": "Carrera 4S"},
+    {"name": "992 Carrera 4 GTS","ids": [107009492],                      "model_line": "911",        "variant": "Carrera GTS"},
+    {"name": "992 Targa 4",      "ids": [107009515],                      "model_line": "911",        "variant": "Targa"},
+    {"name": "992 Targa 4 GTS",  "ids": [107009552],                      "model_line": "911",        "variant": "Targa"},
+    {"name": "992 Targa 4S",     "ids": [107009529],                      "model_line": "911",        "variant": "Targa"},
     # ── Cayman ───────────────────────────────────────────────────────────────
     {"name": "987 Cayman",        "ids": [2662294],                               "model_line": "Cayman",     "variant": None},
     {"name": "981 Cayman",        "ids": [45900428],                              "model_line": "Cayman",     "variant": None},
@@ -135,11 +160,16 @@ CONFIGS = [
 YEAR_RE     = re.compile(r'\b(19|20)\d{2}\b')
 MILEAGE_RE  = re.compile(r'([\d,]+)(k)?-(Mile|Kilometer)', re.IGNORECASE)
 
+# Order matters: longest match first. "Targa" must precede "Carrera T" or a
+# "Carrera Targa" lot is filed as a Carrera T, and "Carrera 4S" must precede
+# "Carrera 4" for the same reason.
 VARIANT_PATTERNS = [
     "GT3 RS 4.0", "GT3 RS", "GT3",
     "GT2 RS", "GT2",
     "Turbo S", "Turbo",
-    "RS America", "Carrera RS", "Carrera S", "Carrera GTS", "Carrera T", "Carrera",
+    "Targa",
+    "RS America", "Carrera RS",
+    "Carrera 4S", "Carrera 4", "Carrera S", "Carrera GTS", "Carrera T", "Carrera",
 ]
 
 WIDEBODY_VARIANTS = {"GT3 RS", "GT3 RS 4.0", "GT2", "GT2 RS", "Turbo", "Turbo S", "Turbo 3.3", "Turbo 3.0"}
@@ -159,10 +189,7 @@ def parse_variant(title: str) -> str:
     "GT3 RS 4.0" is matched before "GT3 RS" and "GT3 RS" before "GT3".
     Returns "base" when no pattern matches (i.e. a stock Carrera).
     """
-    for pat in VARIANT_PATTERNS:
-        if pat in title:
-            return pat
-    return "base"
+    return match_variant(VARIANT_PATTERNS, title)
 
 
 CAYMAN_BOXSTER_PATTERNS = ["GT4 RS", "GT4", "GTS", "Spyder RS", "Spyder"]
@@ -177,6 +204,8 @@ def parse_cayman_boxster_variant(title: str) -> str:
     must be whole words to avoid false matches against other abbreviations.
     Returns "base" for an unspecced car.
     """
+    if 'Boxster' in title and is_boxster_rs60(title):
+        return 'RS 60 Spyder'
     for pat in CAYMAN_BOXSTER_PATTERNS:
         if pat in title:
             return pat
@@ -354,13 +383,26 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
     if price is None:
         return None
 
-    title = raw.get("title") or ""
+    # The API returns HTML-escaped titles ("Magnus Walker&#8217;s ..."), so unescape
+    # before parsing and storing — the entities are otherwise shown to the user.
+    title = html.unescape(raw.get("title") or "")
     year  = parse_year(title)
     if not year:
         return None
 
+    # The model line comes from the query config, not the title, so a Singer or
+    # Gunther Werks car arrives labelled "911" (the "964 Singer" config sets
+    # model_line="911" outright). Left alone, seven-figure restomods land in the
+    # donor generation and wreck its average — a $1.66M Singer against roughly
+    # $86k for a street 964. The title is the only place the builder is named.
+    coachbuilt = match_coachbuilt_line(title)
+    if coachbuilt:
+        model_line = coachbuilt
+    if is_not_a_car(title):
+        model_line = "Other"  # engines, parts, memorabilia — see app/utils/variants.py
+
     if model_line == "911":
-        generation = get_911_generation(year)
+        generation = get_911_generation(year, title)
     elif model_line == "Cayman":
         generation = get_cayman_generation(year)
     elif model_line == "Boxster":
@@ -368,7 +410,13 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
     else:
         generation = model_line
 
-    if model_line in TRANSAXLE_LINES:
+    if coachbuilt:
+        # The donor's trim is not this car's variant: a "911 Carrera Classic
+        # Turbo by Singer" is a Singer, not a Turbo, and config_variant below
+        # would stamp the whole "964 Singer" config as "Singer" anyway. Matches
+        # how the other sources file coachbuilt cars.
+        variant = "base"
+    elif model_line in TRANSAXLE_LINES:
         # Runs before config_variant: the "944 Turbo" config would otherwise
         # stamp every lot it returns as "Turbo", including the Turbo S cars
         # and the Turbo Cup race cars.
@@ -376,10 +424,16 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
         generation = model_line
     elif generation == '964' and 'RS America' in title:
         variant = 'RS America'
-    elif config_variant is not None:
+    elif generation == '964' and is_964_rs_38(title):
+        # Ahead of config_variant: the "964 Carrera RS" config stamps every lot
+        # it returns as "Carrera RS", including the separately-carded RS 3.8.
+        variant = 'RS 3.8'
+    elif config_variant is not None and not (
+            config_variant in ('Turbo', '930 Turbo', 'Turbo S')
+            and not re.search(r'Turbo|\b930\b', strip_turbo_impostor(title), re.I)):
         variant = config_variant
     elif generation == 'G-Body':
-        variant = parse_gbody_variant(title, year)
+        variant = parse_gbody_variant(strip_turbo_impostor(title), year)
     elif model_line == '914':
         # Without this branch the 911 patterns apply, and "Twin-Turbocharged
         # 1976 Porsche 914" is filed as a Turbo — a variant the 914 never had.
@@ -388,7 +442,13 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
     elif model_line in ('Cayman', 'Boxster'):
         variant = parse_cayman_boxster_variant(title)
     else:
-        variant = parse_variant(title)
+        variant = parse_variant(strip_turbo_impostor(title))
+    if generation == '964':
+        variant = fix_964_carrera(variant, title)
+    if model_line == '911':
+        if variant == 'base':
+            variant = resolve_911_base(generation, title)
+        variant = cabriolet_variant(generation, variant, title)  # one Cabriolet card per generation
     transmission = parse_transmission(title)
 
     ts = raw.get("sold_text_timestamp")
@@ -422,10 +482,20 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-async def ingest(only: list[str] | None = None) -> None:
+# A config stops once this many consecutive pages yield nothing new. BaT sorts
+# newest-first (sort=td), so once a page is entirely records we already hold,
+# everything below it is older still. Two pages rather than one absorbs the odd
+# out-of-order result without walking the whole 16k-row history every run.
+STALE_PAGES_BEFORE_STOP = 2
+
+
+async def ingest(only: list[str] | None = None, full: bool = False) -> None:
     """
     only: optional list of substrings; a config is run only if its name contains
           at least one of them (case-insensitive). Pass None to run all configs.
+    full: page every config to the end instead of stopping at the first run of
+          already-seen pages. Needed only to backfill thumbnails onto old rows;
+          a routine "fetch what is new" run does not want it.
     """
     configs = CONFIGS
     if only:
@@ -445,9 +515,29 @@ async def ingest(only: list[str] | None = None) -> None:
         )
         existing: dict[str, str | None] = {row[0]: row[1] for row in rows.fetchall()}
 
-    total_fetched = total_skipped = 0
+    total_fetched = total_skipped = total_inserted = total_backfilled = 0
     to_insert:  list[dict] = []
     to_backfill: list[tuple[str, str]] = []  # (auction_url, thumbnail_url)
+
+    async def flush() -> None:
+        """Commit queued inserts and thumbnail backfills, then clear the queues."""
+        nonlocal to_insert, to_backfill, total_inserted, total_backfilled
+        if not to_insert and not to_backfill:
+            return
+        async with AsyncSessionLocal() as session:
+            if to_insert:
+                session.add_all([AuctionResult(**r) for r in to_insert])
+            for url, thumb in to_backfill:
+                await session.execute(
+                    update(AuctionResult)
+                    .where(AuctionResult.auction_url == url)
+                    .values(thumbnail_url=thumb)
+                )
+            await session.commit()
+        total_inserted += len(to_insert)
+        total_backfilled += len(to_backfill)
+        to_insert = []
+        to_backfill = []
 
     for cfg in configs:
         name        = cfg["name"]
@@ -457,19 +547,21 @@ async def ingest(only: list[str] | None = None) -> None:
 
         cfg_fetched = cfg_queued = cfg_updated = cfg_skipped = 0
         page = 1
+        stale_pages = 0
 
-        print(f"[{name}]")
+        print(f"[{name}]", flush=True)
         while MAX_PAGES is None or page <= MAX_PAGES:
             try:
                 items = fetch_page(ids, page)
             except Exception as exc:
-                print(f"  page {page} ERROR: {exc}")
+                print(f"  page {page} ERROR: {exc}", flush=True)
                 break
 
             if not items:
                 break
 
             cfg_fetched += len(items)
+            page_queued = page_updated = 0
 
             for raw in items:
                 rec = map_record(raw, model_line, cfg_variant)
@@ -483,6 +575,7 @@ async def ingest(only: list[str] | None = None) -> None:
                         to_backfill.append((url, rec["thumbnail_url"]))
                         existing[url] = rec["thumbnail_url"]  # prevent double-queue
                         cfg_updated += 1
+                        page_updated += 1
                     else:
                         cfg_skipped += 1
                     continue
@@ -490,31 +583,36 @@ async def ingest(only: list[str] | None = None) -> None:
                     existing[url] = rec.get("thumbnail_url")
                 to_insert.append(rec)
                 cfg_queued += 1
+                page_queued += 1
+
+            if page_queued or page_updated:
+                stale_pages = 0
+            else:
+                stale_pages += 1
+                if not full and stale_pages >= STALE_PAGES_BEFORE_STOP:
+                    break
 
             page += 1
             time.sleep(2)
 
         total_fetched += cfg_fetched
         total_skipped += cfg_skipped
-        print(f"  fetched: {cfg_fetched} | queued: {cfg_queued} | backfilled: {cfg_updated} | skipped: {cfg_skipped}")
+
+        # Commit after each config. Holding every row until the end meant one
+        # failure late in a 77-config run discarded all of it, and left a pooled
+        # connection idle for the whole crawl.
+        await flush()
+
+        print(f"  fetched: {cfg_fetched} | queued: {cfg_queued} | "
+              f"backfilled: {cfg_updated} | skipped: {cfg_skipped}", flush=True)
         time.sleep(5)
 
-    async with AsyncSessionLocal() as session:
-        if to_insert:
-            session.add_all([AuctionResult(**r) for r in to_insert])
-        for url, thumb in to_backfill:
-            await session.execute(
-                update(AuctionResult)
-                .where(AuctionResult.auction_url == url)
-                .values(thumbnail_url=thumb)
-            )
-        await session.commit()
+    await flush()
 
     print(
-        f"\nTotal — fetched: {total_fetched} | inserted: {len(to_insert)} | "
-        f"backfilled: {len(to_backfill)} | skipped: {total_skipped}"
+        f"\nTotal — fetched: {total_fetched} | inserted: {total_inserted} | "
+        f"backfilled: {total_backfilled} | skipped: {total_skipped}"
     )
-    print(f"Database: {DATABASE_PATH}")
     await engine.dispose()
 
 
@@ -525,6 +623,11 @@ if __name__ == "__main__":
         "--only", metavar="PATTERN",
         help="Comma-separated substrings; only run configs whose name contains one (e.g. '996,997,991,992')",
     )
+    parser.add_argument(
+        "--full", action="store_true",
+        help="Page every config to the end instead of stopping once results are "
+             "all already-seen. Only needed to backfill thumbnails onto old rows.",
+    )
     args = parser.parse_args()
     only = [p.strip() for p in args.only.split(",")] if args.only else None
-    asyncio.run(ingest(only=only))
+    asyncio.run(ingest(only=only, full=args.full))

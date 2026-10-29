@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, MODEL_LINE, VARIANTS, VARIANT_HERO, MODEL_HERO, VARIANT_MODELS, GROUP_CHILDREN, CROSS_LISTINGS } from '../data/taxonomy'
-import VARIANT_DESCRIPTIONS, { PRODUCTION_NUMBERS } from '../data/variantDescriptions'
+import { ALL_MODELS, MODEL_LINE, VARIANTS, VARIANT_HERO, MODEL_HERO, VARIANT_MODELS, GROUP_CHILDREN, GEN_LABELS, MODEL_IMAGES, CROSS_LISTINGS } from '../data/taxonomy'
+import VARIANT_DESCRIPTIONS, { PRODUCTION_NUMBERS, MODEL_DESCRIPTIONS, MODEL_PRODUCTION } from '../data/variantDescriptions'
 import { fetchAuctionResults, fetchActiveListings } from '../api/client'
 import { calcStats, groupByMonth } from '../utils/aggregation'
 import { fromSlug } from '../utils/slugs'
+import { variantLabel } from '../utils/variantLabel'
 import Breadcrumb from '../components/Breadcrumb'
 import StatsBar from '../components/StatsBar'
 import VariantHero from '../components/VariantHero'
@@ -109,36 +110,63 @@ export default function MarketDetail() {
   // Show the hero panel on terminal pages: a specific variant, or a standalone model
   const showHero = variant !== null || model.type === 'standalone'
   const heroFile  = variant
-    ? (VARIANT_HERO[modelSlug]?.[generation]?.[variant] ?? null)
-    : (MODEL_HERO[modelSlug] ?? null)
-  const heroImage = heroFile ? `/images/variants/${heroFile}` : null
+    ? ((isVariantModel
+        ? VARIANT_HERO[modelSlug]?.[variant]
+        : VARIANT_HERO[modelSlug]?.[generation]?.[variant]) ?? null)
+    : (MODEL_HERO[modelSlug] ?? MODEL_IMAGES[modelSlug] ?? null)
+  // Entries are bare filenames resolved against /images/variants/, but an entry
+  // may also give a full path when the image lives elsewhere (the restomod cards
+  // reuse their front-page photo rather than duplicating a 300KB file).
+  const heroImage = heroFile
+    ? (heroFile.startsWith('/') ? heroFile : `/images/variants/${heroFile}`)
+    : null
 
-  // Eyebrow: "Porsche 911 · 993" or "Porsche 959" etc.
-  const eyebrow = generation
-    ? `Porsche ${model.label} · ${generation}`
-    : `Porsche ${model.label}`
+  // Eyebrow: "Porsche 911 · 993" or "Porsche 959" etc. Coachbuilders are not
+  // Porsche models — "Porsche Singer" reads wrong — so they're labelled by what
+  // they are instead.
+  const eyebrow = model.category === 'restomod'
+    ? 'Restomod'
+    : model.category === 'ruf'
+      ? 'Tuner'
+    : generation
+      ? `Porsche ${model.label}${modelSlug === '935' ? '' : ` · ${generation}`}`
+      : `Porsche ${model.label}`
 
-  // Hero title: 911 pages show the variant alone ("Carrera RS 2.7") — the
-  // eyebrow already carries the generation. Others: "718 GT4", "944 Turbo",
-  // or the standalone model name.
+  // Hero title: the variant's display name ("Carrera RS 2.7", "Boxster S",
+  // "944 Turbo") — the eyebrow already carries the generation — or the model
+  // name for standalone pages.
   const heroTitle = variant
-    ? (isVariantModel
-        ? (variant === 'base' || variant.includes(model.label)
-            ? (variant === 'base' ? model.label : variant)
-            : `${model.label} ${variant}`)
-        : (modelSlug === '911' || modelSlug === '911-race')
-            ? variant
-            : `${generation} ${variant}`)
+    ? (modelSlug === '935'
+        ? model.label
+        : variantLabel(model, variant))
     : model.label
+
+  // Three shapes of market page, three places the hero copy and production
+  // count live: variant-models (924/944/968/928/914) have no generation level
+  // and are keyed [modelSlug][variant]; standalone models (959, Carrera GT,
+  // the coachbuilders, the race cars) have neither and are keyed [modelSlug].
+  const description = variant
+    ? (isVariantModel
+        ? VARIANT_DESCRIPTIONS[modelSlug]?.[variant]
+        : VARIANT_DESCRIPTIONS[modelSlug]?.[generation]?.[variant]) ?? null
+    : (MODEL_DESCRIPTIONS[modelSlug] ?? null)
+
+  const productionCount = variant
+    ? (isVariantModel
+        ? PRODUCTION_NUMBERS[modelSlug]?.[variant]
+        : PRODUCTION_NUMBERS[generation]?.[variant]) ?? null
+    : (MODEL_PRODUCTION[modelSlug] ?? null)
 
   const crumbs = [{ label: 'Markets', to: '/' }]
   if (model.type === 'series') {
     crumbs.push({ label: model.label, to: `/${modelSlug}` })
     if (groupSlug)  crumbs.push({ label: groupSlug,  to: `/${modelSlug}/${groupSlug}` })
-    if (generation) crumbs.push({ label: generation, to: groupSlug
+    if (generation) crumbs.push({ label: GEN_LABELS[generation] ?? generation, to: groupSlug
       ? `/${modelSlug}/${groupSlug}/${generation}`
       : `/${modelSlug}/${generation}` })
-    if (variant)    crumbs.push({ label: variant })
+    if (variant && (variant !== 'base' || modelSlug === 'boxster' || modelSlug === 'cayman')) {
+      crumbs.push({ label: variantLabel(model, variant) })
+    }
   } else if (isVariantModel) {
     const parentSlug = Object.keys(GROUP_CHILDREN).find(g => GROUP_CHILDREN[g].includes(modelSlug))
     if (parentSlug) {
@@ -146,7 +174,7 @@ export default function MarketDetail() {
       crumbs.push({ label: parent?.label ?? parentSlug, to: `/${parentSlug}` })
     }
     crumbs.push({ label: model.label, to: `/${modelSlug}` })
-    if (variant) crumbs.push({ label: variant === 'base' ? model.label : variant })
+    if (variant) crumbs.push({ label: variantLabel(model, variant) })
   } else {
     crumbs.push({ label: model.label })
   }
@@ -185,10 +213,11 @@ export default function MarketDetail() {
                 ? <VariantHero
                     eyebrow={eyebrow}
                     title={heroTitle}
+                    subtitle={modelSlug === '935' ? GEN_LABELS[generation] : null}
                     stats={stats}
                     heroImage={heroImage}
-                    description={variant ? VARIANT_DESCRIPTIONS[modelSlug]?.[generation]?.[variant] : null}
-                    productionCount={variant ? (PRODUCTION_NUMBERS[generation]?.[variant] ?? null) : null}
+                    description={description}
+                    productionCount={productionCount}
                   />
                 : <StatsBar {...stats} />}
               {monthlyData.length >= 2 && (

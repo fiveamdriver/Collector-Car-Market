@@ -2,7 +2,7 @@ function fmt(n) {
   return n ? `$${n.toLocaleString()}` : '—'
 }
 
-export default function VariantHero({ eyebrow, title, description, stats, heroImage, productionCount }) {
+export default function VariantHero({ eyebrow, title, subtitle, description, stats, heroImage, productionCount }) {
   const { avg } = stats
 
   return (
@@ -11,6 +11,7 @@ export default function VariantHero({ eyebrow, title, description, stats, heroIm
         <div className="variant-hero-text">
           {eyebrow && <div className="variant-hero-eyebrow">{eyebrow}</div>}
           <h1 className="variant-hero-title">{title}</h1>
+          {subtitle && <div className="variant-hero-subtitle">{subtitle}</div>}
         </div>
         {description && <p className="gen-hero-desc">{description}</p>}
         <div className="variant-hero-stats">

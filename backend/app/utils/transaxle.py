@@ -26,11 +26,13 @@ TRANSAXLE_LINES: tuple[str, ...] = ("968", "944", "928", "924")
 # A transaxle designation may carry an S suffix and a digit ("924S", "928S4",
 # "944S2").  \b alone will not match those, which is why the non-BaT sources
 # fell through to their "911" default and filed a 928S as a G-Body 911.
+# The GT/GTS suffix may also be attached with no space ("928GT"), which the
+# S-and-digit pattern alone does not cover.
 _LINE_RES: tuple[tuple[str, re.Pattern], ...] = (
     ("968", re.compile(r'\b968\b')),
-    ("944", re.compile(r'\b944\s?S?\d?\b')),
-    ("928", re.compile(r'\b928\s?S?\d?\b')),
-    ("924", re.compile(r'\b924\s?S?\b')),
+    ("944", re.compile(r'\b944\s?(?:S\d?|GTS?)?\b')),
+    ("928", re.compile(r'\b928\s?(?:S\d?|GTS?)?\b')),
+    ("924", re.compile(r'\b924\s?(?:S|GTS?)?\b')),
 )
 
 # Non-street cars.  "Clone", "Replica" and "Prototype" are not race cars as

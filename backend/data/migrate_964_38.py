@@ -13,7 +13,6 @@ Usage (from backend/ directory):
 Safe to re-run — already-correct records are left untouched.
 """
 import asyncio
-import re
 import sys
 import os
 
@@ -23,17 +22,8 @@ sys.path.insert(0, BACKEND_DIR)
 import app.models  # noqa: F401
 from app.database import AsyncSessionLocal
 from app.models.listing import AuctionResult
+from app.utils.variants import is_964_rs_38
 from sqlalchemy import select
-
-FACTORY_38 = re.compile(r'\bRS 3\.8')
-NOT_FACTORY = re.compile(
-    r'3\.8L?-Powered|Conversion|Tribute|Recreation|Replica|Evocation|Backdate',
-    re.IGNORECASE,
-)
-
-
-def is_factory_38(title: str) -> bool:
-    return bool(FACTORY_38.search(title)) and not NOT_FACTORY.search(title)
 
 
 async def main() -> None:
@@ -48,7 +38,7 @@ async def main() -> None:
 
         changed = 0
         for rec in records:
-            if not rec.lot_title or not is_factory_38(rec.lot_title):
+            if not rec.lot_title or not is_964_rs_38(rec.lot_title):
                 continue
             if rec.model_line == "911" and rec.variant == "RS 3.8":
                 continue
