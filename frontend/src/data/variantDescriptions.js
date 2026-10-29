@@ -315,10 +315,14 @@ export const PRODUCTION_NUMBERS = {
     'base': 77,
   },
   'F-Body': {
-    'Carrera RS 2.7': 1583,
+    // 20 production cars; the four 1967 prototypes are counted separately.
+    '911R':           20,
+    'Carrera RS 2.7': 1580,
   },
   'G-Body': {
     'Speedster':  2104,
+    'Turbo 3.3 Slant Nose': 948,
+    'Carrera RS 3.0':       56,
     'RSR Turbo':  4,
   },
   '964': {
@@ -326,7 +330,7 @@ export const PRODUCTION_NUMBERS = {
     'RS 3.8':     55,
     'RSR 3.8':    51,
     'RS America': 701,
-    'Turbo S':    81,
+    'Turbo S':    86,
     'Speedster':  936,
   },
   '993': {
@@ -343,7 +347,7 @@ export const PRODUCTION_NUMBERS = {
     'GT2':    1287,
   },
   '997.1': {
-    'GT3':    3329,
+    'GT3':    2378,
     'GT3 RS': 1909,
     'GT2':    1242,
   },
@@ -352,7 +356,7 @@ export const PRODUCTION_NUMBERS = {
     'GT3 RS':       1619,
     'GT3 RS 4.0':   600,
     'GT2 RS':       500,
-    'Sport Classic': 256,
+    'Sport Classic': 250,
     'Speedster':    356,
   },
   '991.1': {

@@ -250,7 +250,7 @@ export const VARIANT_HERO = {
       '911T': '/images/911_variants/F-Body/911T_FBODY.jpg',
       '911E': '/images/911_variants/F-Body/911E.jpeg',
       '911L': '/images/911_variants/F-Body/1968_911L.jpeg',
-      '911R': '/images/911_variants/F-Body/1967_911R.jpg',
+      '911R': '/images/911_gen_page_cards/911R(1967)Fbodygenpic.jpeg',
       'Carrera RS 2.7': '/images/911_variants/F-Body/1973_RS2.7.png',
       'S/T': '/images/911_variants/F-Body/1970_ST.jpg',
       'Targa': '/images/911_variants/F-Body/1967_911sTARGA.png',
@@ -376,7 +376,7 @@ export const MODEL_HERO = {
 // Used by GenerationIndex, SubGenerationIndex, and VariantIndex.
 export const GEN_IMAGES = {
   '356 A':  '/images/Canepa Images/356.jpeg',
-  'F-Body': '/images/911_gen_page_cards/911R(1967)Fbodygenpic.jpeg',
+  'F-Body': '/images/911_gen_page_cards/2.7CARRERA_RS.png',
   'G-Body': '/images/911_gen_page_cards/930turbogbodygen.jpg',
   '964':    '/images/911_gen_page_cards/porsche964CarreraRS.png',
   '993':    '/images/911_gen_page_cards/993GT2.png',
