@@ -266,20 +266,20 @@ export const VARIANT_HERO = {
   },
   '356':     {},
   'cayman':  {
-    '987.1': { 'base': '/images/987 cayman.jpg' },
-    '981':   { 'GT4': '/images/911_variants/cayman_718_gt4.jpeg' },
+    '987.1': { 'base': '/images/Mid Engine/Cayman/987 cayman.jpg' },
+    '981':   { 'GT4': '/images/Mid Engine/Cayman/cayman_718_gt4.jpeg' },
     '718':   { 'GT4 RS': '/images/Front_page_cards/Regular_models/GT4RS.png' },
   },
   'boxster':  {
     '987.2': { 'Spyder': '/images/boxsterspyder.png' },
-    '981':   { 'Spyder': '/images/981spyder.jpg' },
-    '718':   { 'Spyder RS': '/images/spyderrs.png' },
+    '981':   { 'Spyder': '/images/Mid Engine/Boxster/981spyder.jpg' },
+    '718':   { 'Spyder RS': '/images/Front_page_cards/Regular_models/spyderrsfront.png' },
   },
   // Variant-models have no generation level, so these are keyed [slug][variant].
   '924': { 'Carrera GT': '/images/Front_page_cards/Regular_models/924_CarreraGT.png' },
   '944': {
-    'Turbo': '/images/944 turbo.jpg',
-    'base':  '/images/944.jpg',
+    'Turbo': '/images/Front Engine/944 turbo.jpg',
+    'base':  '/images/Front Engine/944.jpg',
   },
   '914': {
     '914/6': '/images/914 photos/914:6GT.jpeg',
@@ -288,7 +288,7 @@ export const VARIANT_HERO = {
   '911-race': {},
   '935': {
     'Classic': { 'base': '/images/Front_page_cards/Racecars/935.png' },
-    'Modern':  { 'base': '/images/modern_935_web.jpg' },
+    'Modern':  { 'base': '/images/Racecar/modern_935_web.jpg' },
   },
 }
 
@@ -389,10 +389,10 @@ export const GEN_IMAGES = {
   '991.1':  '/images/911_gen_page_cards/991gt2rs.png',
   '991.2':  '/images/911_gen_page_cards/991gt2rs.png',
   '992':    '/images/911_gen_page_cards/992ST_card.jpg',
-  '992.1':  '/images/911ST.jpg',
-  '992.2':  '/images/911ST.jpg',
+  '992.1':  '/images/911_variants/992/992.1/911_ST/911ST_992.jpg',
+  '992.2':  '/images/911_variants/992/992.1/911_ST/911ST_992.jpg',
   'Classic': '/images/Front_page_cards/Racecars/935.png',
-  'Modern':  '/images/modern_935_web.jpg',
+  'Modern':  '/images/Racecar/modern_935_web.jpg',
 }
 
 // Production year spans for all generations and sub-generations.
