@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
 import { ALL_MODELS, MODEL_LINE, VARIANTS, VARIANT_HERO, MODEL_HERO, VARIANT_MODELS, GROUP_CHILDREN, CROSS_LISTINGS } from '../data/taxonomy'
-import VARIANT_DESCRIPTIONS, { PRODUCTION_NUMBERS } from '../data/variantDescriptions'
+import VARIANT_DESCRIPTIONS, { PRODUCTION_NUMBERS, MODEL_DESCRIPTIONS, MODEL_PRODUCTION } from '../data/variantDescriptions'
 import { fetchAuctionResults, fetchActiveListings } from '../api/client'
 import { calcStats, groupByMonth } from '../utils/aggregation'
 import { fromSlug } from '../utils/slugs'
@@ -140,6 +140,22 @@ export default function MarketDetail() {
             : `${generation} ${variant}`)
     : model.label
 
+  // Three shapes of market page, three places the hero copy and production
+  // count live: variant-models (924/944/968/928/914) have no generation level
+  // and are keyed [modelSlug][variant]; standalone models (959, Carrera GT,
+  // the coachbuilders, the race cars) have neither and are keyed [modelSlug].
+  const description = variant
+    ? (isVariantModel
+        ? VARIANT_DESCRIPTIONS[modelSlug]?.[variant]
+        : VARIANT_DESCRIPTIONS[modelSlug]?.[generation]?.[variant]) ?? null
+    : (MODEL_DESCRIPTIONS[modelSlug] ?? null)
+
+  const productionCount = variant
+    ? (isVariantModel
+        ? PRODUCTION_NUMBERS[modelSlug]?.[variant]
+        : PRODUCTION_NUMBERS[generation]?.[variant]) ?? null
+    : (MODEL_PRODUCTION[modelSlug] ?? null)
+
   const crumbs = [{ label: 'Markets', to: '/' }]
   if (model.type === 'series') {
     crumbs.push({ label: model.label, to: `/${modelSlug}` })
@@ -196,8 +212,8 @@ export default function MarketDetail() {
                     title={heroTitle}
                     stats={stats}
                     heroImage={heroImage}
-                    description={variant ? VARIANT_DESCRIPTIONS[modelSlug]?.[generation]?.[variant] : null}
-                    productionCount={variant ? (PRODUCTION_NUMBERS[generation]?.[variant] ?? null) : null}
+                    description={description}
+                    productionCount={productionCount}
                   />
                 : <StatsBar {...stats} />}
               {monthlyData.length >= 2 && (
