@@ -11,8 +11,10 @@ Phase 1 — move factory race cars misfiled in the street 911 line (and the
             d) GT3 Cup (996-992)                            -> flat gen / GT3 Cup
             e) GT3 RSR (996-997)                            -> flat gen / GT3 RSR
             f) vintage factory RSRs (explicit ids)          -> gen / RSR
-Phase 2 — move modified / tribute / project / replica street cars out of the
-          original-car variants into a hidden 'Modified' variant.
+Phase 2 — RETIRED. It used to park modified / tribute / replica street cars in
+          a hidden 'Modified' variant. Modified cars now stay on the card of
+          their chassis (see migrate_modified_to_chassis.py), so this phase is
+          a no-op; re-running the script must not recreate the hidden bucket.
 
 Usage (from backend/ directory):
     python data/migrate_race_cleanup.py
@@ -78,8 +80,6 @@ def classify(rec) -> tuple[str, str, str] | None:
 
     if rec.id in EXPLICIT_FACTORY_RSR_IDS:
         return ("911 Race", rec.generation, "RSR")
-    if rec.id in EXPLICIT_MODIFIED_IDS:
-        return (rec.model_line, rec.generation, "Modified")
     if rec.id in EXPLICIT_MODEL_LINE_IDS:
         return EXPLICIT_MODEL_LINE_IDS[rec.id]
 
@@ -101,10 +101,6 @@ def classify(rec) -> tuple[str, str, str] | None:
     if rec.model_line == "911" and rec.generation == "993" and GT2R.search(t) \
             and not NOT_FACTORY.search(t) and "Project" not in t:
         return ("911 Race", "993", "GT2 R")
-
-    # ── Phase 2: modified / tribute / project street cars ────────────────────
-    if rec.model_line == "911" and MODIFIED.search(t) and not FACTORY_PACKAGE.search(t):
-        return ("911", rec.generation, "Modified")
 
     return None
 

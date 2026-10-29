@@ -28,7 +28,7 @@ from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
 from app.utils.color_parser import parse_exterior_color
 from app.utils.model_lines import match_coachbuilt_line
-from app.utils.variants import match_variant, is_964_rs_38
+from app.utils.variants import match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, is_early_carrera_4, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -67,6 +67,7 @@ CONFIGS = [
     {"name": "964 Turbo",         "ids": [1833043],                               "model_line": "911",        "variant": None},
     {"name": "964 Speedster",     "ids": [107034406],                             "model_line": "911",        "variant": "Speedster"},
     {"name": "964 Singer",        "ids": [49009648],                              "model_line": "911",        "variant": "Singer"},
+    {"name": "964 Carrera 4",    "ids": [118540688],                      "model_line": "911",        "variant": "Carrera 4"},
     # ── 993 ──────────────────────────────────────────────────────────────────
     {"name": "993 Carrera",       "ids": [1833039],                               "model_line": "911",        "variant": "Carrera"},
     {"name": "993 Carrera 4",     "ids": [113028272],                             "model_line": "911",        "variant": "Carrera 4"},
@@ -79,6 +80,10 @@ CONFIGS = [
     {"name": "996 Carrera",       "ids": [1833242],                               "model_line": "911",        "variant": "Carrera"},
     {"name": "996 Turbo",         "ids": [1833045],                               "model_line": "911",        "variant": "Turbo"},
     {"name": "996 GT2",           "ids": [55777735],                              "model_line": "911",        "variant": "GT2"},
+    {"name": "996 Carrera 4",    "ids": [107032889],                      "model_line": "911",        "variant": "Carrera 4"},
+    {"name": "996 Carrera 4S",   "ids": [107033029],                      "model_line": "911",        "variant": "Carrera 4S"},
+    {"name": "996 Targa",        "ids": [107032932],                      "model_line": "911",        "variant": "Targa"},
+    {"name": "996 Turbo S",      "ids": [123836690],                      "model_line": "911",        "variant": "Turbo S"},
     # ── 997 ──────────────────────────────────────────────────────────────────
     {"name": "997 Carrera",       "ids": [107031422],                             "model_line": "911",        "variant": "Carrera"},
     {"name": "997 Carrera S",     "ids": [1833041],                               "model_line": "911",        "variant": "Carrera S"},
@@ -87,6 +92,12 @@ CONFIGS = [
     {"name": "997 Sport Classic", "ids": [107031857],                             "model_line": "911",        "variant": "Sport Classic"},
     {"name": "997 GT2",           "ids": [55777781],                              "model_line": "911",        "variant": None},
     {"name": "997 Speedster",     "ids": [107032063],                             "model_line": "911",        "variant": "Speedster"},
+    {"name": "997 Carrera 4",    "ids": [107031478],                      "model_line": "911",        "variant": "Carrera 4"},
+    {"name": "997 Carrera 4S",   "ids": [107031540],                      "model_line": "911",        "variant": "Carrera 4S"},
+    {"name": "997 Carrera 4 GTS","ids": [107031824],                      "model_line": "911",        "variant": "Carrera GTS"},
+    {"name": "997 Targa 4",      "ids": [107031698],                      "model_line": "911",        "variant": "Targa"},
+    {"name": "997 Targa 4S",     "ids": [107031738],                      "model_line": "911",        "variant": "Targa"},
+    {"name": "997 Turbo S",      "ids": [124879821],                      "model_line": "911",        "variant": "Turbo S"},
     # ── 991 ──────────────────────────────────────────────────────────────────
     {"name": "991 Carrera",       "ids": [107019763],                             "model_line": "911",        "variant": "Carrera"},
     {"name": "991 Carrera S",     "ids": [4247680],                               "model_line": "911",        "variant": "Carrera S"},
@@ -96,6 +107,12 @@ CONFIGS = [
     {"name": "991 GT2 RS",        "ids": [12792997],                              "model_line": "911",        "variant": None},
     {"name": "991 R",             "ids": [107021997],                             "model_line": "911",        "variant": "R"},
     {"name": "991 Speedster",     "ids": [107022050],                             "model_line": "911",        "variant": "Speedster"},
+    {"name": "991 Carrera 4",    "ids": [107019796],                      "model_line": "911",        "variant": "Carrera 4"},
+    {"name": "991 Carrera 4S",   "ids": [107020208],                      "model_line": "911",        "variant": "Carrera 4S"},
+    {"name": "991 Carrera 4 GTS","ids": [107020744],                      "model_line": "911",        "variant": "Carrera GTS"},
+    {"name": "991 Targa 4",      "ids": [107020867],                      "model_line": "911",        "variant": "Targa"},
+    {"name": "991 Targa 4 GTS",  "ids": [107021260],                      "model_line": "911",        "variant": "Targa"},
+    {"name": "991 Targa 4S",     "ids": [107021117],                      "model_line": "911",        "variant": "Targa"},
     # ── 992 ──────────────────────────────────────────────────────────────────
     {"name": "992 Carrera",       "ids": [107008946],                             "model_line": "911",        "variant": "Carrera"},
     {"name": "992 Carrera S",     "ids": [40032430],                              "model_line": "911",        "variant": "Carrera S"},
@@ -106,6 +123,12 @@ CONFIGS = [
     {"name": "992 S/T",           "ids": [106842163],                             "model_line": "911",        "variant": "S/T"},
     {"name": "992 Sport Classic", "ids": [106277777],                             "model_line": "911",        "variant": "Sport Classic"},
     {"name": "992 Dakar",         "ids": [106526993],                             "model_line": "911",        "variant": "Dakar"},
+    {"name": "992 Carrera 4",    "ids": [107009227],                      "model_line": "911",        "variant": "Carrera 4"},
+    {"name": "992 Carrera 4S",   "ids": [107009438],                      "model_line": "911",        "variant": "Carrera 4S"},
+    {"name": "992 Carrera 4 GTS","ids": [107009492],                      "model_line": "911",        "variant": "Carrera GTS"},
+    {"name": "992 Targa 4",      "ids": [107009515],                      "model_line": "911",        "variant": "Targa"},
+    {"name": "992 Targa 4 GTS",  "ids": [107009552],                      "model_line": "911",        "variant": "Targa"},
+    {"name": "992 Targa 4S",     "ids": [107009529],                      "model_line": "911",        "variant": "Targa"},
     # ── Cayman ───────────────────────────────────────────────────────────────
     {"name": "987 Cayman",        "ids": [2662294],                               "model_line": "Cayman",     "variant": None},
     {"name": "981 Cayman",        "ids": [45900428],                              "model_line": "Cayman",     "variant": None},
@@ -181,6 +204,8 @@ def parse_cayman_boxster_variant(title: str) -> str:
     must be whole words to avoid false matches against other abbreviations.
     Returns "base" for an unspecced car.
     """
+    if 'Boxster' in title and is_boxster_rs60(title):
+        return 'RS 60 Spyder'
     for pat in CAYMAN_BOXSTER_PATTERNS:
         if pat in title:
             return pat
@@ -373,9 +398,11 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
     coachbuilt = match_coachbuilt_line(title)
     if coachbuilt:
         model_line = coachbuilt
+    if is_not_a_car(title):
+        model_line = "Other"  # engines, parts, memorabilia — see app/utils/variants.py
 
     if model_line == "911":
-        generation = get_911_generation(year)
+        generation = get_911_generation(year, title)
     elif model_line == "Cayman":
         generation = get_cayman_generation(year)
     elif model_line == "Boxster":
@@ -401,10 +428,12 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
         # Ahead of config_variant: the "964 Carrera RS" config stamps every lot
         # it returns as "Carrera RS", including the separately-carded RS 3.8.
         variant = 'RS 3.8'
-    elif config_variant is not None:
+    elif config_variant is not None and not (
+            config_variant in ('Turbo', '930 Turbo', 'Turbo S')
+            and not re.search(r'Turbo|\b930\b', strip_turbo_impostor(title), re.I)):
         variant = config_variant
     elif generation == 'G-Body':
-        variant = parse_gbody_variant(title, year)
+        variant = parse_gbody_variant(strip_turbo_impostor(title), year)
     elif model_line == '914':
         # Without this branch the 911 patterns apply, and "Twin-Turbocharged
         # 1976 Porsche 914" is filed as a Turbo — a variant the 914 never had.
@@ -413,7 +442,13 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
     elif model_line in ('Cayman', 'Boxster'):
         variant = parse_cayman_boxster_variant(title)
     else:
-        variant = parse_variant(title)
+        variant = parse_variant(strip_turbo_impostor(title))
+    if generation == '964':
+        variant = fix_964_carrera(variant, title)
+    if model_line == '911':
+        if variant == 'base':
+            variant = resolve_911_base(generation, title)
+        variant = cabriolet_variant(generation, variant, title)  # one Cabriolet card per generation
     transmission = parse_transmission(title)
 
     ts = raw.get("sold_text_timestamp")

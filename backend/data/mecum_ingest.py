@@ -38,7 +38,7 @@ from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
 from app.utils.model_lines import match_coachbuilt_line
 from app.utils.model_lines import match_model_line as match_model_line_shared
-from app.utils.variants import match_variant, is_964_rs_38
+from app.utils.variants import match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base, parse_356_variant
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -134,6 +134,8 @@ YEAR_RE = re.compile(r'\b(19|20)\d{2}\b')
 
 
 def parse_model_line(text: str) -> str:
+    if is_not_a_car(text):
+        return "Other"  # engines, parts, memorabilia — see app/utils/variants.py
     return match_model_line_shared(text, match_transaxle_line)
 
 # Maps Mecum API model names (from models.nodes) to our model_line values.
@@ -174,7 +176,7 @@ def resolve_model_line(api_models: list[str], title: str) -> str | None:
 
 
 def parse_generation(model_line: str, year: int, text: str) -> str:
-    if model_line == "911":      return get_911_generation(year)
+    if model_line == "911":      return get_911_generation(year, text)
     if model_line == "Cayman":   return get_cayman_generation(year)
     if model_line == "Boxster":  return get_boxster_generation(year)
     if model_line == "356":
@@ -189,7 +191,7 @@ def parse_generation(model_line: str, year: int, text: str) -> str:
     return model_line
 
 
-def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
+def _parse_variant_raw(model_line: str, year: int, text: str, trim: str) -> str:
     # Prefer trimSubModel from API over title parsing when available
     combined = f"{text} {trim}".strip()
 
@@ -197,7 +199,8 @@ def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
         return "914/6" if re.search(r'914[/-]6', combined) else "base"
 
     if model_line == "911":
-        gen = get_911_generation(year)
+        gen = get_911_generation(year, combined)
+        combined = strip_turbo_impostor(combined)
         # Before the variant list, which stops at "Carrera RS" and would file the
         # 964's separate RS 3.8 card onto the 3.6-litre one.
         if gen == "964" and is_964_rs_38(combined):
@@ -229,12 +232,11 @@ def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
             # not "base" — a plain "1966 Porsche 911 Coupe" has no card under
             # "base" and renders nowhere.
             return "911"
-        return match_variant(_911_VARIANTS, combined)
+        variant = match_variant(_911_VARIANTS, combined)
+        return fix_964_carrera(variant, combined) if gen == "964" else variant
 
     if model_line == "356":
-        for pat in _356_VARIANTS:
-            if pat in combined: return pat
-        return "base"
+        return parse_356_variant(combined)
 
     if model_line == "944":
         for pat in _944_VARIANTS:
@@ -247,6 +249,8 @@ def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
         return "base"
 
     if model_line in ("Cayman", "Boxster"):
+        if model_line == "Boxster" and is_boxster_rs60(combined):
+            return "RS 60 Spyder"
         for pat in ["GT4 RS", "GT4", "GTS", "Spyder RS", "Spyder"]:
             if pat in combined: return pat
         if re.search(r'\bR\b', combined): return "R"
@@ -254,6 +258,17 @@ def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
         return "base"
 
     return "base"
+
+
+def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
+    variant = _parse_variant_raw(model_line, year, text, trim)
+    if model_line == "911":
+        # One Cabriolet card per generation, 2WD and 4WD together.
+        combined = f"{text} {trim}".strip()
+        if variant == "base":
+            variant = resolve_911_base(parse_generation(model_line, year, combined), combined)
+        variant = cabriolet_variant(parse_generation(model_line, year, combined), variant, combined)
+    return variant
 
 
 # ── Field parsers ─────────────────────────────────────────────────────────────

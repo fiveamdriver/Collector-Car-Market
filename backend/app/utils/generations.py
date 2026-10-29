@@ -17,8 +17,25 @@ Race cars are deliberately excluded from this: the 911 Race line uses flat
 generations and keeps its own ladder in data/migrate_race_cars.py.
 """
 
+import re
 
-def get_911_generation(year: int) -> str:
+from app.utils.variants import is_early_carrera_4
+
+_CARRERA_S = re.compile(r"Carrera S\b(?!\s*GTS)", re.IGNORECASE)
+
+
+def get_911_generation(year: int, title: str = "") -> str:
+    """
+    Generation for a 911 model year. Pass the lot title where it is at hand: the
+    964 launched for MY1989 as the all-wheel-drive Carrera 4 alone, so a 1989
+    "Carrera 4" is a 964 even though the rest of 1989 is G-Body.
+    """
+    if title and is_early_carrera_4(year, title): return "964"
+    # The 997 launched for MY2005 (Europe: 2004) and the 996 never had a Carrera S,
+    # so a "Carrera S" from 2004-05 is a 997.1 even though the year ladder below
+    # still says 996.2. (4S is the 996's — the 997 4S came in 2006 — and a GTS is
+    # a later car, so neither matches.)
+    if title and year in (2004, 2005) and _CARRERA_S.search(title): return "997.1"
     if year <= 1973: return "F-Body"
     if year <= 1989: return "G-Body"
     if year <= 1994: return "964"

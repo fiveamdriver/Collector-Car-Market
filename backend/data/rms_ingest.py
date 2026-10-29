@@ -31,7 +31,7 @@ from app.utils.color_parser import scan_for_color
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
 from app.utils.model_lines import match_model_line as match_model_line_shared
-from app.utils.variants import match_variant, is_964_rs_38
+from app.utils.variants import match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base, parse_356_variant
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -112,12 +112,14 @@ def parse_year(text: str) -> int | None:
 
 
 def parse_model_line(text: str) -> str:
+    if is_not_a_car(text):
+        return "Other"  # engines, parts, memorabilia — see app/utils/variants.py
     return match_model_line_shared(text, match_transaxle_line)
 
 
 def parse_generation(model_line: str, year: int, text: str) -> str:
     if model_line == "911":
-        return get_911_generation(year)
+        return get_911_generation(year, text)
     if model_line == "Cayman":
         return get_cayman_generation(year)
     if model_line == "Boxster":
@@ -134,11 +136,12 @@ def parse_generation(model_line: str, year: int, text: str) -> str:
     return model_line
 
 
-def parse_variant(model_line: str, year: int, text: str) -> str:
+def _parse_variant_raw(model_line: str, year: int, text: str) -> str:
     if model_line == "914":
         return "914/6" if re.search(r'914[/-]6', text) else "base"
     if model_line == "911":
-        gen = get_911_generation(year)
+        gen = get_911_generation(year, text)
+        text = strip_turbo_impostor(text)
         # Before the variant list, which stops at "Carrera RS" and would file the
         # 964's separate RS 3.8 card onto the 3.6-litre one.
         if gen == "964" and is_964_rs_38(text):
@@ -170,13 +173,11 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
             # not "base" — a plain "1966 Porsche 911 Coupe" has no card under
             # "base" and renders nowhere.
             return "911"
-        return match_variant(_911_VARIANTS, text)
+        variant = match_variant(_911_VARIANTS, text)
+        return fix_964_carrera(variant, text) if gen == "964" else variant
 
     if model_line == "356":
-        for pat in _356_VARIANTS:
-            if pat in text:
-                return pat
-        return "base"
+        return parse_356_variant(text)
 
     if model_line == "944":
         for pat in _944_VARIANTS:
@@ -191,6 +192,8 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
         return "base"
 
     if model_line in ("Cayman", "Boxster"):
+        if model_line == "Boxster" and is_boxster_rs60(text):
+            return "RS 60 Spyder"
         for pat in ["GT4 RS", "GT4", "GTS", "Spyder RS", "Spyder"]:
             if pat in text:
                 return pat
@@ -199,6 +202,16 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
         return "base"
 
     return "base"
+
+
+def parse_variant(model_line: str, year: int, text: str) -> str:
+    variant = _parse_variant_raw(model_line, year, text)
+    if model_line == "911":
+        # One Cabriolet card per generation, 2WD and 4WD together.
+        if variant == "base":
+            variant = resolve_911_base(parse_generation(model_line, year, text), text)
+        variant = cabriolet_variant(parse_generation(model_line, year, text), variant, text)
+    return variant
 
 
 def parse_paint_to_sample(text: str) -> bool | None:

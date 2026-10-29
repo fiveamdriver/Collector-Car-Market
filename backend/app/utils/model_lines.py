@@ -86,6 +86,10 @@ COACHBUILT_LINES = (
     # Emory builds 356 Outlaws, so this one also pulls cars off the 356 line —
     # the titles vary ("by Emory", "'Emory Outlaw'"), hence the bare name.
     (re.compile(r'\bEmory\b', re.IGNORECASE), "Emory"),
+    # RUF is a registered manufacturer building on 911 shells (CTR Yellowbird, Rt12,
+    # BTR, Turbo R). Titles name it any way round: "RUF Rt12", "RUF-Modified 1973
+    # 911", "1985 Porsche RUF BTR III" — hence the bare name.
+    (re.compile(r'\bRUF\b', re.IGNORECASE), "RUF"),
 )
 
 # A token appearing in one of these contexts is describing the car, not naming it.
