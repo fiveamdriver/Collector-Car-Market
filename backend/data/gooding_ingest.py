@@ -26,7 +26,7 @@ sys.path.insert(0, BACKEND_DIR)
 import app.models  # noqa: F401
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
-from app.utils.lot_extras import parse_transmission
+from app.utils.lot_extras import parse_pts, parse_transmission
 from app.services.enrichment import enrich
 from app.utils.lot_details import parse_color, parse_mileage
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
@@ -221,12 +221,6 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
     return variant
 
 
-def parse_paint_to_sample(text: str) -> bool | None:
-    if re.search(r'paint[-\s]to[-\s]sample|PTS', text, re.IGNORECASE):
-        return True
-    return None
-
-
 # ── GraphQL fetch ─────────────────────────────────────────────────────────────
 
 def fetch_page(page_number: int, attempts: int = 3) -> tuple[list[dict], int]:
@@ -348,7 +342,7 @@ def map_record(v: dict, highlights: list[str] | None = None) -> dict | None:
         "sold_date":         sold_date,
         "lot_title":         title,
         "exterior_color":    parse_color(highlights or [], bullets=True),
-        "paint_to_sample":   parse_paint_to_sample(search_text),
+        "paint_to_sample":   parse_pts(search_text, None),
         "production_number": None,
     }
 

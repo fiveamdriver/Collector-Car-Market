@@ -26,7 +26,7 @@ sys.path.insert(0, BACKEND_DIR)
 import app.models  # noqa: F401
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
-from app.utils.lot_extras import parse_transmission
+from app.utils.lot_extras import parse_pts, parse_transmission
 from app.services.enrichment import enrich
 from app.utils.color_parser import parse_exterior_color
 from app.utils.model_lines import match_coachbuilt_line
@@ -266,12 +266,6 @@ def parse_mileage(title: str) -> int | None:
     return round(value)
 
 
-def parse_paint_to_sample(title: str) -> bool | None:
-    if re.search(r'paint[-\s]to[-\s]sample|PTS', title, re.IGNORECASE):
-        return True
-    return None
-
-
 def compute_is_widebody(variant: str, model_line: str) -> bool:
     # Not stored in DB schema — computed here for future use / logging
     return variant in WIDEBODY_VARIANTS or model_line in WIDEBODY_MODELS
@@ -461,7 +455,7 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
         sold_date         = sold_date,
         lot_title         = title,
         exterior_color    = parse_exterior_color(title),
-        paint_to_sample   = parse_paint_to_sample(title),
+        paint_to_sample   = parse_pts(title, None),
         production_number = None,
     )
 

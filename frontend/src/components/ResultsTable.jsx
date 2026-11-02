@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { listOf } from '../utils/resultFilters'
 
 function fmtPrice(n) {
   return n != null ? `$${n.toLocaleString()}` : '—'
@@ -37,9 +36,14 @@ function stripColor(s, color) {
   return s.replace(new RegExp('^' + color.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*', 'i'), '').trim()
 }
 
+// options / provenance are stored as comma-separated labels.
+function listOf(csv) {
+  return csv ? csv.split(',').filter(Boolean) : []
+}
+
 // The few facts a buyer scans for, as short tags. Order: what most changes the
 // price first. Capped so a heavily optioned car doesn't push the price off.
-const TAG_OPTIONS    = ['Weissach', 'PCCB', 'Touring Package', 'Clubsport', 'Lightweight', 'X50/X51']
+const TAG_OPTIONS    = ['Weissach', 'Lightweight', 'Touring Package', 'Clubsport', 'X50/X51']
 const TAG_PROVENANCE = ['One Owner', 'Matching Numbers']
 const MAX_TAGS = 4
 function tagsFor(r) {

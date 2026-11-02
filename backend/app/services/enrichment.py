@@ -545,15 +545,16 @@ async def _record(stats: Stats, row_id: int, details_text: str, extra: dict,
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 async def enrich(key: str, *, urls: list[str] | None = None, limit: int | None = None,
-                 min_price: int | None = None, include_complete: bool = False,
+                 min_price: int | None = None, include_complete: bool = True,
                  verbose: bool = True) -> Stats:
     """
     Fetch details for one source's rows that haven't been fetched yet.
 
     urls: restrict to these lots (ingest scripts pass the rows they just added).
     min_price: skip lots that sold for less — the high-volume everyday cars.
-    include_complete: also fetch rows that already have mileage and color, just
-        to store their text.
+    include_complete: also fetch rows whose title already gave mileage and
+        color. On by default: the page text also feeds PTS, gearbox, interior,
+        options and provenance, which a title rarely has.
     """
     src = SOURCES[key]
     stats = Stats()

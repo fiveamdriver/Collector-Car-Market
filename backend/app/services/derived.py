@@ -11,7 +11,7 @@ from sqlalchemy import text
 from app.database import AsyncSessionLocal
 from app.utils.lot_extras import derive
 
-FIELDS = ("transmission", "chassis", "interior", "options", "provenance")
+FIELDS = ("transmission", "paint_to_sample", "chassis", "interior", "options", "provenance")
 
 
 def derive_row(row, distrust_manual: bool = False) -> dict:
@@ -19,7 +19,10 @@ def derive_row(row, distrust_manual: bool = False) -> dict:
     New values for FIELDS. `row` maps id, lot_title, details_text, year,
     model_line and the current FIELDS values.
 
-    A parsed value wins. Without one, the stored value is kept.
+    paint_to_sample, chassis / interior / options / provenance come only from the text, so
+    they are always replaced — that is how a parser fix removes a wrong tag.
+    Transmission: a parsed value wins; without one the stored value is kept,
+    since ingest may have set it from a structured field (Mecum's).
     distrust_manual: treat a stored "Manual" as unknown. Only for the one-time
     backfill — until 2026-11 "Manual" was every ingest script's default and so
     said nothing; since then ingest stores NULL when it doesn't know.
@@ -30,7 +33,14 @@ def derive_row(row, distrust_manual: bool = False) -> dict:
         current = row[f]
         if distrust_manual and f == "transmission" and current == "Manual":
             current = None
-        out[f] = parsed[f] if parsed[f] is not None else current
+        if f == "transmission":
+            out[f] = parsed[f] if parsed[f] is not None else current
+        elif f == "paint_to_sample" and not row["details_text"]:
+            # No page text to judge by: keep a flag an older source set
+            # (Broad Arrow's live pages, before they were stripped).
+            out[f] = parsed[f] or current
+        else:
+            out[f] = parsed[f]
     return out
 
 

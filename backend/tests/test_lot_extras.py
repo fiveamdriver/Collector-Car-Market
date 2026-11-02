@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.utils.lot_details import join_details
 from app.utils.lot_extras import (
+    parse_pts,
     parse_chassis, parse_interior, parse_options, parse_provenance, parse_transmission,
 )
 
@@ -117,10 +118,83 @@ class OptionsProvenanceTests(unittest.TestCase):
     def test_gt3_touring_title(self):
         self.assertIn("Touring Package", parse_options("2018 Porsche 911 GT3 Touring 6-Speed", None))
 
+    def test_parts_named_clubsport_are_not_a_clubsport(self):
+        for line in ("964 Clubsport Steering Wheel",
+                     "Finished in Carrara White over a Black fabric and Alcantara Clubsport interior"):
+            self.assertNotIn("Clubsport", parse_options("1991 Porsche 911", bullets(line)), line)
+        self.assertIn("Clubsport", parse_options("1988 Porsche 911 Carrera Club Sport", None))
+
+    def test_m471_style_conversion_is_not_lightweight(self):
+        self.assertNotIn("Lightweight", parse_options(
+            "1973 Porsche 911", bullets('*Detailed conversion to M471-style "Lightweight" Specs')))
+
+    def test_interior_color_only_and_over(self):
+        for line, want in (("Tan Upholstery", "Tan"), ("Cork Interior", "Cork"),
+                           ("Gray, Blue, & Black Upholstery", "Gray, Blue, & Black"),
+                           ("Finished in Dolomite Grey over a Black leather interior", "Black leather")):
+            self.assertEqual(parse_interior(bullets(line)), want, line)
+
+    def test_interior_needs_a_material(self):
+        for line in ("Wonderfully Preserved Original Interior", "Upgraded brakes, electricals, and interior",
+                     "Unique checkerboard interior"):
+            self.assertIsNone(parse_interior(bullets(line)), line)
+
+    def test_owners_manual_is_not_one_owner(self):
+        self.assertEqual(parse_provenance("x", bullets(
+            "Offered with Original Owner’s Manual, Maintenance Book, and Tool Kit")), [])
+        self.assertEqual(parse_provenance("Original-Owner 1974 Porsche 914", None), ["One Owner"])
+
     def test_provenance(self):
         text = bullets("One-Owner", "Porsche Certificate of Authenticity", "Original Window Sticker")
         self.assertEqual(parse_provenance("x", text), ["One Owner", "Porsche COA", "Window Sticker"])
         self.assertEqual(parse_provenance("x", bullets("Non-matching numbers engine")), [])
+
+
+
+class PaintToSampleTests(unittest.TestCase):
+    """Real listings. PTS must be about this car's paint, or it isn't PTS."""
+
+    def test_title_and_bullets(self):
+        self.assertTrue(parse_pts("2019 Porsche 911 GT3 RS PTS", None))
+        self.assertTrue(parse_pts("x", bullets("Paint-to-Sample Gulf Blue")))
+        self.assertTrue(parse_pts("x", bullets("Custom-Order Metallic Purple Paint")))
+
+    def test_prose_statements_about_this_car(self):
+        for line in (
+            "This 2023 Porsche 911 GT3 Touring was specified in paint-to-sample Gulf Blue with orange graphics.",
+            "Finished in rare, special order non-metallic Club Blue over Alcantara.",
+            "Finished in the sophisticated, rarely seen Paint to Sample shade of Macadamia Metallic.",
+            "According to production records, this 'Paint-to-Sample' Metallic Night Blue over Midnight Blue.",
+            "Offered here is a rare, single-owner paint-to-sample RSA, one of just four in Ferrari Yellow.",
+            "L999 – Paint-to-sample finish YY – Burgundy leather upholstery.",
+        ):
+            self.assertTrue(parse_pts("x", bullets(prose=line)), line)
+
+    def test_not_pts(self):
+        for line in (
+            "Offered by Wob Cars as part of the PTS Porsche Collection with a clean title.",
+            "Porsche was always amenable to applying other colors under its pricey paint-to-sample program.",
+            "Car was manufactured for the Sonderwunsch Programm, now called Exclusive.",
+            "a well-specified example of Porsche's 1980s Sonderwunsch programme.",
+        ):
+            self.assertIsNone(parse_pts("x", bullets(prose=line)), line)
+        self.assertIsNone(parse_pts("x", bullets("Special Order Black Leather Interior")))
+        for line in ("Finished in Carrara White over black leather with custom-ordered Guards Red deviated stitching.",
+                     "The car is finished in silver with Porsche Exclusive custom-ordered Viper Green center and side stripes.",
+                     "It is today in Black over a full leather interior in special-order Natural Brown.",
+                     "It was specified in Amazon Green Metallic over special-ordered Petrol Green full leather.",
+                     "Speedline RS wheels decorated in the special-order shade of Amethyst Metallic."):
+            self.assertIsNone(parse_pts("x", bullets(prose=line)), line)
+
+    def test_more_pts_statements(self):
+        for line in ("It was specified from the factory in paint-to-sample Platinum Metallic over Cork leather.",
+                     "Additionally, the tag displays paint-to-sample code 98.",
+                     "The base colour, Piet Boon Grey (now called PTS Alex Grey), is a warm-toned non-metallic."):
+            self.assertTrue(parse_pts("x", bullets(prose=line)), line)
+        self.assertIsNone(parse_pts("x", bullets("PTS Porsche Collection")))
+
+    def test_leichtbau_is_lightweight(self):
+        self.assertIn("Lightweight", parse_options("2023 Porsche 911 Turbo S Leichtbau", None))
 
 
 if __name__ == "__main__":

@@ -76,7 +76,9 @@ async def main() -> None:
     parser.add_argument("--limit", type=int, help="at most N lots per source (most expensive first)")
     parser.add_argument("--min-price", type=int, metavar="USD",
                         help="only lots that sold for at least this much")
-    parser.add_argument("--include-complete", action="store_true",
+    parser.add_argument("--only-incomplete", action="store_true",
+                        help="skip lots whose title already gave mileage and color")
+    parser.add_argument("--include-complete", action="store_true",  # default now; kept for old commands
                         help="also fetch lots that already have mileage and color, to store their text")
     parser.add_argument("--reparse", action="store_true", help="re-run parsers over stored text; no network")
     parser.add_argument("--dry-run", action="store_true", help="with --reparse: show changes, write nothing")
@@ -102,7 +104,7 @@ async def main() -> None:
         for key in keys if not args.reparse else []:
             try:
                 await enrich(key, limit=args.limit, min_price=args.min_price,
-                             include_complete=args.include_complete)
+                             include_complete=not args.only_incomplete)
             except FetchBlocked as exc:
                 print(f"[{SOURCES[key].name}] stopped — site is refusing requests ({exc}). "
                       "Progress is saved; re-run later.")

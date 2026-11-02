@@ -322,8 +322,71 @@ def parse_color(fragments: list[str], bullets: bool = False) -> str | None:
     return None
 
 
-def parse_paint_to_sample(fragments: list[str]) -> bool | None:
-    return True if any(_PTS_RE.search(f) for f in fragments) else None
+# ── Paint to sample ──────────────────────────────────────────────────────────
+#
+# True only for a statement about THIS car's paint. Not counted:
+#   * "Sonderwunsch" alone — Porsche's special-wishes programme also built
+#     Flat-Nose bodies and special interiors ("Sonderwunsch-Innenraum").
+#   * "PTS Porsche Collection" — a BaT dealer.
+#   * Prose about the programme: "under its pricey paint-to-sample program".
+_PTS_WORD = r'(?:paint[-\s]?to[-\s]?sample(?:\s+plus)?|\bPTS\b\+?)'
+_PTS_LINE_RE = re.compile(r'paint[-\s]to[-\s]sample|\bPTS\b(?!\s+Porsche\s+Collection)', re.IGNORECASE)
+_PTS_NOT_PAINT = r'(?!\s+(?:program|programme|option|options|palette|list|catalog|offering|colou?rs\b))'
+_Q = r'[\'"“”‘’]?'
+_PTS_PROSE_RES = [re.compile(p, re.IGNORECASE) for p in (
+    # "finished in paint-to-sample Fashion Grey", "specified in rare PTS ..."
+    r'\b(?:finished|painted|presented|refinished|resprayed|specified|ordered|delivered|wearing|'
+    r'wears|wore|dressed|resplendent|done)\s+(?:\w+\s+){0,3}?in\s+(?:a\s+|an\s+|the\s+|its\s+|'
+    r'rare\s+|original\s+|factory\s+|period\s+)*' + _Q + _PTS_WORD + _PTS_NOT_PAINT,
+    # "Paint to Sample shade of Macadamia", "L999 – Paint-to-sample finish"
+    _PTS_WORD + _Q + r'\s+(?:shade|colou?r|hue|finish|paint(?:work)?|code)\b(?!s)' + _PTS_NOT_PAINT,
+    # "paint-to-sample Gulf Blue", "now called PTS Alex Grey"
+    _PTS_WORD + _Q + r'\s+(?:(?-i:[A-Z])[\w-]+\s+){0,2}(?-i:' + _COLOR_WORDS + r')\b',
+    # "this 'Paint-to-Sample' Metallic Night Blue", "a rare, single-owner paint-to-sample RSA"
+    r'\b(?:a|an|this|its)\s+(?:[\w,-]+\s+){0,3}?' + _Q + _PTS_WORD + _Q + _PTS_NOT_PAINT + r'\s+\w',
+)]
+# "special order non-metallic Club Blue", "Custom-Order Metallic Purple",
+# "special-order paint": an order for a non-catalogue colour. Not "special
+# order Black leather" — that is the interior.
+_SPECIAL_ORDER_PAINT_RE = re.compile(
+    r'\b(?i:special|custom)[-\s](?i:order)(?i:ed)?\s+(?:(?i:non-)?(?i:metallic)\s+)?'
+    r'(?:(?i:paint|colou?r|hue|shade|finish)\b'
+    r'|(?:[A-Z][\w-]+\s+){0,2}' + _COLOR_WORDS + r'\b(?!\s+(?i:leather|interior|upholstery|cloth|'
+    r'alcantara|vinyl|wheels?|calipers?|top|seats?|stitching|piping|carpet)))')
+
+
+# Where a colour phrase ends: what follows is no longer its name.
+_PHRASE_END_RE = re.compile(r'[,.;:()]|\b(?:over|with|paint|paintwork|exterior|from|in)\b', re.IGNORECASE)
+
+
+def _special_order_paint(fragment: str) -> bool:
+    """A special/custom order for the paint, not for the stitching, stripes,
+    wheels or interior ("custom-ordered Guards Red deviated stitching",
+    "over special-ordered Petrol Green full leather")."""
+    for m in _SPECIAL_ORDER_PAINT_RE.finditer(fragment):
+        rest = fragment[m.end():]
+        end = _PHRASE_END_RE.search(rest)
+        if _NOT_BODY_RE.search(rest[:end.start()] if end else rest):
+            continue
+        lead = fragment[max(0, m.start() - 40):m.start()]
+        if re.search(r'\bover\s*$', lead, re.IGNORECASE) or _about_other_part(lead):
+            continue
+        return True
+    return False
+
+
+def parse_paint_to_sample(fragments: list[str], prose: bool = False) -> bool | None:
+    """True when the fragments state this car is paint-to-sample. Prose needs a
+    statement about the car's paint; a bullet or title only needs the words."""
+    for f in fragments:
+        if _special_order_paint(f):
+            return True
+        if prose:
+            if any(p.search(f) for p in _PTS_PROSE_RES):
+                return True
+        elif _PTS_LINE_RE.search(f):
+            return True
+    return None
 
 
 # Stored detail text is "<bullets>\n--\n<prose>"; either part may be empty.
@@ -355,5 +418,5 @@ def extract(text: str | None) -> dict:
     return {
         "mileage":         mileage,
         "exterior_color":  color,
-        "paint_to_sample": parse_paint_to_sample(bullets + prose),
+        "paint_to_sample": parse_paint_to_sample(bullets) or parse_paint_to_sample(prose, prose=True),
     }

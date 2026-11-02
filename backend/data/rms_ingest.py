@@ -27,7 +27,7 @@ import app.models  # noqa: F401
 from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
-from app.utils.lot_extras import parse_transmission
+from app.utils.lot_extras import parse_pts, parse_transmission
 from app.services.enrichment import enrich
 from app.utils.color_parser import scan_for_color
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
@@ -216,12 +216,6 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
     return variant
 
 
-def parse_paint_to_sample(text: str) -> bool | None:
-    if re.search(r'paint[-\s]to[-\s]sample|PTS', text, re.IGNORECASE):
-        return True
-    return None
-
-
 # ── Price parsing ─────────────────────────────────────────────────────────────
 
 _PRICE_RE = re.compile(r'[\$£€]?([\d,]+)\s*(USD|CAD|EUR|GBP|CHF)?', re.IGNORECASE)
@@ -365,7 +359,7 @@ def map_record(item: dict, lot_date: str | None) -> dict | None:
         "sold_date":         sold_date,
         "lot_title":         title,
         "exterior_color":    exterior_color,
-        "paint_to_sample":   parse_paint_to_sample(title),
+        "paint_to_sample":   parse_pts(title, None),
         "production_number": None,
     }
 

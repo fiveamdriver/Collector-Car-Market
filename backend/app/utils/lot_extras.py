@@ -13,7 +13,7 @@ filed 991 GT3 RS and Turbo S cars — PDK only — as manuals.)
 """
 import re
 
-from app.utils.lot_details import PROSE_SEPARATOR
+from app.utils.lot_details import _COLOR_WORDS, PROSE_SEPARATOR, parse_paint_to_sample, split_fragments
 
 _N = r'(?:[3-8]|three|four|five|six|seven|eight)'
 
@@ -119,6 +119,14 @@ def parse_chassis(details_text: str | None) -> str | None:
 
 
 _INTERIOR_LINE_RE = re.compile(r'^(.{3,50}?)\s+(?:upholstery|interior)$', re.IGNORECASE)
+# A spec line names a material; a sentence fragment ending in "interior"
+# ("Wonderfully Preserved Original Interior") does not.
+_MATERIAL_RE = re.compile(
+    r'\b(?:leather(?:ette)?|cloth|vinyl|alcantara|race-?tex|houndstooth|tartan|pasha|'
+    r'corduroy|velour|suede|fabric|tweed|leatherette|to\s+sample)\b'
+    r'|\b(?:' + _COLOR_WORDS[3:-1] + r'|cork|cognac|espresso|bordeaux|burgundy|'
+    r'saddle|camel|cashmere|graphite|carrera|marsala|luxor|agate|stone|natural|lin+en|oyster)\b',
+    re.IGNORECASE)
 _INTERIOR_LABEL_RE = re.compile(r'^interior\s*:\s*(.{2,50})$', re.IGNORECASE)
 # Bullets about work done, not what the car has: "Refreshed Interior".
 _NOT_INTERIOR_RE = re.compile(
@@ -138,9 +146,19 @@ def parse_interior(details_text: str | None) -> str | None:
             return m.group(1).strip()
     for line in bullets:
         m = _INTERIOR_LINE_RE.match(line)
-        if m and not _NOT_INTERIOR_RE.match(m.group(1)) and not re.search(
-                r'\b(?:new|refresh|restor|replac|redone)\w*\b', m.group(1), re.IGNORECASE):
-            return m.group(1).strip()
+        if not m:
+            continue
+        value = m.group(1)
+        # "Finished in Dolomite Grey over a Black leather": the interior is
+        # the part after "over".
+        if re.search(r'\bover\b', value, re.IGNORECASE):
+            value = re.split(r'\bover\b', value, flags=re.IGNORECASE)[-1]
+            value = re.sub(r'^\s*(?:an?|the)\s+', '', value, flags=re.IGNORECASE)
+        if (_MATERIAL_RE.search(value) and len(value.split()) <= 7
+                and not _NOT_INTERIOR_RE.match(value)
+                and not re.search(r'\b(?:new|refresh|restor|replac|redone|upgraded|finished)\w*\b',
+                                  value, re.IGNORECASE)):
+            return value.strip(" ,")
     return None
 
 
@@ -155,8 +173,11 @@ OPTIONS: list[tuple[str, re.Pattern]] = [(label, re.compile(p, re.IGNORECASE)) f
     ("Front-Axle Lift",  r'\b(?:front[-\s]axle|nose|front)[-\s]lift\b'),
     ("Carbon Buckets",   r'\bbucket\s+seats?\b|\bfull[-\s]buckets?\b'),
     ("Touring Package",  r'\btouring\s+package\b'),
-    ("Clubsport",        r'\bclub\s?sport\b'),
-    ("Lightweight",      r'\blightweight\s+(?:package|pack|edition)\b|\bM471\b'),
+    # Bullets: only the package. "Clubsport Steering Wheel" / "Clubsport
+    # interior" are parts; the title names Clubsport cars (see _TITLE_OPTIONS).
+    ("Clubsport",        r'\bclub\s?sport\s+(?:package|pack)\b'),
+    # Leichtbau: Porsche's German name for the lightweight packages.
+    ("Lightweight",      r'\blightweight\s+(?:package|pack|edition)\b|\bM471\b(?![-\s]style)|\bleichtbau\b'),
     ("Aerokit",          r'\baero\s?kit\b'),
     ("X50/X51",          r'\bX5[01]\b'),
     ("Burmester",        r'\bburmester\b'),
@@ -168,11 +189,12 @@ OPTIONS: list[tuple[str, re.Pattern]] = [(label, re.compile(p, re.IGNORECASE)) f
 _TITLE_OPTIONS = [
     ("Weissach",        re.compile(r'\bWeissach\b', re.IGNORECASE)),
     ("Touring Package", re.compile(r'\bGT3\s+Touring\b|\bTouring\s+Package\b', re.IGNORECASE)),
-    ("Lightweight",     re.compile(r'\bLightweight\b', re.IGNORECASE)),
+    ("Lightweight",     re.compile(r'\bLightweight\b|\bLeichtbau\b', re.IGNORECASE)),
+    ("Clubsport",       re.compile(r'\bClub\s?sport\b(?!\s+(?:steering|wheel|seat|interior))', re.IGNORECASE)),
 ]
 
 PROVENANCE: list[tuple[str, re.Pattern]] = [(label, re.compile(p, re.IGNORECASE)) for label, p in [
-    ("One Owner",        r'\b(?:one|single|1)[-\s]owner\b|\boriginal[-\s]owner\b'),
+    ("One Owner",        r'\b(?:one|single|1)[-\s]owner\b(?![\'’]s)|\boriginal[-\s]owner\b(?![\'’]s)'),
     ("Matching Numbers", r'(?<!non-)(?<!non )(?<!not )\bmatching[-\s]numbers?\b'),
     ("Porsche COA",      r'\bcertificate\s+of\s+authenticity\b|\bCOA\b'),
     ("Kardex",           r'\bkardex\b'),
@@ -203,11 +225,19 @@ def parse_provenance(title: str | None, details_text: str | None) -> list[str]:
     return _scan(PROVENANCE, [title or ""] + split_bullets(details_text))
 
 
+def parse_pts(title: str | None, details_text: str | None) -> bool | None:
+    """Paint to sample from the title, bullets, or a prose statement about this car."""
+    head, _, tail = (details_text or "").partition(PROSE_SEPARATOR)
+    return (parse_paint_to_sample([title or ""] + split_bullets(head))
+            or parse_paint_to_sample(split_fragments(tail), prose=True))
+
+
 def derive(title: str | None, details_text: str | None,
            year: int | None = None, model_line: str | None = None) -> dict:
     """All fields this module derives, ready for the auction_results columns."""
     return {
         "transmission": parse_transmission(title, details_text, year, model_line),
+        "paint_to_sample": parse_pts(title, details_text),
         "chassis":      parse_chassis(details_text),
         "interior":     parse_interior(details_text),
         "options":      ",".join(parse_options(title, details_text)) or None,
