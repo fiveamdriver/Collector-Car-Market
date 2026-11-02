@@ -31,6 +31,8 @@ import app.models  # noqa: F401
 from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.services.enrichment import enrich
+from app.utils.lot_details import parse_odometer_value
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
 from app.utils.model_lines import match_model_line as match_model_line_shared
@@ -291,19 +293,9 @@ def map_schema_car(schema: dict) -> dict | None:
     fx_rate    = NON_USD_RATES.get(event_code_for_price or "", 1.0)
     sold_price = round(local_price * fx_rate)
 
-    # Mileage (already in miles from Schema.org unitCode "SMI")
+    # Mileage: Schema.org unitCode "SMI" (miles) or "KMT" (km)
     odo        = schema.get("mileageFromOdometer") or {}
-    mileage_v  = odo.get("value")
-    unit_code  = (odo.get("unitCode") or "").upper()
-    mileage    = None
-    if mileage_v:
-        try:
-            mileage = int(float(str(mileage_v)))
-            if unit_code == "KMT":
-                mileage = round(mileage / 1.609)
-            mileage = mileage if mileage >= 100 else None
-        except (ValueError, TypeError):
-            mileage = None
+    mileage    = parse_odometer_value(odo.get("value"), odo.get("unitCode"))
 
     # Year
     year_str = schema.get("vehicleModelDate") or ""
@@ -348,8 +340,8 @@ def map_schema_car(schema: dict) -> dict | None:
         "auction_url":       lot_url,
         "sold_date":         sold_date,
         "lot_title":         title,
-        "exterior_color":    None,     # backfilled by migrate_broad_arrow_color.py
-        "paint_to_sample":   None,     # backfilled by migrate_broad_arrow_color.py
+        "exterior_color":    None,     # filled by enrichment (lot page)
+        "paint_to_sample":   None,     # filled by enrichment (lot page)
         "production_number": None,
     }
 
@@ -462,7 +454,9 @@ async def ingest() -> None:
         f"{total_seen - len(to_insert)}"
     )
     print(f"Database: {DATABASE_PATH}")
-    print("Run migrate_broad_arrow_color.py to backfill color and PTS data.")
+    new_urls = [r["auction_url"] for r in to_insert if r.get("auction_url")]
+    # Second stage: fetch each new lot's own page for mileage / color / PTS.
+    await enrich("broad-arrow", urls=new_urls)
     await engine.dispose()
 
 

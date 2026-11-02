@@ -26,6 +26,7 @@ sys.path.insert(0, BACKEND_DIR)
 import app.models  # noqa: F401
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.services.enrichment import enrich
 from app.utils.color_parser import parse_exterior_color
 from app.utils.model_lines import match_coachbuilt_line
 from app.utils.variants import match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, is_early_carrera_4, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base
@@ -516,6 +517,7 @@ async def ingest(only: list[str] | None = None, full: bool = False) -> None:
         existing: dict[str, str | None] = {row[0]: row[1] for row in rows.fetchall()}
 
     total_fetched = total_skipped = total_inserted = total_backfilled = 0
+    new_urls: list[str] = []
     to_insert:  list[dict] = []
     to_backfill: list[tuple[str, str]] = []  # (auction_url, thumbnail_url)
 
@@ -581,6 +583,7 @@ async def ingest(only: list[str] | None = None, full: bool = False) -> None:
                     continue
                 if url:
                     existing[url] = rec.get("thumbnail_url")
+                    new_urls.append(url)
                 to_insert.append(rec)
                 cfg_queued += 1
                 page_queued += 1
@@ -613,6 +616,8 @@ async def ingest(only: list[str] | None = None, full: bool = False) -> None:
         f"\nTotal — fetched: {total_fetched} | inserted: {total_inserted} | "
         f"backfilled: {total_backfilled} | skipped: {total_skipped}"
     )
+    # Second stage: fetch each new lot's own page for mileage / color / PTS.
+    await enrich("bat", urls=new_urls)
     await engine.dispose()
 
 

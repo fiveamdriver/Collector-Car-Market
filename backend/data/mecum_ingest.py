@@ -33,6 +33,8 @@ import app.models  # noqa: F401
 from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.services.enrichment import enrich
+from app.utils.lot_details import parse_odometer_value
 from app.utils.color_parser import parse_color_from_phrase, scan_for_color
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
@@ -284,19 +286,6 @@ def parse_transmission(raw: str | None) -> str:
     return "Manual"
 
 
-def parse_odometer(value: str | None, units: str | None) -> int | None:
-    if not value:
-        return None
-    try:
-        miles = float(value.replace(",", ""))
-    except (ValueError, TypeError):
-        return None
-    if (units or "").upper() in ("K", "KM", "KMT"):
-        miles = miles / 1.609
-    result = round(miles)
-    return result if result >= 100 else None
-
-
 def parse_color(raw: str | None) -> str | None:
     if not raw or raw.lower() in ("", "other", "multicolor", "two tone"):
         return None
@@ -364,7 +353,7 @@ def map_record(node: dict) -> dict | None:
         generation = model_line
 
     # Mileage
-    mileage    = parse_odometer(node.get("odometer"), node.get("odometerUnits"))
+    mileage    = parse_odometer_value(node.get("odometer"), node.get("odometerUnits"))
 
     # Color
     color_raw  = node.get("color") or ""
@@ -482,6 +471,9 @@ async def ingest() -> None:
         f"skipped (existing): {total_seen - len(to_insert)}"
     )
     print(f"Database: {DATABASE_PATH}")
+    new_urls = [r["auction_url"] for r in to_insert if r.get("auction_url")]
+    # Second stage: fetch each new lot's own page for mileage / color / PTS.
+    await enrich("mecum", urls=new_urls)
     await engine.dispose()
 
 

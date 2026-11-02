@@ -40,6 +40,7 @@ import app.models  # noqa: F401
 from app.config import DATABASE_URL
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.services.enrichment import enrich
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
 from app.utils.model_lines import match_model_line as match_model_line_shared
@@ -435,6 +436,9 @@ async def ingest() -> None:
         f"{total_seen - len(to_insert)}"
     )
     print(f"Database: {DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else DATABASE_URL}")
+    new_urls = [r["auction_url"] for r in to_insert if r.get("auction_url")]
+    # Second stage: fetch each new lot's own page for mileage / color / PTS.
+    await enrich("bonhams", urls=new_urls)
     await engine.dispose()
 
 
