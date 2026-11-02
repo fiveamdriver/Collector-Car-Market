@@ -36,7 +36,10 @@ class Test911Generation(unittest.TestCase):
         (2009, "997.2"),  (2012, "997.2"),
         (2013, "991.1"),  (2016, "991.1"),
         (2017, "991.2"),  (2019, "991.2"),
-        (2020, "992"),    (2026, "992"),
+        # 992 is split because the frontend renders it as a group of 992.1/992.2;
+        # a bare "992" row would appear on no card.
+        (2020, "992.1"),  (2024, "992.1"),
+        (2025, "992.2"),  (2026, "992.2"),
     ]
 
     def test_boundaries(self):
@@ -88,11 +91,14 @@ class TestTransmissionNormalizers(unittest.TestCase):
         self.assertEqual(normalize_transmission(None), "Manual")
 
     def test_mecum_parse(self):
-        from data.mecum_ingest import parse_transmission
-        self.assertEqual(parse_transmission("7-Speed PDK"), "PDK")
-        self.assertEqual(parse_transmission("Tiptronic Automatic"), "Automatic")
-        self.assertEqual(parse_transmission("6-Speed Manual"), "Manual")
-        self.assertEqual(parse_transmission(None), "Manual")
+        # mecum_ingest passes its API's transmission field as a spec line.
+        from app.utils.lot_extras import parse_transmission
+        t = lambda raw, year=2005: parse_transmission("Porsche", raw, year, "911")
+        self.assertEqual(t("7-Speed PDK"), "PDK")
+        self.assertEqual(t("Tiptronic Automatic"), "Automatic")
+        self.assertEqual(t("6-Speed Manual"), "Manual")
+        # No field is unknown, not a guessed "Manual".
+        self.assertIsNone(t(None))
 
 
 class TestTransaxle(unittest.TestCase):

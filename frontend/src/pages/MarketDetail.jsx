@@ -12,6 +12,8 @@ import VariantHero from '../components/VariantHero'
 import PriceHistoryChart from '../components/LazyPriceHistoryChart'
 import ResultsTable from '../components/ResultsTable'
 import ActiveListingsPanel from '../components/ActiveListingsPanel'
+import ResultFilters from '../components/ResultFilters'
+import { applyFilters, filterCounts, EMPTY_FILTERS } from '../utils/resultFilters'
 
 export default function MarketDetail() {
   const { modelSlug, seg1, seg2, seg3 } = useParams()
@@ -40,6 +42,7 @@ export default function MarketDetail() {
   const [tab, setTab] = useState('results')
 
   const [results, setResults]         = useState([])
+  const [filters, setFilters]         = useState(EMPTY_FILTERS)
   const [loading, setLoading]         = useState(true)
   const [error,   setError]           = useState(null)
 
@@ -47,10 +50,11 @@ export default function MarketDetail() {
   const [listingsLoading, setListingsLoading] = useState(false)
   const [listingsError,   setListingsError]   = useState(null)
 
-  // Reset listings when navigating to a different market
+  // Reset listings and filters when navigating to a different market
   useEffect(() => {
     setListings([])
     setListingsError(null)
+    setFilters(EMPTY_FILTERS)
   }, [modelLine, generation, variant])
 
   useEffect(() => {
@@ -102,8 +106,11 @@ export default function MarketDetail() {
     return () => { stale = true }
   }, [tab, modelLine, generation, variant])
 
-  const stats       = useMemo(() => calcStats(results),    [results])
-  const monthlyData = useMemo(() => groupByMonth(results), [results])
+  // Filters narrow the whole page — stats and chart included.
+  const counts      = useMemo(() => filterCounts(results), [results])
+  const filtered    = useMemo(() => applyFilters(results, filters), [results, filters])
+  const stats       = useMemo(() => calcStats(filtered),    [filtered])
+  const monthlyData = useMemo(() => groupByMonth(filtered), [filtered])
 
   if (!model) return <Navigate to="/" replace />
 
@@ -209,6 +216,13 @@ export default function MarketDetail() {
           {error   && <p className="status error">Error: {error}</p>}
           {!loading && !error && (
             <>
+              <ResultFilters
+                counts={counts}
+                filters={filters}
+                onChange={setFilters}
+                shown={filtered.length}
+                total={results.length}
+              />
               {showHero
                 ? <VariantHero
                     eyebrow={eyebrow}
@@ -223,7 +237,7 @@ export default function MarketDetail() {
               {monthlyData.length >= 2 && (
                 <PriceHistoryChart monthlyData={monthlyData} />
               )}
-              <ResultsTable results={results} />
+              <ResultsTable results={filtered} />
             </>
           )}
         </>

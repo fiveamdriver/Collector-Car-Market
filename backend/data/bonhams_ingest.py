@@ -40,6 +40,8 @@ import app.models  # noqa: F401
 from app.config import DATABASE_URL
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.utils.lot_extras import parse_transmission
+from app.services.enrichment import enrich
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
 from app.utils.model_lines import match_model_line as match_model_line_shared
@@ -218,17 +220,6 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
     return variant
 
 
-# ── Transmission ──────────────────────────────────────────────────────────────
-
-def parse_transmission(text: str) -> str:
-    t = text.lower()
-    if "pdk" in t:                                        return "PDK"
-    if "tiptronic" in t:                                  return "Automatic"
-    if "sportomatic" in t:                                return "Automatic"
-    if "automatic" in t:                                  return "Automatic"
-    return "Manual"
-
-
 # ── Lot mapper ────────────────────────────────────────────────────────────────
 
 YEAR_RE = re.compile(r'\b(19|20)\d{2}\b')
@@ -310,7 +301,7 @@ def map_lot(doc: dict) -> dict | None:
         "generation":        generation,
         "variant":           variant,
         "year":              year,
-        "transmission":      parse_transmission(title),
+        "transmission":      parse_transmission(title, None, year, model_line),
         "is_widebody":       None,
         "mileage":           None,       # not a structured field
         "thumbnail_url":     thumbnail,
@@ -435,6 +426,9 @@ async def ingest() -> None:
         f"{total_seen - len(to_insert)}"
     )
     print(f"Database: {DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else DATABASE_URL}")
+    new_urls = [r["auction_url"] for r in to_insert if r.get("auction_url")]
+    # Second stage: fetch each new lot's own page for mileage / color / PTS.
+    await enrich("bonhams", urls=new_urls)
     await engine.dispose()
 
 

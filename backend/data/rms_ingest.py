@@ -27,6 +27,8 @@ import app.models  # noqa: F401
 from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.utils.lot_extras import parse_transmission
+from app.services.enrichment import enrich
 from app.utils.color_parser import scan_for_color
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
@@ -353,7 +355,7 @@ def map_record(item: dict, lot_date: str | None) -> dict | None:
         "generation":        generation,
         "variant":           variant,
         "year":              year,
-        "transmission":      "Manual",   # not in API; almost all collector Porsches are manual
+        "transmission":      parse_transmission(title, None, year, model_line),  # None = unknown
         "is_widebody":       None,
         "mileage":           mileage,
         "thumbnail_url":     item.get("crop") or None,
@@ -441,6 +443,9 @@ async def ingest() -> None:
     print(f"\nDone — fetched: {total_fetched} | sold lots found: {total_sold} | "
           f"inserted: {len(to_insert)} | skipped: {total_skipped}")
     print(f"Database: {DATABASE_PATH}")
+    new_urls = [r["auction_url"] for r in to_insert if r.get("auction_url")]
+    # Second stage: fetch each new lot's own page for mileage / color / PTS.
+    await enrich("rm", urls=new_urls)
     await engine.dispose()
 
 

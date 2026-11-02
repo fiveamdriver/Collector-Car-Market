@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Optional
 
-from sqlalchemy import Index, func
+from sqlalchemy import Index, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -28,7 +28,8 @@ class AuctionResult(Base):
     generation: Mapped[str] = mapped_column(index=True)
     variant: Mapped[str] = mapped_column(index=True)
     year: Mapped[int]
-    transmission: Mapped[str]
+    # 'Manual' / 'PDK' / 'Automatic', or NULL when nothing says (app/utils/lot_extras.py).
+    transmission: Mapped[Optional[str]]
     is_widebody: Mapped[Optional[bool]]
     mileage: Mapped[Optional[int]]
     thumbnail_url: Mapped[Optional[str]]
@@ -40,6 +41,20 @@ class AuctionResult(Base):
     exterior_color: Mapped[Optional[str]]
     paint_to_sample: Mapped[Optional[bool]]
     production_number: Mapped[Optional[str]]
+    # Cleaned lot-page text (bullets, then prose) saved by data/enrich_details.py.
+    # Keeping it means a parser fix is re-applied with --reparse, not a re-scrape.
+    details_text: Mapped[Optional[str]] = mapped_column(Text)
+    # Set once a detail fetch has been attempted, found data or not, so lots with
+    # no mileage/color on the page aren't fetched again on every run.
+    details_fetched_at: Mapped[Optional[datetime]]
+    # Comma list of the fields enrichment filled ("mileage,exterior_color").
+    # --reparse may overwrite these; values from any other source are left alone.
+    details_filled: Mapped[Optional[str]]
+    # Derived from title + details_text by app/services/derived.py.
+    chassis: Mapped[Optional[str]]
+    interior: Mapped[Optional[str]]
+    options: Mapped[Optional[str]]      # comma list, lot_extras.OPTIONS labels
+    provenance: Mapped[Optional[str]]   # comma list, lot_extras.PROVENANCE labels
     created_at: Mapped[datetime] = mapped_column(default=func.now())
 
 

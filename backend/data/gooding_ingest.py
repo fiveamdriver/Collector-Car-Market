@@ -26,7 +26,9 @@ sys.path.insert(0, BACKEND_DIR)
 import app.models  # noqa: F401
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
-from app.utils.color_parser import parse_color_from_phrase, scan_for_color
+from app.utils.lot_extras import parse_transmission
+from app.services.enrichment import enrich
+from app.utils.lot_details import parse_color, parse_mileage
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
 from app.utils.model_lines import match_model_line as match_model_line_shared
@@ -78,18 +80,6 @@ QUERY_DOCUMENT = """query GetVehiclesAndFilters($filtersInput: FiltersInput!, $p
   }
 }"""
 
-# ── Mileage + color parsing from page-data.json highlights ────────────────────
-_SUBTITLE_MILEAGE_RE = re.compile(
-    r'([\d][\d,\.]*)\s*(k)?\s*(miles?|kilometers?|km|mi)\b',
-    re.IGNORECASE
-)
-# Matches "Finished in [Very Rare / Original Color of] X over Y"
-_FINISHED_IN_RE = re.compile(
-    r'\bfinished in\b\s+(?:very rare\s+|original colou?rs?\s+of\s+)?(.+?)(?:\s+over\b|\s+with\b|,|$)',
-    re.IGNORECASE
-)
-
-
 def fetch_lot_highlights(slug: str) -> list[str] | None:
     """Fetch Gatsby page-data.json for a lot and return its highlights list."""
     url = f"{PAGE_DATA_URL}{slug}/page-data.json"
@@ -101,45 +91,6 @@ def fetch_lot_highlights(slug: str) -> list[str] | None:
         return item.get("highlights") or []
     except Exception:
         return None
-
-
-def _parse_mileage_from_text(text: str) -> int | None:
-    m = _SUBTITLE_MILEAGE_RE.search(text)
-    if not m:
-        return None
-    num_str, k_suffix, unit = m.group(1), m.group(2), m.group(3)
-    # European period-as-thousands: "20.408" → 20408
-    if '.' in num_str and ',' not in num_str:
-        parts = num_str.split('.')
-        if len(parts) == 2 and len(parts[1]) == 3:
-            num_str = num_str.replace('.', '')
-    num_str = num_str.replace(',', '')
-    try:
-        value = float(num_str)
-    except ValueError:
-        return None
-    if k_suffix:
-        value *= 1000
-    if unit.lower() in ('km', 'kilometer', 'kilometers'):
-        value /= 1.609
-    result = round(value)
-    return result if result >= 100 else None
-
-
-def parse_mileage_from_highlights(highlights: list[str]) -> int | None:
-    for h in highlights:
-        m = _parse_mileage_from_text(h)
-        if m is not None:
-            return m
-    return None
-
-
-def parse_color_from_highlights(highlights: list[str]) -> str | None:
-    for h in highlights:
-        fm = _FINISHED_IN_RE.search(h)
-        if fm:
-            return parse_color_from_phrase(fm.group(1).strip())
-    return None
 
 
 # ── Model / variant parsing ───────────────────────────────────────────────────
@@ -387,16 +338,16 @@ def map_record(v: dict, highlights: list[str] | None = None) -> dict | None:
         "generation":        generation,
         "variant":           variant,
         "year":              year,
-        "transmission":      "Manual",   # not in API; almost all collector Porsches are manual
+        "transmission":      parse_transmission(title, None, year, model_line),  # None = unknown
         "is_widebody":       None,
-        "mileage":           parse_mileage_from_highlights(highlights or []),
+        "mileage":           parse_mileage(highlights or []),
         "thumbnail_url":     thumb,
         "sold_price":        sold_price,
         "auction_source":    "Gooding & Company",
         "auction_url":       lot_url,
         "sold_date":         sold_date,
         "lot_title":         title,
-        "exterior_color":    parse_color_from_highlights(highlights or []),
+        "exterior_color":    parse_color(highlights or [], bullets=True),
         "paint_to_sample":   parse_paint_to_sample(search_text),
         "production_number": None,
     }
@@ -418,6 +369,7 @@ async def ingest() -> None:
         existing: set[str] = {row[0] for row in rows.fetchall()}
 
     print(f"Existing Gooding records: {len(existing)}")
+    new_urls: list[str] = []
 
     pending: list[dict] = []
     total_fetched = total_skipped = total_inserted = 0
@@ -464,6 +416,7 @@ async def ingest() -> None:
                 continue
             if url:
                 existing.add(url)
+                new_urls.append(url)
             pending.append(rec)
 
         # Commit as we go. The previous version held everything in memory and
@@ -485,6 +438,8 @@ async def ingest() -> None:
 
     print(f"\nDone — fetched: {total_fetched} | inserted: {total_inserted} | "
           f"skipped: {total_skipped}")
+    # Second stage: fetch each new lot's own page for mileage / color / PTS.
+    await enrich("gooding", urls=new_urls)
     await engine.dispose()
 
 

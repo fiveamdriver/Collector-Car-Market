@@ -26,6 +26,8 @@ sys.path.insert(0, BACKEND_DIR)
 import app.models  # noqa: F401
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.utils.lot_extras import parse_transmission
+from app.services.enrichment import enrich
 from app.utils.color_parser import parse_exterior_color
 from app.utils.model_lines import match_coachbuilt_line
 from app.utils.variants import match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, is_early_carrera_4, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base
@@ -252,22 +254,6 @@ def parse_gbody_variant(title: str, year: int) -> str:
     return '911'
 
 
-def parse_transmission(title: str) -> str:
-    """
-    Infer transmission type from the lot title.
-
-    BaT titles consistently include speed/type tokens when the transmission
-    is notable (e.g. "7-Speed PDK", "6-Speed Manual").  PDK is always 7-speed;
-    manual cars are 5- or 6-speed depending on generation.  Defaults to Manual
-    because the majority of historic Porsches sold on BaT are manual.
-    """
-    if any(k in title for k in ("PDK", "7-Speed", "7-speed")):
-        return "PDK"
-    if any(k in title for k in ("6-Speed", "6-speed", "5-Speed", "5-speed", "Manual")):
-        return "Manual"
-    return "Manual"
-
-
 def parse_mileage(title: str) -> int | None:
     m = MILEAGE_RE.search(title)
     if not m:
@@ -449,7 +435,7 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
         if variant == 'base':
             variant = resolve_911_base(generation, title)
         variant = cabriolet_variant(generation, variant, title)  # one Cabriolet card per generation
-    transmission = parse_transmission(title)
+    transmission = parse_transmission(title, None, year, model_line)
 
     ts = raw.get("sold_text_timestamp")
     try:
@@ -516,6 +502,7 @@ async def ingest(only: list[str] | None = None, full: bool = False) -> None:
         existing: dict[str, str | None] = {row[0]: row[1] for row in rows.fetchall()}
 
     total_fetched = total_skipped = total_inserted = total_backfilled = 0
+    new_urls: list[str] = []
     to_insert:  list[dict] = []
     to_backfill: list[tuple[str, str]] = []  # (auction_url, thumbnail_url)
 
@@ -581,6 +568,7 @@ async def ingest(only: list[str] | None = None, full: bool = False) -> None:
                     continue
                 if url:
                     existing[url] = rec.get("thumbnail_url")
+                    new_urls.append(url)
                 to_insert.append(rec)
                 cfg_queued += 1
                 page_queued += 1
@@ -613,6 +601,8 @@ async def ingest(only: list[str] | None = None, full: bool = False) -> None:
         f"\nTotal — fetched: {total_fetched} | inserted: {total_inserted} | "
         f"backfilled: {total_backfilled} | skipped: {total_skipped}"
     )
+    # Second stage: fetch each new lot's own page for mileage / color / PTS.
+    await enrich("bat", urls=new_urls)
     await engine.dispose()
 
 
