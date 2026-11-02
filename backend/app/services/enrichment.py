@@ -24,6 +24,7 @@ Bulk sources (Mecum, Bonhams) already return full lot text from their search
 APIs, so they re-page those instead.
 """
 import asyncio
+import faulthandler
 import gzip
 import json
 import re
@@ -57,15 +58,21 @@ FETCH_DEADLINE = 60
 FLUSH_DEADLINE = 120
 # Stop rather than keep requesting when every lot is failing.
 MAX_CONSECUTIVE_ERRORS = 25
+# Watchdog: if nothing completes (no fetch result, no write) for this long
+# beyond a source's own deadline, dump every thread's stack to stderr and exit.
+# A scheduled run must fail loudly, never sit silently. One BaT retry once
+# sat 18 hours with no writes.
+STALL_GRACE = 300
 
 
 class FetchBlocked(Exception):
     """The site is refusing requests (403/429). Stop the run rather than hammer it."""
 
 
-def http_get(url: str, timeout: int = 30, decode: bool = True) -> str | bytes | None:
+def http_get(url: str, timeout: int = 30, decode: bool = True,
+             user_agent: str = UA) -> str | bytes | None:
     """GET a page. None on 404/410 (lot removed); FetchBlocked on 403/429."""
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Language": "en-US"})
+    req = urllib.request.Request(url, headers={"User-Agent": user_agent, "Accept-Language": "en-US"})
     started = time.monotonic()
     try:
         with urllib.request.urlopen(req, timeout=timeout, context=SSL_CTX) as resp:
@@ -171,24 +178,24 @@ MAX_SNAPSHOTS_TRIED = 4
 # Snapshot playback tolerates far less than the documented ~15/min: bursts at
 # 10/min drew 429s that lasted most of an hour. 3/min ran clean.
 WAYBACK_SPACING = 20  # seconds after every archive.org request
+# archive.org gets an honest, identifying User-Agent — not the browser string
+# used for the auction sites. It is a nonprofit; let it see who is asking.
+WAYBACK_UA = ("CollectorCarMarket-enrichment/1.0 (personal research; "
+              "slow single-threaded fetch of archived auction lot pages)")
 
 
 def _wayback_get(url: str) -> str | None:
-    # archive.org allows roughly 15 requests a minute and answers 429 (too
-    # fast) or 503 (busy) beyond that. Wait it out rather than push.
-    for wait in (1800, 1800, 1800, 3600, None):
-        try:
-            raw = http_get(url, timeout=45, decode=False)
-            break
-        except FetchBlocked:
-            if wait is None:
-                raise
-            time.sleep(wait)
-        except urllib.error.HTTPError as exc:
-            if exc.code not in (502, 503, 504) or wait is None:
-                raise
-            time.sleep(wait)
-    time.sleep(WAYBACK_SPACING)
+    # Stop at the first refusal (429 too fast, 503 busy) instead of waiting it
+    # out: the old 30-60 minute in-thread backoffs held one lot for hours and
+    # looked exactly like a hang. Progress is saved; re-run later.
+    try:
+        raw = http_get(url, timeout=45, decode=False, user_agent=WAYBACK_UA)
+    except urllib.error.HTTPError as exc:
+        if exc.code in (502, 503, 504):
+            raise FetchBlocked(f"HTTP {exc.code} from archive.org") from exc
+        raise
+    finally:
+        time.sleep(WAYBACK_SPACING)
     if raw is None:
         return None
     if raw[:2] == b"\x1f\x8b":  # archived body is stored gzip-encoded
@@ -239,7 +246,8 @@ def _broad_arrow_index() -> dict[str, list[tuple[str, str]]]:
         else:
             raw = http_get(
                 f"{WAYBACK_CDX}?url=broadarrowauctions.com/vehicles/&matchType=prefix"
-                "&filter=statuscode:200&fl=urlkey,timestamp&output=json", timeout=300)
+                "&filter=statuscode:200&fl=urlkey,timestamp&output=json", timeout=300,
+                user_agent=WAYBACK_UA)
             rows = json.loads(raw)[1:] if raw and raw.strip() else []
             _CACHE_DIR.mkdir(parents=True, exist_ok=True)
             _BA_INDEX_FILE.write_text(json.dumps(rows))
@@ -382,14 +390,63 @@ SOURCES: dict[str, Source] = {
     "rm":          Source("RM Sotheby's", fetch=fetch_rm, workers=2, delay=1.0),
     "gooding":     Source("Gooding & Company", fetch=fetch_gooding, workers=3, delay=0.5),
     # One worker: archive.org is a nonprofit and rate-limits bursts.
-    # Spacing is enforced per request inside fetch_broad_arrow.
-    # Long deadline: a rate-limit backoff inside one lot can take minutes.
+    # Spacing is enforced per request inside fetch_broad_arrow. Deadline covers
+    # up to MAX_SNAPSHOTS_TRIED snapshots at ~65s each (45s read + 20s spacing);
+    # the first lot also loads the snapshot index (up to 300s).
     "broad-arrow": Source("Broad Arrow", fetch=fetch_broad_arrow, workers=1, delay=0,
-                          deadline=4 * 3600),
-    "mecum":       Source("Mecum", bulk=bulk_mecum),
-    "bonhams":     Source("Bonhams", bulk=bulk_bonhams),
+                          deadline=600),
+    # Bulk sources re-page a whole search API in one call: deadline is for all of it.
+    "mecum":       Source("Mecum", bulk=bulk_mecum, deadline=3600),
+    "bonhams":     Source("Bonhams", bulk=bulk_bonhams, deadline=3600),
 }
 SOURCE_BY_NAME = {s.name: k for k, s in SOURCES.items()}
+
+
+# ── Hang protection ───────────────────────────────────────────────────────────
+
+def _in_daemon_thread(fn: Callable, *args) -> asyncio.Future:
+    """
+    Run a blocking call on its own daemon thread.
+
+    Not asyncio.to_thread: its pool threads are joined when the process exits,
+    so one request stuck in a socket call (DNS has no timeout at all) keeps the
+    process alive forever even after wait_for gave up on it. A daemon thread is
+    simply abandoned.
+    """
+    loop = asyncio.get_running_loop()
+    fut = loop.create_future()
+
+    def settle(result=None, exc=None):
+        if not fut.done():
+            fut.set_exception(exc) if exc else fut.set_result(result)
+
+    def run():
+        try:
+            result = fn(*args)
+        except BaseException as exc:
+            loop.call_soon_threadsafe(settle, None, exc)
+        else:
+            loop.call_soon_threadsafe(settle, result)
+
+    threading.Thread(target=run, daemon=True, name=f"enrich-{getattr(fn, '__name__', 'fetch')}").start()
+    return fut
+
+
+class Watchdog:
+    """Exit with every thread's stack on stderr when nothing completes for `seconds`."""
+
+    def __init__(self, seconds: float):
+        self.seconds = seconds
+
+    def kick(self) -> None:
+        faulthandler.dump_traceback_later(self.seconds, exit=True)
+
+    def __enter__(self):
+        self.kick()
+        return self
+
+    def __exit__(self, *exc):
+        faulthandler.cancel_dump_traceback_later()
 
 
 # ── Database ──────────────────────────────────────────────────────────────────
@@ -506,15 +563,29 @@ async def enrich(key: str, *, urls: list[str] | None = None, limit: int | None =
     id_by_url = {url: row_id for row_id, url in rows}
     started = time.monotonic()
 
+    watchdog = Watchdog(max(src.deadline, FLUSH_DEADLINE * 2) + STALL_GRACE)
+
     def progress() -> None:
+        watchdog.kick()
         if verbose and stats.fetched and stats.fetched % 100 == 0:
             rate = stats.fetched / (time.monotonic() - started)
             left = (len(rows) - stats.fetched) / rate / 60 if rate else 0
             print(f"  {stats.fetched}/{len(rows)}  mileage +{stats.mileage}  color +{stats.color}"
                   f"  errors {stats.errors}  (~{left:.0f} min left)", flush=True)
 
+    with watchdog:
+        await _run(src, rows, id_by_url, stats, progress, watchdog.kick, verbose)
+    if verbose:
+        print(f"[{src.name}] done — fetched {stats.fetched}, mileage found {stats.mileage}, "
+              f"color found {stats.color}, errors {stats.errors}", flush=True)
+    return stats
+
+
+async def _run(src: Source, rows, id_by_url, stats: Stats, progress, kick, verbose: bool) -> None:
     if src.bulk:
-        for url, details_text, extra in await asyncio.to_thread(lambda: list(src.bulk())):
+        # One long call with no per-lot progress; src.deadline covers the whole re-page.
+        bulk = await asyncio.wait_for(_in_daemon_thread(lambda: list(src.bulk())), src.deadline)
+        for url, details_text, extra in bulk:
             if url in id_by_url:
                 await _record(stats, id_by_url[url], details_text, extra)
                 progress()
@@ -536,11 +607,12 @@ async def enrich(key: str, *, urls: list[str] | None = None, limit: int | None =
                 row_id, url = queue.get_nowait()
                 try:
                     details_text = await asyncio.wait_for(
-                        asyncio.to_thread(src.fetch, url), src.deadline)
+                        _in_daemon_thread(src.fetch, url), src.deadline)
                 except FetchBlocked as exc:
                     blocked.append(exc)
                     break
                 except Exception as exc:
+                    kick()  # a failed lot is still activity
                     stats.errors += 1
                     stats.consecutive_errors += 1
                     if verbose:
@@ -563,10 +635,6 @@ async def enrich(key: str, *, urls: list[str] | None = None, limit: int | None =
             raise blocked[0]
 
     await _flush(stats)
-    if verbose:
-        print(f"[{src.name}] done — fetched {stats.fetched}, mileage found {stats.mileage}, "
-              f"color found {stats.color}, errors {stats.errors}", flush=True)
-    return stats
 
 
 DETAIL_FIELDS = ("mileage", "exterior_color", "paint_to_sample")

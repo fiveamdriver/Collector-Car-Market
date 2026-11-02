@@ -36,7 +36,10 @@ class Test911Generation(unittest.TestCase):
         (2009, "997.2"),  (2012, "997.2"),
         (2013, "991.1"),  (2016, "991.1"),
         (2017, "991.2"),  (2019, "991.2"),
-        (2020, "992"),    (2026, "992"),
+        # 992 is split because the frontend renders it as a group of 992.1/992.2;
+        # a bare "992" row would appear on no card.
+        (2020, "992.1"),  (2024, "992.1"),
+        (2025, "992.2"),  (2026, "992.2"),
     ]
 
     def test_boundaries(self):

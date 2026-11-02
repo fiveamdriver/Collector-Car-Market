@@ -12,7 +12,7 @@ Re-running is safe — duplicates are skipped by auction_url.
 
 Price encoding: Schema.org offers.price ÷ 10 = USD  (e.g. "67150000" → $6,715,000)
 Mileage:       already in miles (Schema.org unitCode "SMI")
-Color:         not in Schema.org — run migrate_broad_arrow_color.py afterward.
+Color:         not in Schema.org — filled by enrich("broad-arrow") at the end of the run.
 
 Before each new auction season, verify AUCTION_EVENTS below and add new entries.
 Unknown event codes are logged as warnings; those records get sold_date = NULL.
