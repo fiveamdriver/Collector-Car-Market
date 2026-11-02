@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { listOf } from '../utils/resultFilters'
 
 function fmtPrice(n) {
   return n != null ? `$${n.toLocaleString()}` : '—'
@@ -34,6 +35,31 @@ function stripYear(s, hasMileage) {
 function stripColor(s, color) {
   if (!s || !color) return s
   return s.replace(new RegExp('^' + color.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*', 'i'), '').trim()
+}
+
+// The few facts a buyer scans for, as short tags. Order: what most changes the
+// price first. Capped so a heavily optioned car doesn't push the price off.
+const TAG_OPTIONS    = ['Weissach', 'PCCB', 'Touring Package', 'Clubsport', 'Lightweight', 'X50/X51']
+const TAG_PROVENANCE = ['One Owner', 'Matching Numbers']
+const MAX_TAGS = 4
+function tagsFor(r) {
+  const options = listOf(r.options), provenance = listOf(r.provenance)
+  return [
+    ...(r.paint_to_sample ? ['PTS'] : []),
+    ...TAG_OPTIONS.filter(t => options.includes(t)),
+    ...TAG_PROVENANCE.filter(t => provenance.includes(t)),
+  ].slice(0, MAX_TAGS)
+}
+function specLine(r) {
+  return [r.transmission, r.interior && `${r.interior} interior`].filter(Boolean).join(' · ')
+}
+// Everything we know, for the card's hover tooltip.
+function detailTip(r) {
+  return [
+    r.chassis && `Chassis ${r.chassis}`,
+    listOf(r.options).length && `Options: ${listOf(r.options).join(', ')}`,
+    listOf(r.provenance).length && `Provenance: ${listOf(r.provenance).join(', ')}`,
+  ].filter(Boolean).join('\n') || undefined
 }
 
 export default function ResultsTable({ results }) {
@@ -137,14 +163,20 @@ export default function ResultsTable({ results }) {
                   {r.mileage != null && (
                     <span className="result-card-mileage">{fmtMileage(r.mileage)} mi</span>
                   )}
+                  {specLine(r) && <span className="result-card-spec">{specLine(r)}</span>}
+                  {tagsFor(r).length > 0 && (
+                    <span className="result-card-tags">
+                      {tagsFor(r).map(t => <span key={t} className="result-tag">{t}</span>)}
+                    </span>
+                  )}
                   <span className="result-card-date">{fmtDate(r.sold_date)}</span>
                   <span className="result-card-source">{r.auction_source}</span>
                 </div>
               </>
             )
             return r.auction_url
-              ? <a key={r.id} href={r.auction_url} target="_blank" rel="noopener noreferrer" className="result-card">{inner}</a>
-              : <div key={r.id} className="result-card result-card--static">{inner}</div>
+              ? <a key={r.id} href={r.auction_url} target="_blank" rel="noopener noreferrer" className="result-card" title={detailTip(r)}>{inner}</a>
+              : <div key={r.id} className="result-card result-card--static" title={detailTip(r)}>{inner}</div>
           })}
         </div>
       ) : (
@@ -176,6 +208,7 @@ export default function ResultsTable({ results }) {
               <th>Listing</th>
               <th>Photo</th>
               <th>Color</th>
+              <th>Gearbox</th>
               <th>Mileage</th>
 
               <th
@@ -203,7 +236,11 @@ export default function ResultsTable({ results }) {
                     ? <img src={r.thumbnail_url} alt="" loading="lazy" decoding="async" className="result-thumb result-thumb--clickable" onClick={() => setLightbox(r.thumbnail_url)} />
                     : '—'}
                 </td>
-                <td className="td-color">{r.exterior_color ?? '—'}</td>
+                <td className="td-color">
+                  {r.exterior_color ?? '—'}
+                  {r.paint_to_sample && <span className="result-tag result-tag--inline">PTS</span>}
+                </td>
+                <td>{r.transmission ?? '—'}</td>
                 <td>{fmtMileage(r.mileage)}</td>
                 <td className="price-cell">{fmtPrice(r.sold_price)}</td>
                 <td className="source-cell">

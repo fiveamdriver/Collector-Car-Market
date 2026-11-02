@@ -17,6 +17,10 @@ Usage (from backend/ directory):
     python data/enrich_details.py --reparse --dry-run     # re-run parsers on stored text, no network
     python data/enrich_details.py --reparse               #   ...and write the changes
 
+Transmission / chassis / interior / options / provenance are re-derived from
+the stored text after every write. After changing app/utils/lot_extras.py,
+re-derive every row with: python data/migrate_lot_extras.py [--apply]
+
 Sources: bat, rm, gooding, broad-arrow, mecum, bonhams
 """
 import argparse

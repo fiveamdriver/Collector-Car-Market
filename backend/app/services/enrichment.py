@@ -41,6 +41,7 @@ import certifi
 from sqlalchemy import text
 
 from app.database import AsyncSessionLocal
+from app.services import derived
 from app.utils.lot_details import extract, html_to_text, join_details, parse_odometer_value
 
 SSL_CTX = ssl.create_default_context(cafile=certifi.where())
@@ -510,6 +511,9 @@ async def _write(batch: list[dict]) -> None:
     async with AsyncSessionLocal() as session:
         await session.execute(_UPDATE_SQL, batch)
         await session.commit()
+    # New details_text: recompute transmission / chassis / interior / options /
+    # provenance from it. Idempotent, so a retried batch is harmless.
+    await derived.refresh([row["id"] for row in batch])
 
 
 async def _flush(stats: Stats) -> None:

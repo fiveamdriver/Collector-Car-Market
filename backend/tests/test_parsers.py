@@ -91,11 +91,14 @@ class TestTransmissionNormalizers(unittest.TestCase):
         self.assertEqual(normalize_transmission(None), "Manual")
 
     def test_mecum_parse(self):
-        from data.mecum_ingest import parse_transmission
-        self.assertEqual(parse_transmission("7-Speed PDK"), "PDK")
-        self.assertEqual(parse_transmission("Tiptronic Automatic"), "Automatic")
-        self.assertEqual(parse_transmission("6-Speed Manual"), "Manual")
-        self.assertEqual(parse_transmission(None), "Manual")
+        # mecum_ingest passes its API's transmission field as a spec line.
+        from app.utils.lot_extras import parse_transmission
+        t = lambda raw, year=2005: parse_transmission("Porsche", raw, year, "911")
+        self.assertEqual(t("7-Speed PDK"), "PDK")
+        self.assertEqual(t("Tiptronic Automatic"), "Automatic")
+        self.assertEqual(t("6-Speed Manual"), "Manual")
+        # No field is unknown, not a guessed "Manual".
+        self.assertIsNone(t(None))
 
 
 class TestTransaxle(unittest.TestCase):

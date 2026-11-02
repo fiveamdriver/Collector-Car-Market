@@ -26,6 +26,7 @@ sys.path.insert(0, BACKEND_DIR)
 import app.models  # noqa: F401
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.utils.lot_extras import parse_transmission
 from app.services.enrichment import enrich
 from app.utils.lot_details import parse_color, parse_mileage
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
@@ -337,7 +338,7 @@ def map_record(v: dict, highlights: list[str] | None = None) -> dict | None:
         "generation":        generation,
         "variant":           variant,
         "year":              year,
-        "transmission":      "Manual",   # not in API; almost all collector Porsches are manual
+        "transmission":      parse_transmission(title, None, year, model_line),  # None = unknown
         "is_widebody":       None,
         "mileage":           parse_mileage(highlights or []),
         "thumbnail_url":     thumb,

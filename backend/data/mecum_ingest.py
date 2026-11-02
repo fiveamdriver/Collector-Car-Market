@@ -33,6 +33,7 @@ import app.models  # noqa: F401
 from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.utils.lot_extras import parse_transmission
 from app.services.enrichment import enrich
 from app.utils.lot_details import parse_odometer_value
 from app.utils.color_parser import parse_color_from_phrase, scan_for_color
@@ -275,17 +276,6 @@ def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
 
 # ── Field parsers ─────────────────────────────────────────────────────────────
 
-def parse_transmission(raw: str | None) -> str:
-    if not raw:
-        return "Manual"
-    lower = raw.lower()
-    if "pdk" in lower or "doppelkupplung" in lower:
-        return "PDK"
-    if "automatic" in lower or "tiptronic" in lower:
-        return "Automatic"
-    return "Manual"
-
-
 def parse_color(raw: str | None) -> str | None:
     if not raw or raw.lower() in ("", "other", "multicolor", "two tone"):
         return None
@@ -376,7 +366,8 @@ def map_record(node: dict) -> dict | None:
         "generation":        generation,
         "variant":           variant,
         "year":              year,
-        "transmission":      parse_transmission(node.get("transmission")),
+        # Mecum's own transmission field reads as one spec line.
+        "transmission":      parse_transmission(title, node.get("transmission"), year, model_line),
         "is_widebody":       None,
         "mileage":           mileage,
         "thumbnail_url":     thumbnail,

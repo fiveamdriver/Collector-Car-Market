@@ -26,6 +26,7 @@ sys.path.insert(0, BACKEND_DIR)
 import app.models  # noqa: F401
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.utils.lot_extras import parse_transmission
 from app.services.enrichment import enrich
 from app.utils.color_parser import parse_exterior_color
 from app.utils.model_lines import match_coachbuilt_line
@@ -253,22 +254,6 @@ def parse_gbody_variant(title: str, year: int) -> str:
     return '911'
 
 
-def parse_transmission(title: str) -> str:
-    """
-    Infer transmission type from the lot title.
-
-    BaT titles consistently include speed/type tokens when the transmission
-    is notable (e.g. "7-Speed PDK", "6-Speed Manual").  PDK is always 7-speed;
-    manual cars are 5- or 6-speed depending on generation.  Defaults to Manual
-    because the majority of historic Porsches sold on BaT are manual.
-    """
-    if any(k in title for k in ("PDK", "7-Speed", "7-speed")):
-        return "PDK"
-    if any(k in title for k in ("6-Speed", "6-speed", "5-Speed", "5-speed", "Manual")):
-        return "Manual"
-    return "Manual"
-
-
 def parse_mileage(title: str) -> int | None:
     m = MILEAGE_RE.search(title)
     if not m:
@@ -450,7 +435,7 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
         if variant == 'base':
             variant = resolve_911_base(generation, title)
         variant = cabriolet_variant(generation, variant, title)  # one Cabriolet card per generation
-    transmission = parse_transmission(title)
+    transmission = parse_transmission(title, None, year, model_line)
 
     ts = raw.get("sold_text_timestamp")
     try:

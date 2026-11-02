@@ -40,6 +40,7 @@ import app.models  # noqa: F401
 from app.config import DATABASE_URL
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.utils.lot_extras import parse_transmission
 from app.services.enrichment import enrich
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
@@ -219,17 +220,6 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
     return variant
 
 
-# ── Transmission ──────────────────────────────────────────────────────────────
-
-def parse_transmission(text: str) -> str:
-    t = text.lower()
-    if "pdk" in t:                                        return "PDK"
-    if "tiptronic" in t:                                  return "Automatic"
-    if "sportomatic" in t:                                return "Automatic"
-    if "automatic" in t:                                  return "Automatic"
-    return "Manual"
-
-
 # ── Lot mapper ────────────────────────────────────────────────────────────────
 
 YEAR_RE = re.compile(r'\b(19|20)\d{2}\b')
@@ -311,7 +301,7 @@ def map_lot(doc: dict) -> dict | None:
         "generation":        generation,
         "variant":           variant,
         "year":              year,
-        "transmission":      parse_transmission(title),
+        "transmission":      parse_transmission(title, None, year, model_line),
         "is_widebody":       None,
         "mileage":           None,       # not a structured field
         "thumbnail_url":     thumbnail,

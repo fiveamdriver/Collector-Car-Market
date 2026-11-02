@@ -31,6 +31,7 @@ import app.models  # noqa: F401
 from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.utils.lot_extras import parse_transmission
 from app.services.enrichment import enrich
 from app.utils.lot_details import parse_odometer_value
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
@@ -331,7 +332,7 @@ def map_schema_car(schema: dict) -> dict | None:
         "generation":        generation,
         "variant":           variant,
         "year":              year,
-        "transmission":      "Manual",
+        "transmission":      parse_transmission(title, None, year, model_line),  # None = unknown
         "is_widebody":       None,
         "mileage":           mileage,
         "thumbnail_url":     thumbnail,

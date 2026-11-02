@@ -28,7 +28,8 @@ class AuctionResult(Base):
     generation: Mapped[str] = mapped_column(index=True)
     variant: Mapped[str] = mapped_column(index=True)
     year: Mapped[int]
-    transmission: Mapped[str]
+    # 'Manual' / 'PDK' / 'Automatic', or NULL when nothing says (app/utils/lot_extras.py).
+    transmission: Mapped[Optional[str]]
     is_widebody: Mapped[Optional[bool]]
     mileage: Mapped[Optional[int]]
     thumbnail_url: Mapped[Optional[str]]
@@ -49,6 +50,11 @@ class AuctionResult(Base):
     # Comma list of the fields enrichment filled ("mileage,exterior_color").
     # --reparse may overwrite these; values from any other source are left alone.
     details_filled: Mapped[Optional[str]]
+    # Derived from title + details_text by app/services/derived.py.
+    chassis: Mapped[Optional[str]]
+    interior: Mapped[Optional[str]]
+    options: Mapped[Optional[str]]      # comma list, lot_extras.OPTIONS labels
+    provenance: Mapped[Optional[str]]   # comma list, lot_extras.PROVENANCE labels
     created_at: Mapped[datetime] = mapped_column(default=func.now())
 
 

@@ -18,7 +18,7 @@ class AuctionResultRead(BaseModel):
     generation: str
     variant: str
     year: int
-    transmission: str
+    transmission: Optional[str] = None
     is_widebody: Optional[bool] = None
     mileage: Optional[int] = None
     thumbnail_url: Optional[str] = None
@@ -30,6 +30,10 @@ class AuctionResultRead(BaseModel):
     exterior_color: Optional[str] = None
     paint_to_sample: Optional[bool] = None
     production_number: Optional[str] = None
+    chassis: Optional[str] = None
+    interior: Optional[str] = None
+    options: Optional[str] = None       # comma-separated labels
+    provenance: Optional[str] = None    # comma-separated labels
     created_at: datetime
 
 
