@@ -29,6 +29,10 @@ const GEN_DESCRIPTIONS = {
   '992.2': 'The 992.2 facelift arrived for the 2025 model year with revised styling, updated powertrain calibrations, and expanded driver assistance and connectivity across the lineup. It continues the twin-turbocharged Carrera formula established by the 992.1 while refining the interior and aerodynamics throughout. As a generation still in active production, long-term collector values have yet to be established.',
 }
 
+// Generations shown five photo cards to a row instead of four. Empty for now:
+// G-Body was tried at five and reads better at four (2026-11-02).
+const PHOTO_GRID_5 = new Set([])
+
 export default function VariantIndex() {
   const { modelSlug, seg1, seg2 } = useParams()
   const model     = ALL_MODELS.find(m => m.slug === modelSlug)
@@ -165,7 +169,7 @@ export default function VariantIndex() {
       {error   && <p className="status error">Error: {error}</p>}
 
       {!loading && !error && (
-        <div className={`card-grid${showPhotos ? ' card-grid--photo' : ''}`}>
+        <div className={`card-grid${showPhotos ? ' card-grid--photo' : ''}${showPhotos && PHOTO_GRID_5.has(generation) ? ' card-grid--photo-5' : ''}`}>
           {sortedVariants.map(variant => {
             const group   = byVariant[variant]
             const stats   = statsFromGroup(group)

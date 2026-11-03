@@ -20,6 +20,9 @@ import urllib.parse
 import urllib.request
 from datetime import date, datetime, timezone
 
+# Lots that sell for less get no page fetch (see the end of ingest()).
+BAT_DETAILS_MIN_PRICE = 150_000
+
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BACKEND_DIR)
 
@@ -30,7 +33,7 @@ from app.utils.lot_extras import parse_pts, parse_transmission
 from app.services.enrichment import enrich
 from app.utils.color_parser import parse_exterior_color
 from app.utils.model_lines import match_coachbuilt_line
-from app.utils.variants import match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, is_early_carrera_4, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base
+from app.utils.variants import gbody_variant, early_carrera_variant, match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, is_early_carrera_4, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -231,27 +234,8 @@ def parse_gbody_variant(title: str, year: int) -> str:
     Carrera 2.7 (1972–1977) and the Carrera 3.2 (1984–1989) appear in
     G-Body production years.
     """
-    if 'Slant Nose' in title:
-        return 'Turbo 3.3 Slant Nose'
-    if 'MFI' in title:
-        return 'Carrera 2.7 MFI'
-    if 'Carrera 2.7' in title:
-        return 'Carrera 2.7'
-    if 'Carrera RS' in title:
-        return 'Carrera RS 3.0'
-    if 'Speedster' in title:
-        return 'Speedster'
-    if 'Turbo' in title:
-        return '930 Turbo'
-    if 'Carrera' in title and year <= 1977:
-        return 'Carrera 2.7'
-    if 'SC' in title:
-        return 'SC'
-    if 'Carrera 3.2' in title or ('Carrera' in title and year >= 1984):
-        return 'Carrera 3.2'
-    if '911S' in title or '911 S' in title:
-        return '911S'
-    return '911'
+    # Shared rules: app/utils/variants.gbody_variant.
+    return gbody_variant(title, year)
 
 
 def parse_mileage(title: str) -> int | None:
@@ -428,7 +412,7 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
     if model_line == '911':
         if variant == 'base':
             variant = resolve_911_base(generation, title)
-        variant = cabriolet_variant(generation, variant, title)  # one Cabriolet card per generation
+        variant = cabriolet_variant(generation, variant, title, year)  # one Cabriolet card per generation
     transmission = parse_transmission(title, None, year, model_line)
 
     ts = raw.get("sold_text_timestamp")
@@ -596,7 +580,9 @@ async def ingest(only: list[str] | None = None, full: bool = False) -> None:
         f"backfilled: {total_backfilled} | skipped: {total_skipped}"
     )
     # Second stage: fetch each new lot's own page for mileage / color / PTS.
-    await enrich("bat", urls=new_urls)
+    # BaT sells thousands of everyday cars a year; only the significant ones
+    # are worth a page fetch (the others keep what their title says).
+    await enrich("bat", urls=new_urls, min_price=BAT_DETAILS_MIN_PRICE)
     await engine.dispose()
 
 

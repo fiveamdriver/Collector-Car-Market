@@ -43,16 +43,21 @@ function listOf(csv) {
 
 // The few facts a buyer scans for, as short tags. Order: what most changes the
 // price first. Capped so a heavily optioned car doesn't push the price off.
-const TAG_OPTIONS    = ['Weissach', 'Lightweight', 'Touring Package', 'Clubsport', 'X50/X51']
+const TAG_OPTIONS    = ['Sonderwunsch', 'M491', 'Weissach', 'Lightweight', 'Touring Package', 'Clubsport', 'X50/X51']
 const TAG_PROVENANCE = ['One Owner', 'Matching Numbers']
 const MAX_TAGS = 4
+// "Club Sport" and "Clubsport" are the same word to a reader.
+const squash = s => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 function tagsFor(r) {
   const options = listOf(r.options), provenance = listOf(r.provenance)
+  // A tag that only repeats the car's own variant (Clubsport on the Carrera 3.2
+  // Club Sport card) says nothing there.
+  const variant = squash(r.variant)
   return [
     ...(r.paint_to_sample ? ['PTS'] : []),
     ...TAG_OPTIONS.filter(t => options.includes(t)),
     ...TAG_PROVENANCE.filter(t => provenance.includes(t)),
-  ].slice(0, MAX_TAGS)
+  ].filter(t => !variant.includes(squash(t))).slice(0, MAX_TAGS)
 }
 function specLine(r) {
   return [r.transmission, r.interior && `${r.interior} interior`].filter(Boolean).join(' · ')

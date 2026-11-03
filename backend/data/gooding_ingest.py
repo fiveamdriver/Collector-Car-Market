@@ -32,7 +32,7 @@ from app.utils.lot_details import parse_color, parse_mileage
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
 from app.utils.model_lines import match_model_line as match_model_line_shared
-from app.utils.variants import match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base, parse_356_variant
+from app.utils.variants import gbody_variant, early_carrera_variant, match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base, parse_356_variant
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -154,23 +154,8 @@ def _parse_variant_raw(model_line: str, year: int, text: str) -> str:
         if gen == "964" and is_964_rs_38(text):
             return "RS 3.8"
         if gen == "G-Body":
-            if "Slant Nose" in text:           return "Turbo 3.3 Slant Nose"
-            if "MFI" in text:                  return "Carrera 2.7 MFI"
-            if "Carrera 2.7" in text:          return "Carrera 2.7"
-            if "Carrera RS 3.0" in text:       return "Carrera RS 3.0"
-            if "Carrera RS" in text:           return "Carrera RS 2.7"
-            if "Speedster" in text:            return "Speedster"
-            if "Turbo" in text or "930" in text: return "930 Turbo"
-            if "Targa" in text:                return "Targa"
-            if "Carrera" in text and year <= 1977: return "Carrera 2.7"
-            if "SC" in text:                   return "SC"
-            if "Carrera 3.2" in text or ("Carrera" in text and year >= 1984):
-                                               return "Carrera 3.2"
-            if re.search(r'\b911\s*(?:2\.\d\s*)?S\b', text): return "911S"
-            # The taxonomy's entry-level card for these generations is "911",
-            # not "base" — a plain "1966 Porsche 911 Coupe" has no card under
-            # "base" and renders nowhere.
-            return "911"
+            # Shared rules: app/utils/variants.gbody_variant.
+            return gbody_variant(text, year)
         if gen == "F-Body":
             if "Carrera RS 2.7" in text or "Carrera RS" in text: return "Carrera RS 2.7"
             if "Carrera 2.7" in text:          return "Carrera 2.7"
@@ -217,7 +202,7 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
         # One Cabriolet card per generation, 2WD and 4WD together.
         if variant == "base":
             variant = resolve_911_base(parse_generation(model_line, year, text), text)
-        variant = cabriolet_variant(parse_generation(model_line, year, text), variant, text)
+        variant = cabriolet_variant(parse_generation(model_line, year, text), variant, text, year)
     return variant
 
 

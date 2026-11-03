@@ -218,9 +218,17 @@ for _gen in ("993", "996.1", "996.2", "997.1", "997.2", "991.1", "991.2", "992.1
     _CABRIOLET_SOURCE_TRIMS[_gen] = {"Carrera", "Carrera 4", "Carrera S", "Carrera 4S"}
 
 
-def cabriolet_variant(generation: str, variant: str, text: str) -> str:
+# The factory G-Body Cabriolet arrived for MY1983; earlier ones are conversions
+# and stay on their chassis's card.
+_CABRIOLET_FIRST_YEAR = {"G-Body": 1983}
+
+
+def cabriolet_variant(generation: str, variant: str, text: str, year: int | None = None) -> str:
     """'Cabriolet' for a Carrera-family cabriolet, else `variant` unchanged."""
     trims = _CABRIOLET_SOURCE_TRIMS.get(generation)
+    first = _CABRIOLET_FIRST_YEAR.get(generation)
+    if first and year is not None and year < first:
+        return variant
     if (
         trims
         and variant in trims
@@ -292,3 +300,95 @@ def parse_356_variant(text: str) -> str:
         if pat.search(text or ""):
             return name
     return "Coupe"
+
+
+# ── Early G-Body Carrera (1974–1977) ─────────────────────────────────────────
+#
+# Three different cars share the "Carrera" name in these years:
+#   * Carrera 2.7 (MY1974–75): RoW cars with the RS 2.7 MFI engine (their own
+#     "Carrera 2.7 MFI" card), US cars with a K-Jetronic 2.7.
+#   * Carrera RS 3.0 (1974–75): the homologation RS. Titles say "Carrera RS 3.0"
+#     or "Carrera 3.0 RS".
+#   * Carrera 3.0 (MY1976–77): RoW-only 3.0 (930/02 engine). The US "Turbo
+#     Carrera" of 1976 is the 930 and is handled before this function.
+_RS_30_RE = re.compile(r'\bCarrera\s+(?:RS\s+3\.0|3\.0\s+RS)\b', re.IGNORECASE)
+
+
+def early_carrera_variant(text: str, year: int | None) -> str:
+    """Variant for a G-Body "Carrera" title of model year 1977 or earlier."""
+    if _RS_30_RE.search(text or ""):
+        return "Carrera RS 3.0"
+    # The model year decides: a 1974–75 chassis with a 3.0 engine (an IROC
+    # recreation, an engine swap) is still a Carrera 2.7 underneath.
+    if year in (1976, 1977) or (year is None and re.search(r'\bCarrera\s+3\.0\b', text or "", re.IGNORECASE)):
+        return "Carrera 3.0"
+    return "Carrera 2.7"
+
+
+# ── G-Body 911 (MY1974–1989) ──────────────────────────────────────────────────
+#
+# One classifier for every ingest script (each used to carry its own copy).
+# Matching is case-insensitive on whole words: several houses write titles in
+# capitals, and "SC" found inside "PORSCHE" filed 1974–75 Carreras as SCs.
+# Factory model years gate each card, so a conversion lands on its chassis's
+# card (a 1984 "Speedster Conversion" is a Carrera 3.2).
+def _has(pattern: str, text: str) -> bool:
+    return re.search(pattern, text or "", re.IGNORECASE) is not None
+
+
+def gbody_variant(text: str, year: int | None, targa_card: bool = True) -> str:
+    y = year or 0
+    # Bonhams runs the VIN label into the title: "CARRERA SPEEDSTERVIN. WP0..."
+    text = re.sub(r'VIN\.', ' VIN.', text or "")
+    # A title that names the SC is an SC chassis, whatever else it says: an
+    # aftermarket "Turbocharged 911SC ... Slant Nose", or an SC whose stored model
+    # year is off by one.
+    names_sc = _has(r'\b(?:911\s*)?SC\b(?!CA)', text) and 1977 <= y <= 1984
+    # The 1984 SC RS homologation car (20 built) has its own card.
+    if _has(r'\bSC\s*/?\s*RS\b', text) and 1983 <= y <= 1985:
+        return "SC RS"
+    if _has(r'\bSpeedster\b', text) and y >= 1988:
+        return "Speedster"
+    # The 930 (incl. its factory Targa / Cabriolet and Flachbau) keeps its cards.
+    if not names_sc:
+        # The factory Flachbau was a Turbo programme: a Carrera with a converted
+        # nose stays on its own card.
+        if (_has(r'\bslant[-\s]?nose\b|\bflat[-\s]?nose\b|\bflachbau\b', text) and y >= 1981
+                and _has(r'\bTurbo\b(?![-\s]?(?:powered|look|style))|\b930S?\b(?!/)', text)):
+            return "Turbo 3.3 Slant Nose"
+        # Not an engine swap ("993 Turbo-Powered") or the M491 "Turbo-Look" body.
+        # "930/02" is the Carrera 3.0's engine type, not a 930.
+        if (_has(r'\bTurbo\b(?![-\s]?(?:powered|look|style))|\b930\b(?!/)', text)
+                and not _has(r'\bturbo[-\s]?(?:powered|look|style)\b', text) and y >= 1975):
+            return "930 Turbo"
+    # Every other Targa is on the Targa card, whatever its engine (2.7, Carrera
+    # 2.7 / 3.0, SC, 3.2). Cabriolets: cabriolet_variant, from MY1983.
+    if targa_card and _has(r'\bTarga\b', text):
+        return "Targa"
+    if names_sc and not _has(r'\bCarrera\s+3\.2\b', text):
+        return "SC"
+    if _has(r'\bMFI\b', text) and y <= 1976:
+        return "Carrera 2.7 MFI"
+    if _has(r'\bCarrera\s+2\.7\b', text) and y <= 1976:
+        return "Carrera 2.7"
+    if _RS_30_RE.search(text) or (_has(r'\bCarrera\s+RS\b', text) and y <= 1975):
+        return "Carrera RS 3.0"
+    # The 1987–89 Carrera 3.2 Club Sport has its own card; a "Clubsport-style"
+    # or tribute car stays a Carrera 3.2.
+    if (_has(r'\bclub\s?sport\b', text) and 1987 <= y <= 1989
+            and not _has(r'club\s?sport[-\s]?(?:style|spec)|tribute|replica|clone|evocation', text)):
+        return "Carrera 3.2 Club Sport"
+    if _has(r'\bCarrera\b', text) and y <= 1977:
+        return early_carrera_variant(text, year)
+    if _has(r'\b(?:911\s*)?SC\b(?!CA)', text) and 1978 <= y <= 1983:
+        return "SC"
+    if _has(r'\bCarrera\s+3\.2\b', text) or (_has(r'\bCarrera\b', text) and y >= 1984):
+        return "Carrera 3.2"
+    if _has(r'\b911\s*(?:2\.\d\s*)?S\b', text) and y <= 1977:
+        return "911S"
+    # Plain "911" titles: the model year says which car it is.
+    if 1978 <= y <= 1983:
+        return "SC"
+    if y >= 1984:
+        return "Carrera 3.2"
+    return "911"

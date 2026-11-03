@@ -41,7 +41,7 @@ from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
 from app.utils.model_lines import match_coachbuilt_line
 from app.utils.model_lines import match_model_line as match_model_line_shared
-from app.utils.variants import match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base, parse_356_variant
+from app.utils.variants import gbody_variant, early_carrera_variant, match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base, parse_356_variant
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -209,23 +209,8 @@ def _parse_variant_raw(model_line: str, year: int, text: str, trim: str) -> str:
         if gen == "964" and is_964_rs_38(combined):
             return "RS 3.8"
         if gen == "G-Body":
-            if "Slant Nose" in combined:                return "Turbo 3.3 Slant Nose"
-            if "MFI" in combined:                       return "Carrera 2.7 MFI"
-            if "Carrera 2.7" in combined:               return "Carrera 2.7"
-            if "Carrera RS 3.0" in combined:            return "Carrera RS 3.0"
-            if "Carrera RS" in combined:                return "Carrera RS 2.7"
-            if "Speedster" in combined:                 return "Speedster"
-            if "Turbo" in combined or "930" in combined: return "930 Turbo"
-            if "Targa" in combined:                     return "Targa"
-            if "Carrera" in combined and year <= 1977:  return "Carrera 2.7"
-            if "SC" in combined:                        return "SC"
-            if "Carrera 3.2" in combined or ("Carrera" in combined and year >= 1984):
-                                                        return "Carrera 3.2"
-            if re.search(r'\b911\s*(?:2\.\d\s*)?S\b', combined): return "911S"
-            # The taxonomy's entry-level card for these generations is "911",
-            # not "base" — a plain "1966 Porsche 911 Coupe" has no card under
-            # "base" and renders nowhere.
-            return "911"
+            # Shared rules: app/utils/variants.gbody_variant.
+            return gbody_variant(combined, year)
         if gen == "F-Body":
             if "Carrera RS 2.7" in combined or "Carrera RS" in combined: return "Carrera RS 2.7"
             if "Carrera 2.7" in combined: return "Carrera 2.7"
@@ -270,7 +255,7 @@ def parse_variant(model_line: str, year: int, text: str, trim: str) -> str:
         combined = f"{text} {trim}".strip()
         if variant == "base":
             variant = resolve_911_base(parse_generation(model_line, year, combined), combined)
-        variant = cabriolet_variant(parse_generation(model_line, year, combined), variant, combined)
+        variant = cabriolet_variant(parse_generation(model_line, year, combined), variant, combined, year)
     return variant
 
 

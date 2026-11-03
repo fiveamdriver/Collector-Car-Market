@@ -62,7 +62,7 @@ async def main() -> None:
 
     async with AsyncSessionLocal() as s:
         rows = (await s.execute(text(
-            f"SELECT id, lot_title, details_text, year, model_line, {cols} FROM auction_results"
+            f"SELECT id, lot_title, details_text, year, model_line, generation, variant, {cols} FROM auction_results"
         ))).mappings().fetchall()
 
     updates, changed = [], collections.Counter()

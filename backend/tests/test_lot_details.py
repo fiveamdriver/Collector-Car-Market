@@ -207,3 +207,28 @@ class TestExtract(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestCollectionName(unittest.TestCase):
+    def test_collection_name_is_not_a_colour(self):
+        # Broad Arrow catalogue bullet: an owner's collection, not the paint.
+        text = "Offered from the Todd Blue Collection\nOne of 26 Turbo Carreras built for 1976\nChassis: 9306800000"
+        self.assertIsNone(extract(text)["exterior_color"])
+
+
+class TestCatalogueEdgeCases(unittest.TestCase):
+    def test_unreadable_pts_name_does_not_fall_back_to_prose(self):
+        # Broad Arrow catalogue prints the PTS name run together; the essay
+        # mentions the Black interior. Empty beats wrong.
+        text = ("Finished in Paint to Sample azureblue356 with full PPF over a Black Leather/Race-Tex interior\n"
+                "Chassis: WP0AE2A87RK274268\n--\nThe car is finished in Black over Black and was delivered new.")
+        out = extract(text)
+        self.assertIsNone(out["exterior_color"])
+        self.assertTrue(out["paint_to_sample"])
+
+    def test_pts_selection_today_is_not_this_cars_pts(self):
+        # The colour is a PTS choice *today*; this car wore it as a factory colour.
+        text = ("Originally finished in the exceptionally rare and highly desirable factory color of Riviera Blue\n"
+                "--\nIt was finished in the official communication color of Riviera Blue, today a coveted "
+                "Paint to Sample selection and one of the most emblematic Porsche colors of the 1990s.")
+        self.assertFalse(extract(text)["paint_to_sample"])

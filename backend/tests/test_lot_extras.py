@@ -99,6 +99,23 @@ class ChassisInteriorTests(unittest.TestCase):
         self.assertIsNone(parse_interior(bullets("Refreshed Interior")))
         self.assertIsNone(parse_interior(bullets("New Black sport interior including headliner")))
 
+    def test_interior_after_over(self):
+        # Broad Arrow / RM / Gooding highlight phrasing.
+        self.assertEqual(parse_interior(bullets(
+            "Finished in its original shade of era-evoking Light Yellow over a black interior "
+            "with Shetland cloth seat inserts")), "black")
+        self.assertEqual(parse_interior(bullets(
+            "Finished in Sport Classic Grey over a beautiful Espresso leather interior")),
+            "Espresso leather")
+        self.assertEqual(parse_interior(bullets(
+            "Finished in GT Silver Metallic over an Ascot Brown hide interior")), "Ascot Brown hide")
+        self.assertIsNone(parse_interior(bullets(
+            "Finished in White over an uncommon black leather Weissach Package interior")))
+        self.assertIsNone(parse_interior(bullets(
+            "Finished in Silver Metallic over a Black Competition-Focused Interior")))
+        self.assertIsNone(parse_interior(bullets(
+            "Finished in Paint to Sample Signal Yellow over a leather interior in Black")))
+
 
 class OptionsProvenanceTests(unittest.TestCase):
     def test_options(self):
@@ -199,3 +216,132 @@ class PaintToSampleTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SonderwunschTests(unittest.TestCase):
+    """Real phrasings from stored lots. Tag only statements about this car."""
+
+    def test_title_and_bullets(self):
+        from app.utils.lot_extras import parse_sonderwunsch as sw
+        self.assertTrue(sw('1983 Porsche 911 Turbo WLS "Sonderwunsch" Slantnose Coupe', None))
+        self.assertTrue(sw("Special Wishes 1987 Porsche 911 Turbo Slant Nose Coupe", None))
+        self.assertTrue(sw("2022 Porsche 911 GT3", bullets("Sonderwunsch Factory Commissioning")))
+        self.assertTrue(sw("2022 Porsche 911", bullets("~$49k in Sonderwunsch Options")))
+
+    def test_prose_about_this_car(self):
+        from app.utils.lot_extras import parse_sonderwunsch as sw
+        for sentence in (
+            "This 2018 Porsche 911 GT3 was ordered through the Sonderwunsch Factory Commissioning program.",
+            "It was specified with $93k of Sonderwunsch (Special Wishes) commissioning.",
+            "Finished in paint-to-sample Yachting Blue in addition to the $13k Sonderwunsch Factory Commissioning.",
+            "Special Wishes options added over $30,000 to the build.",
+            "This is a one owner “Special Wishes” car that was bought in Scotland.",
+            "It was optioned from the factory with a Sonderwunsch interior trimmed in Saddle Brown "
+            "leather with Houndstooth-style cloth inserts.",
+            "Two Sonderwunsch 'Z' options were specified.",
+        ):
+            self.assertTrue(sw("1995 Porsche 911", join_details([], sentence)), sentence)
+
+    def test_not_this_car(self):
+        from app.utils.lot_extras import parse_sonderwunsch as sw
+        for title, line in (
+            ("1988 Porsche 911 Turbo", "Porsche’s Exclusive Manufaktur program—sometimes called “Sonderwunsch,” "
+                                       "or “Special Wishes”—obliged with an option package."),
+            ("1985 Porsche 911 Turbo", "Most were ordered from Porsche with numerous options from its Special "
+                                       "Wishes department."),
+            ("2015 Porsche 918 Spyder", "A “Special Wishes” extended-length external charging cable."),
+            ("1993 Porsche 911 Carrera RSR 3.8", "A truly incredible car representing the physical "
+                                                 "actualization of “special wishes”."),
+            ("1986 Porsche 911 Turbo", "Black Interior w/ Sonderwunsch-Style Details"),
+            ("1985 Porsche 930 Cabriolet", "Believed to be built as part of Porsche's Special Wishes Program"),
+            ("1966 Porsche 911", "The owner also had some sonderwunsch (special request) options installed."),
+            ("1990 Porsche 911 Reimagined by Singer", "Features Multiple Special Wish Options"),
+            # Exclusive Custom Tailoring, described with the English translation
+            ("2019 Porsche 911 Speedster", "Custom tailoring option?”special wishes"),
+            ("2014 Porsche 911 Turbo S Cabriolet", "Porsche Special Wishes custom tailering option"),
+            # One option code is one option, not a Sonderwunsch build
+            ("1999 Porsche 911 Carrera", "09981 and 09991 option codes from the Porsche “Sonderwunsch” "
+                                        "(Special Wishes) program listed on the factory options sticker"),
+            ("1997 Porsche 911 Carrera S", "09991 – Car was manufactured for the Sonderwunsch Programm, "
+                                           "now called Exclusive"),
+        ):
+            self.assertFalse(sw(title, join_details([line], line)), line)
+
+    def test_exclusive_era_claims_are_not_sonderwunsch(self):
+        from app.utils.lot_extras import parse_sonderwunsch as sw
+        # Factory Commissioning began in 2021; earlier "Sonderwunsch" = Exclusive options.
+        line = "This car was ordered through the Sonderwunsch factory commissioning program."
+        self.assertFalse(sw("2016 Porsche 911 GT3 RS", join_details([], line), 2016))
+        self.assertFalse(sw("2018 Porsche 911 GT3", join_details(["Sonderwunsch Factory Commissioning"]), 2018))
+        self.assertTrue(sw("2022 Porsche 911 GT3", join_details(["Sonderwunsch Factory Commissioning"]), 2022))
+        # The classic department's builds still count.
+        self.assertTrue(sw('1983 Porsche 911 Turbo WLS "Sonderwunsch" Slantnose Coupe', None, 1983))
+        # 1987-2020: Porsche Exclusive, even for full factory builds described as Sonderwunsch.
+        self.assertFalse(sw("1988 Porsche 911 Turbo 'Flat-Nose' Coupe",
+                            join_details(["Produced through Porsche’s Sonderwunsch (Special Request) program"]), 1988))
+        self.assertFalse(sw('1999 Porsche 911 Classic Club Coupe "Sonderwunsch" Factory One-Off', None, 1999))
+        # A special edition (Exclusive Manufaktur series) with its certificate is not a commission.
+        self.assertFalse(sw("2021 Porsche 911 Targa 4S Heritage Design Edition",
+                            join_details(["Accompanied by Special Wishes Certificate, build record"]), 2021))
+
+    def test_is_an_option_label(self):
+        self.assertEqual(parse_options("2022 Porsche 911 GT3",
+                                       bullets("Sonderwunsch Factory Commissioning", "Burmester")),
+                         ["Sonderwunsch", "Burmester"])
+
+
+class PtsNotFactoryTests(unittest.TestCase):
+    """PTS means a Porsche factory order. Real phrasings that are not one."""
+
+    def test_other_builders(self):
+        for title in ("1991 Porsche 911 Carrera 2 Coupe by Singer",
+                      "1988 Porsche 959 SC Reimagined by Canepa",
+                      "1996 Porsche 911 Remastered by Gunther Werks"):
+            self.assertIsNone(parse_pts(title, join_details(["Paint-to-Sample Lunar Silver Paint"])), title)
+
+    def test_respray_guess_and_current_colour(self):
+        for line in (
+            "This example was resprayed by the selling dealer in Slate Grey Metallic, a paint-to-sample color.",
+            "From its color code tag it would seem that this was actually a non-standard 'paint to sample' car.",
+            "Imported into the UK in 2002, the car is now in Bali Blue - a special order colour - with tan interior.",
+            "Finished in Chelsea Grey, a not-so-distant cousin to Porsche’s own paint-to-sample color of China Grey.",
+        ):
+            self.assertIsNone(parse_pts("1996 Porsche 911", join_details([], line)), line)
+
+    def test_still_factory(self):
+        for line in (
+            "The bumper holes were filled before the car was repainted in its original special-order color of Smyrna Green.",
+            "The car came specified in paint-to-sample Braun and was repainted in Copper Brown Metallic.",
+        ):
+            self.assertTrue(parse_pts("1963 Porsche 356", join_details([], line)), line)
+
+
+class SingleGearboxModelTests(unittest.TestCase):
+    def d(self, title, text, year, gen, variant, line="911"):
+        from app.utils.lot_extras import derive
+        return derive(title, text, year, line, gen, variant)["transmission"]
+
+    def test_model_settles_it(self):
+        self.assertEqual(self.d("1987 Porsche 911 Turbo", None, 1987, "G-Body", "930 Turbo"), "Manual")
+        self.assertEqual(self.d("2018 Porsche 911 GT2 RS", None, 2018, "991.2", "GT2 RS"), "PDK")
+        self.assertEqual(self.d("2017 Porsche 911 Turbo S Automatic", None, 2017, "991.2", "Turbo S"), "PDK")
+
+    def test_both_gearboxes_offered_is_not_guessed(self):
+        self.assertIsNone(self.d("2018 Porsche 911 GT3", None, 2018, "991.2", "GT3"))
+        self.assertIsNone(self.d("2008 Porsche 911 Turbo", None, 2008, "997.1", "Turbo"))
+
+    def test_listing_that_contradicts_the_model_is_left_for_review(self):
+        # A manual-converted 991 Turbo: the derive step says unknown, the stored value stays.
+        self.assertIsNone(self.d("2013 Porsche 911 Turbo Cabriolet 6-Speed", None, 2013, "991.1", "Turbo"))
+
+
+class M491Tests(unittest.TestCase):
+    def test_factory_option_only(self):
+        from app.utils.lot_extras import parse_m491 as m
+        self.assertTrue(m("1986 Porsche 911 Carrera M491 Turbo-Look Coupe", None, 1986))
+        self.assertTrue(m("1988 Porsche 911 Carrera Cabriolet", bullets("Factory M491 Turbo Look Package"), 1988))
+        self.assertTrue(m("1987 Porsche 911 Carrera Supersport Coupe", None, 1987))
+        self.assertFalse(m("1974 Porsche 911 Carrera Targa M491-Look", None, 1974))
+        self.assertFalse(m("1983 Porsche 911SC Turbo-Look Conversion", None, 1983))
+        self.assertFalse(m("1986 Porsche 911 Carrera Turbo-Look Conversion", None, 1986))
+        self.assertFalse(m("1985 Porsche 911 Carrera 930-Style Widebody", None, 1985))

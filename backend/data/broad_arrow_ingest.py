@@ -37,7 +37,7 @@ from app.utils.lot_details import parse_odometer_value
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
 from app.utils.model_lines import match_model_line as match_model_line_shared
-from app.utils.variants import match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base, parse_356_variant
+from app.utils.variants import gbody_variant, early_carrera_variant, match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base, parse_356_variant
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -95,6 +95,17 @@ AUCTION_EVENTS: dict[str, date] = {
     "dg26":  date(2026, 11,  7),  # The Zurich Auction 2026 (Dolder Grand)
 }
 
+# ── Sale calendar: drives the schedule (data/run_ingest.py due) ───────────────
+# Every upcoming Broad Arrow sale, by its first day. The catalogue must be
+# captured in the days before (broad_arrow_presale.py) and the results ingested
+# after, so these dates — not a fixed interval — decide when Broad Arrow runs.
+# Event codes are optional here: Broad Arrow assigns them when lots are posted.
+# Keep this in step with broadarrowauctions.com/auctions.
+SALE_CALENDAR: list[tuple[date, str]] = [
+    (date(2026, 11,  7), "The Zurich Auction 2026"),
+    # Las Vegas 2026, and the rest of the season through March 2027: add here.
+]
+
 # Non-USD events: event_code → USD conversion rate (local_price × rate = USD)
 # Schema.org hardcodes priceCurrency="USD" even for EUR/GBP/CHF auctions.
 # Rates are approximate mid-market for the auction period.
@@ -121,6 +132,19 @@ NON_USD_RATES: dict[str, float] = {
 _EVENT_CODE_RE  = re.compile(r'/vehicles/([a-z]{2,4}\d{2}[a-z]?)_', re.IGNORECASE)
 
 
+_LOT_KEY_RE = re.compile(r"/vehicles/([a-z0-9]+)_r?0*(\d+)(?:/|$)", re.IGNORECASE)
+
+
+def lot_key(url: str | None) -> tuple[str, int] | None:
+    """
+    (sale code, lot number) for a lot URL: "/vehicles/po25_r013/..." and
+    "/vehicles/po25_r0013/..." are the same lot. Broad Arrow has changed the
+    zero-padding of lot ids; comparing URLs alone stored 12 lots twice (2026-08).
+    """
+    m = _LOT_KEY_RE.search(url or "")
+    return (m.group(1).lower(), int(m.group(2))) if m else None
+
+
 def extract_event_code(url: str) -> str | None:
     m = _EVENT_CODE_RE.search(url)
     return m.group(1).lower() if m else None
@@ -138,7 +162,12 @@ def event_date(code: str | None) -> date | None:
     """
     if not code:
         return None
-    return AUCTION_EVENTS.get(code)
+    if code in AUCTION_EVENTS:
+        return AUCTION_EVENTS[code]
+    # A new sale not in the table yet: use the date the pre-sale capture read
+    # from its catalogue pages (data/broad_arrow_presale.py).
+    from app.services.enrichment import presale_sale_date
+    return presale_sale_date(code)
 
 
 # ── Model / variant parsing ───────────────────────────────────────────────────
@@ -202,23 +231,8 @@ def _parse_variant_raw(model_line: str, year: int, text: str) -> str:
         if gen == "964" and is_964_rs_38(text):
             return "RS 3.8"
         if gen == "G-Body":
-            if "Slant Nose" in text:                return "Turbo 3.3 Slant Nose"
-            if "MFI" in text:                       return "Carrera 2.7 MFI"
-            if "Carrera 2.7" in text:               return "Carrera 2.7"
-            if "Carrera RS 3.0" in text:            return "Carrera RS 3.0"
-            if "Carrera RS" in text:                return "Carrera RS 2.7"
-            if "Speedster" in text:                 return "Speedster"
-            if "Turbo" in text or "930" in text:    return "930 Turbo"
-            if "Targa" in text:                     return "Targa"
-            if "Carrera" in text and year <= 1977:  return "Carrera 2.7"
-            if "SC" in text:                        return "SC"
-            if "Carrera 3.2" in text or ("Carrera" in text and year >= 1984):
-                                                    return "Carrera 3.2"
-            if re.search(r'\b911\s*(?:2\.\d\s*)?S\b', text): return "911S"
-            # The taxonomy's entry-level card for these generations is "911",
-            # not "base" — a plain "1966 Porsche 911 Coupe" has no card under
-            # "base" and renders nowhere.
-            return "911"
+            # Shared rules: app/utils/variants.gbody_variant.
+            return gbody_variant(text, year)
         if gen == "F-Body":
             if "Carrera RS 2.7" in text or "Carrera RS" in text: return "Carrera RS 2.7"
             if "Carrera 2.7" in text:               return "Carrera 2.7"
@@ -262,7 +276,7 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
         # One Cabriolet card per generation, 2WD and 4WD together.
         if variant == "base":
             variant = resolve_911_base(parse_generation(model_line, year, text), text)
-        variant = cabriolet_variant(parse_generation(model_line, year, text), variant, text)
+        variant = cabriolet_variant(parse_generation(model_line, year, text), variant, text, year)
     return variant
 
 
@@ -373,7 +387,11 @@ async def ingest() -> None:
                 AuctionResult.auction_source == "Broad Arrow",
             )
         )
-        existing: set[str] = {row[0] for row in rows.fetchall()}
+        existing: set = set()
+        for (url,) in rows.fetchall():
+            existing.add(url)
+            if lot_key(url):
+                existing.add(lot_key(url))
 
     print(f"Existing Broad Arrow records: {len(existing)}")
 
@@ -412,11 +430,11 @@ async def ingest() -> None:
             for schema in schemas:
                 lot_url = schema.get("url") or ""
 
-                if lot_url and lot_url in existing:
+                if lot_url and (lot_url in existing or (lot_key(lot_url) and lot_key(lot_url) in existing)):
                     continue
 
                 code = extract_event_code(lot_url)
-                if code and code not in AUCTION_EVENTS:
+                if code and event_date(code) is None:
                     unknown_events.add(code)
 
                 rec = map_schema_car(schema)
@@ -425,6 +443,8 @@ async def ingest() -> None:
 
                 if lot_url:
                     existing.add(lot_url)
+                    if lot_key(lot_url):
+                        existing.add(lot_key(lot_url))
                 to_insert.append(rec)
 
             print(

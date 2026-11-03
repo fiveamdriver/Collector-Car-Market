@@ -241,10 +241,11 @@ def _about_other_part(lead_in: str) -> bool:
     """
     clause = _SUBCLAUSE_RE.split(_PAREN_RE.sub("", lead_in))[-1]
     return bool(_NOT_BODY_RE.search(clause))
-# A bullet the last-resort scan skips: about another part, or about who built
-# or sold it ("engine built by Porsche Specialist Dave Brown").
+# A bullet the last-resort scan skips: about another part, or about who built,
+# sold or owned it ("engine built by Porsche Specialist Dave Brown", "Offered
+# from the Todd Blue Collection" — a collection name, not a paint colour).
 _NOT_PAINT = re.compile(
-    r'\b(?:' + _NOT_BODY + r'|engine|gearbox|by|specialist|owner|dealer)\b',
+    r'\b(?:' + _NOT_BODY + r'|engine|gearbox|by|specialist|owner|dealer|collection)\b',
     re.IGNORECASE,
 )
 
@@ -331,7 +332,7 @@ def parse_color(fragments: list[str], bullets: bool = False) -> str | None:
 #   * Prose about the programme: "under its pricey paint-to-sample program".
 _PTS_WORD = r'(?:paint[-\s]?to[-\s]?sample(?:\s+plus)?|\bPTS\b\+?)'
 _PTS_LINE_RE = re.compile(r'paint[-\s]to[-\s]sample|\bPTS\b(?!\s+Porsche\s+Collection)', re.IGNORECASE)
-_PTS_NOT_PAINT = r'(?!\s+(?:program|programme|option|options|palette|list|catalog|offering|colou?rs\b))'
+_PTS_NOT_PAINT = r'(?!\s+(?:program|programme|option|options|palette|list|catalog|offering|selections?|choices?|colou?rs\b))'
 _Q = r'[\'"“”‘’]?'
 _PTS_PROSE_RES = [re.compile(p, re.IGNORECASE) for p in (
     # "finished in paint-to-sample Fashion Grey", "specified in rare PTS ..."
@@ -355,6 +356,12 @@ _SPECIAL_ORDER_PAINT_RE = re.compile(
     r'alcantara|vinyl|wheels?|calipers?|top|seats?|stitching|piping|carpet)))')
 
 
+# "Finished in Paint to Sample <name>" / "finished in PTS <name>": the bullet
+# names this car's paint, even when the name itself is unreadable.
+_STATED_PTS_PAINT_RE = re.compile(
+    r'\b(?:finished|painted|presented|ordered|specified|delivered)\s+in\s+(?:' + _PTS_WORD + r')', re.IGNORECASE)
+
+
 # Where a colour phrase ends: what follows is no longer its name.
 _PHRASE_END_RE = re.compile(r'[,.;:()]|\b(?:over|with|paint|paintwork|exterior|from|in)\b', re.IGNORECASE)
 
@@ -375,10 +382,27 @@ def _special_order_paint(fragment: str) -> bool:
     return False
 
 
+# Not a factory order: a later respray in a PTS colour ("resprayed by the
+# selling dealer in Slate Grey Metallic, a paint-to-sample color"; but "repainted
+# in its original special-order color" is), a guess ("it would seem that this
+# was a non-standard 'paint to sample'"), the colour it wears now ("the car is
+# now in Bali Blue - a special order colour"), or a comparison ("a cousin to
+# Porsche's own paint-to-sample color").
+_PTS_NOT_FACTORY_RE = re.compile(
+    r'\b(?:resprayed|repainted|refinished|repaint|respray)\b(?:(?!\boriginal\b)[^.;])*?'
+    r'(?:paint[-\s]?to[-\s]?sample|\bPTS\b|special[-\s]order)'
+    r'|\bit would seem\b|\bappears to have been\b|\bpossibly\b'
+    r'|\bnow\s+(?:in|finished|painted|wears)\b'
+    r'|\bcousin\b|\breminiscent\b|\binspired by\b',
+    re.IGNORECASE)
+
+
 def parse_paint_to_sample(fragments: list[str], prose: bool = False) -> bool | None:
     """True when the fragments state this car is paint-to-sample. Prose needs a
     statement about the car's paint; a bullet or title only needs the words."""
     for f in fragments:
+        if _PTS_NOT_FACTORY_RE.search(f):
+            continue
         if _special_order_paint(f):
             return True
         if prose:
@@ -414,7 +438,12 @@ def extract(text: str | None) -> dict:
     bullets = [ln.strip() for ln in head.split("\n") if ln.strip()]
     prose = split_fragments(tail)
     mileage = parse_mileage(bullets) or parse_mileage(prose, prose=True)
-    color = parse_color(bullets, bullets=True) or parse_color(prose)
+    color = parse_color(bullets, bullets=True)
+    # A bullet that states the paint ("Finished in Paint to Sample azureblue356")
+    # but whose name we can't read: leave the colour empty rather than take one
+    # from the prose, which is as likely to be the interior or another car.
+    if color is None and not any(_STATED_PTS_PAINT_RE.search(b) for b in bullets):
+        color = parse_color(prose)
     return {
         "mileage":         mileage,
         "exterior_color":  color,

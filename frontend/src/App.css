@@ -383,6 +383,19 @@ button { font-family: inherit; cursor: pointer; }
   .card-grid--photo { padding-inline: 0; }
 }
 
+/* Five to a row where a generation asks for it (G-Body). Stepped down with the
+   same breakpoints as the four-column grid below. */
+.card-grid--photo.card-grid--photo-5 { grid-template-columns: repeat(5, 1fr); }
+@media (max-width: 1200px) {
+  .card-grid--photo.card-grid--photo-5 { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 900px) {
+  .card-grid--photo.card-grid--photo-5 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .card-grid--photo.card-grid--photo-5 { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 1200px) {
   .card-grid--photo { grid-template-columns: repeat(3, 1fr); }
 }

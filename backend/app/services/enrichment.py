@@ -32,8 +32,10 @@ import ssl
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
+from datetime import date, datetime
 from pathlib import Path
 from typing import Awaitable, Callable, Iterable
 
@@ -42,7 +44,8 @@ from sqlalchemy import text
 
 from app.database import AsyncSessionLocal
 from app.services import derived
-from app.utils.lot_details import extract, html_to_text, join_details, parse_odometer_value
+from app.utils.lot_details import (PROSE_SEPARATOR, extract, html_to_text, join_details,
+                                   parse_odometer_value)
 
 SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
@@ -264,32 +267,257 @@ def _broad_arrow_index() -> dict[str, list[tuple[str, str]]]:
         return index
 
 
+_BA_DESCRIPTION_RE = re.compile(r"<div class=['\"]description['\"]>(.*?)</div>", re.DOTALL)
+_BA_META_DESC_RE = re.compile(r'<meta content=["\']([^"\']*)["\'] name=["\']description["\']')
+# Lots that sold this recently may have been archived after the bulk index was
+# cached, so they get their own index query.
+BA_RECENT_DAYS = 120
+
+
+def parse_broad_arrow_page(page: str) -> tuple[str | None, bool]:
+    """
+    (details_text, is_catalogue) from one Broad Arrow lot page.
+
+    Before the sale the page carries the catalogue: highlight bullets plus the
+    full essay ("completed in Light Yellow over a leatherette interior ...
+    limited slip differential, Fuchs wheels"). After the sale both are gone and
+    only the Schema.org block (chassis) and a cut-off meta description remain.
+    """
+    bullets: list[str] = []
+    h = _BA_HIGHLIGHTS_RE.search(page)
+    if h:
+        bullets = [html_to_text(li) for li in _LI_RE.findall(h.group(1))]
+    prose = ""
+    d = _BA_DESCRIPTION_RE.search(page)
+    if d:
+        # Short paragraphs are spec lines ("Chassis No. 9115600415",
+        # "Please note this vehicle is titled as Model Year 1974").
+        spec, prose = split_html(d.group(1))
+        bullets += spec
+    is_catalogue = bool(bullets or prose)
+    if not is_catalogue:
+        meta = _BA_META_DESC_RE.search(page)
+        if meta:
+            prose = html_to_text(meta.group(1)).replace("\n", " ").removesuffix("...")
+    return join_details(bullets + _ba_structured(page), prose), is_catalogue
+
+
+# Catalogue text saved before the sale by data/broad_arrow_presale.py, one JSON
+# file per lot. Checked before archive.org: our own copy can't go missing.
+BA_PRESALE_DIR = _CACHE_DIR / "broad_arrow_presale"
+
+
+def presale_path(lot_id: str) -> Path:
+    return BA_PRESALE_DIR / f"{lot_id}.json"
+
+
+# Lot header: "<span>\nThe Amelia Auction 2026\n</span> <flag> <span>Friday, 06 March 2026</span>"
+_BA_SALE_RE = re.compile(
+    r'<span>\s*([^<>]{3,80}?)\s*</span>\s*(?:<span[^>]*flag[^>]*></span>\s*)?'
+    r'<span>\s*(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s+'
+    r'(\d{1,2} [A-Z][a-z]+ \d{4})\s*</span>')
+
+
+def parse_broad_arrow_sale(page: str) -> tuple[str, str] | None:
+    """(sale name, ISO date of the lot's session) from a lot page header."""
+    m = _BA_SALE_RE.search(page)
+    if not m:
+        return None
+    try:
+        day = datetime.strptime(m.group(2), "%d %B %Y").date()
+    except ValueError:
+        return None
+    return html_to_text(m.group(1)), day.isoformat()
+
+
+def save_presale(url: str, details_text: str, snapshot: str, page: str | None = None) -> None:
+    m = _BA_LOT_ID_RE.search(url)
+    if not m or not details_text:
+        return
+    sale = parse_broad_arrow_sale(page) if page else None
+    BA_PRESALE_DIR.mkdir(parents=True, exist_ok=True)
+    presale_path(m.group(1)).write_text(json.dumps({
+        "url": url, "snapshot": snapshot, "saved_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "sale_name": sale[0] if sale else None, "sale_date": sale[1] if sale else None,
+        "details_text": details_text}, indent=1))
+
+
+def presale_sale_date(event_code: str):
+    """Earliest session date recorded for this event's lots by the pre-sale
+    capture: lets a sale missing from AUCTION_EVENTS still get its date."""
+    dates = []
+    for p in BA_PRESALE_DIR.glob(f"{event_code}_*.json"):
+        try:
+            d = json.loads(p.read_text()).get("sale_date")
+        except ValueError:
+            continue
+        if d:
+            dates.append(date.fromisoformat(d))
+    return min(dates) if dates else None
+
+
+def load_presale(lot_id: str) -> str | None:
+    p = presale_path(lot_id)
+    if not p.exists():
+        return None
+    try:
+        return json.loads(p.read_text()).get("details_text") or None
+    except ValueError:
+        return None
+
+
+def _sale_date(url: str):
+    from data.broad_arrow_ingest import event_date, extract_event_code
+    return event_date(extract_event_code(url))
+
+
+def _lot_snapshots(lot_id: str, sale_date, url_hint: str | None = None) -> list[tuple[str, str]]:
+    """[(timestamp, url)] of archived 200 responses for one lot."""
+    rows = _broad_arrow_index().get(lot_id)
+    if rows:
+        return rows
+    # Not in the cached bulk index. For an old sale that means never archived;
+    # a recent one may have been captured since (broad_arrow_presale.py).
+    if sale_date and (date.today() - sale_date).days > BA_RECENT_DAYS:
+        return []
+    global _cdx_down
+    if not _cdx_down:
+        try:
+            raw = _wayback_get(
+                f"{WAYBACK_CDX}?url=broadarrowauctions.com/vehicles/{lot_id}/&matchType=prefix"
+                "&filter=statuscode:200&fl=original,timestamp&output=json")
+            found = json.loads(raw)[1:] if raw and raw.strip() else []
+            return [(ts, orig.replace("http://", "https://", 1)) for orig, ts in found]
+        except FetchBlocked as exc:
+            if not any(f"HTTP {c}" in str(exc) for c in (502, 503, 504)):
+                raise  # 403 / 429: archive.org wants us to stop — end the run
+        except (TimeoutError, OSError, ValueError):
+            pass  # CDX hanging or returning an error page
+        # The CDX index service is often overloaded (503 or 45 s hangs) while
+        # snapshot playback works fine. Stop asking it for the rest of the run.
+        _cdx_down = True
+        print("  ~ archive.org index (CDX) unavailable; using the availability "
+              "API for the rest of this run", flush=True)
+    return _available_presale(lot_id, url_hint, sale_date)
+
+
+# Set once the CDX service fails in this run; later lots skip straight to the
+# availability API instead of each waiting out a 45 s timeout.
+_cdx_down = False
+_available_down = False
+WAYBACK_AVAILABLE = "https://archive.org/wayback/available"
+# Lots the availability API found no usable pre-sale copy of, with when. A
+# retry within a day skips them rather than spending archive.org's request
+# budget on the same answer (the 429 limit is shared with snapshot playback).
+_BA_NO_COPY_FILE = _CACHE_DIR / "broad_arrow_no_presale_copy.json"
+_BA_NO_COPY_TTL = 86400
+
+
+def _no_copy_cache() -> dict[str, float]:
+    try:
+        return json.loads(_BA_NO_COPY_FILE.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def _remember_no_copy(lot_id: str) -> None:
+    cache = _no_copy_cache()
+    cache[lot_id] = time.time()
+    _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    _BA_NO_COPY_FILE.write_text(json.dumps(cache))
+
+
+def _available_presale(lot_id: str, url: str | None, sale_date) -> list[tuple[str, str]]:
+    """
+    Fallback when CDX is down: the availability API returns the one snapshot
+    closest to a timestamp. Asked for the sale date, it is accepted only when
+    taken on or before the sale day — a post-sale copy may be stripped, and
+    storing it would mark the lot done with thinner text than a later run could
+    get. No pre-sale copy: skip the lot, the next run retries via CDX.
+    """
+    if not url or not sale_date:
+        print(f"  ~ index lookup busy for {lot_id}; skipped for now", flush=True)
+        return []
+    global _available_down
+    if _available_down:
+        print(f"  ~ index lookup busy for {lot_id}; skipped for now", flush=True)
+        return []
+    checked = _no_copy_cache().get(lot_id)
+    if checked and time.time() - checked < _BA_NO_COPY_TTL:
+        return []  # checked within the last day; nothing usable then
+    day = sale_date.strftime("%Y%m%d")
+    q = (f"{WAYBACK_AVAILABLE}?url={urllib.parse.quote(url.split('://', 1)[-1], safe='/')}"
+         f"&timestamp={day}235959")
+    try:
+        raw = http_get(q, timeout=30, user_agent=WAYBACK_UA)
+        closest = (json.loads(raw or "{}").get("archived_snapshots") or {}).get("closest")
+    except FetchBlocked as exc:
+        # The availability API has its own, tighter limit (~20 calls at 20 s
+        # spacing) while snapshot playback keeps working. Turn the fallback
+        # off for this run; lots already in the bulk index carry on.
+        _available_down = True
+        print(f"  ~ availability API refusing ({exc}); recent lots skipped for the rest "
+              "of this run", flush=True)
+        return []
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+        print(f"  ~ availability lookup failed for {lot_id} ({exc}); skipped for now", flush=True)
+        return []
+    finally:
+        time.sleep(WAYBACK_SPACING)
+    if not closest or not closest.get("available") or str(closest.get("status")) != "200":
+        print(f"  ~ no archive copy found for {lot_id}; skipped for now", flush=True)
+        _remember_no_copy(lot_id)
+        return []
+    ts = closest["timestamp"]
+    if ts[:8] > day:
+        print(f"  ~ only a post-sale copy of {lot_id} ({ts}); skipped for now", flush=True)
+        _remember_no_copy(lot_id)
+        return []
+    return [(ts, url)]
+
+
 def fetch_broad_arrow(url: str) -> str | None:
     """
-    Pre-sale highlights for a Broad Arrow lot from its newest useful snapshot.
-    None when the lot was never archived — left unmarked so a later run (or
-    another source) can still fill it.
+    The catalogue text of a Broad Arrow lot, from an archive.org snapshot taken
+    before the sale. None when the lot was never archived — left unmarked so a
+    later run can still fill it.
     """
     m = _BA_LOT_ID_RE.search(url)
     if not m:
         return ""
-    rows = _broad_arrow_index().get(m.group(1))
+    saved = load_presale(m.group(1))
+    if saved:
+        return saved
+    sale = _sale_date(url)
+    rows = _lot_snapshots(m.group(1), sale, url)
     if not rows:
         return None
-    # Snapshots of this lot's own URL first, newest first; the index also
-    # holds pages like /vehicles/<id>/release that are not the lot page.
+    # The lot's own URL only; the index also holds /vehicles/<id>/release etc.
     path = url.split("broadarrowauctions.com", 1)[-1].rstrip("/")
-    ranked = sorted(set(rows), key=lambda r: (r[1].rstrip("/").endswith(path), r[0]), reverse=True)
-    for timestamp, original in ranked[:MAX_SNAPSHOTS_TRIED]:
+    rows = [r for r in set(rows) if r[1].split("?")[0].rstrip("/").endswith(path)] or list(set(rows))
+    # Newest snapshot from before the sale first: it has the catalogue in its
+    # final form. After the sale Broad Arrow strips the page in stages (the
+    # essay goes first, the highlights within days), so post-sale snapshots
+    # are tried oldest first.
+    cutoff = sale.strftime("%Y%m%d") + "235959" if sale else None
+    pre = sorted((r for r in rows if not cutoff or r[0] <= cutoff), reverse=True)
+    post = sorted(r for r in rows if cutoff and r[0] > cutoff)
+    best, best_rank = None, -1
+    for timestamp, original in (pre + post)[:MAX_SNAPSHOTS_TRIED]:
         page = _wayback_get(f"https://web.archive.org/web/{timestamp}id_/{original}")
         if not page:
             continue
-        h = _BA_HIGHLIGHTS_RE.search(page)
-        if h:
-            bullets = [html_to_text(li) for li in _LI_RE.findall(h.group(1))]
-            return join_details(bullets + _ba_structured(page)) or ""
-    # Archived, but only after the sale (no highlights in any snapshot).
-    return ""
+        details, is_catalogue = parse_broad_arrow_page(page)
+        has_essay = PROSE_SEPARATOR in (details or "") and is_catalogue
+        if has_essay:
+            return details
+        # 2 = highlights without essay, 1 = stripped page (chassis only)
+        rank = 2 if is_catalogue else 1 if details else 0
+        if rank > best_rank:
+            best, best_rank = details, rank
+        if not is_catalogue and cutoff and timestamp > cutoff:
+            break  # a stripped post-sale page: later snapshots are no better
+    return best or ""
 
 
 # ── Broad Arrow live pages via Playwright (superseded by fetch_broad_arrow) ──
@@ -453,10 +681,11 @@ class Watchdog:
 # ── Database ──────────────────────────────────────────────────────────────────
 
 # SET expressions all see the row's old values, so details_filled records
-# exactly the fields that were empty and are filled by this update.
+# exactly the fields that were empty and are filled by this update — added to
+# what an earlier fetch of the same lot filled, so a re-fetch keeps that record.
 _UPDATE_SQL = text("""
     UPDATE auction_results SET
-        details_filled     = NULLIF(concat_ws(',',
+        details_filled     = NULLIF(concat_ws(',', details_filled,
             CASE WHEN mileage IS NULL AND CAST(:mileage AS INTEGER) IS NOT NULL
                  THEN 'mileage' END,
             CASE WHEN exterior_color IS NULL AND CAST(:exterior_color AS VARCHAR) IS NOT NULL

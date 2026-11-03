@@ -159,7 +159,36 @@ def parse_interior(details_text: str | None) -> str | None:
                 and not re.search(r'\b(?:new|refresh|restor|replac|redone|upgraded|finished)\w*\b',
                                   value, re.IGNORECASE)):
             return value.strip(" ,")
+    # Broad Arrow / RM highlight: "Finished in Light Yellow over a black
+    # interior with Shetland cloth seat inserts".
+    for line in bullets:
+        m = _OVER_INTERIOR_RE.search(line)
+        if m:
+            value = _INTERIOR_ADJ_RE.sub("", m.group(1))
+            value = re.sub(r'-\s+', '-', value)  # "Leather-to- Sample"
+            if (_MATERIAL_RE.search(value) and len(value.split()) <= 5
+                    and not _NOT_INTERIOR_RE.search(value)
+                    and not re.search(r'focused|oriented|inspired|style|package|\bpack\b', value, re.IGNORECASE)
+                    # "over a leather interior in Black": a bare material says too little.
+                    and not re.fullmatch(r'(?:full[-\s])?(?:leather(?:ette)?|cloth|vinyl|fabric)',
+                                         value.strip(), re.IGNORECASE)):
+                return value.strip(" ,")
     return None
+
+
+# Praise in front of the interior's name: "a beautiful Espresso leather".
+_INTERIOR_ADJ_RE = re.compile(
+    r'^(?:(?:beautiful|rare|special|stunning|striking|attractive|lovely|desirable|smart|'
+    r'handsome|contrasting|elegant|luxurious|rich|gorgeous|sumptuous|classic|correct|uncommon|'
+    r'optional|extended|authentic|bespoke|seldom[-\s]seen|'
+    r'period[-\s]correct|factory[-\s]correct)\s+)+',
+    re.IGNORECASE)
+
+
+_OVER_INTERIOR_RE = re.compile(
+    r'\bover\s+(?:an?\s+|the\s+|its\s+)?(?:original\s+|matching\s+|factory\s+)?'
+    r'([A-Za-z][\w/ -]{1,40}?)\s+(?:interior|upholstery|cabin|cockpit)\b',
+    re.IGNORECASE)
 
 
 # (label, pattern for the title and bullets). Order is display order.
@@ -211,13 +240,112 @@ def _scan(patterns, lines: list[str]) -> list[str]:
     return found
 
 
-def parse_options(title: str | None, details_text: str | None) -> list[str]:
+# ── Sonderwunsch ("Special Wishes", Porsche's factory special-order department) ──
+#
+# True only for a statement about THIS car. Not counted: history of the
+# programme ("Porsche's Exclusive Manufaktur—sometimes called Sonderwunsch—
+# obliged with an option package"), look-alikes ("Sonderwunsch-Style Details"),
+# hedges ("Believed to be built as part of ..."), and aftermarket work ("the
+# owner also had some sonderwunsch options installed" by a restorer).
+_SW = r'(?:sonderwunsch\w*|special[-\s]wish(?:es)?)'
+_SW_RE = re.compile(r'\b' + _SW + r'\b', re.IGNORECASE)
+_SW_NOT_RE = re.compile(
+    _SW + r'[-\s]style\b|\bbelieved\b|\breportedly\b|\baccording to\b|\binstalled\b'
+    # History of the programme or of the model, not this car
+    r'|\bmost\s+were\b|\binitially\b|\bto be built\b|\bnow called\b(?!\s+exclusiv)'
+    r'|\bsometimes\s+called\b|\balso\s+known\s+as\b|\bformerly\b|\bknown\s+as\b'
+    # Figurative: "the physical actualization of 'special wishes'"
+    r'|\bactuali[sz]ation\b|\bembodiment\b|\bwhat\b[^.;]{0,20}\bmeant\b'
+    # The 918's catalogue accessory: "a 'Special Wishes' extended-length charging cable"
+    r'|\bcharging\s+cable\b'
+    # Exclusive options described with the English translation: "Porsche Special
+    # Wishes custom tailoring option" is Exclusive Custom Tailoring, not Sonderwunsch.
+    r'|\bcustom\s+tail[eo]r\w*'
+    # A single option code (09991 / 09981) means one option from the
+    # Exclusive / Sonderwunsch department, not a Sonderwunsch build.
+    r'|\b0?9{2,3}[89]1\b|\boption\s+codes?\b'
+    # The certificate that comes with a special edition is not a commission.
+    r'|' + _SW + r'\W+certificate\b',
+    re.IGNORECASE)
+# Exclusive Manufaktur special editions: a series, not a Sonderwunsch commission.
+_SW_SPECIAL_EDITION_RE = re.compile(r'\bheritage\s+design\s+edition\b', re.IGNORECASE)
+# Model years when "Sonderwunsch" / "Special Wishes" in a listing is the old name
+# used loosely for Porsche Exclusive: the department was renamed Porsche Exclusive
+# in 1986 (the M505 flat-nose became a price-list option for 1987), and Sonderwunsch
+# returned only in 2021 (Factory Commission / Re-Commission / One-Off). Cars from
+# these years are Exclusive builds or options, however the listing words it.
+SW_EXCLUSIVE_ERA = range(1987, 2021)
+# Another builder's own "special wishes" (Singer's options list).
+_SW_OTHER_BUILDER_RE = re.compile(r'\bsinger\b|\breimagined\b', re.IGNORECASE)  # see _OTHER_BUILDER_RE
+_Q2 = r'[\'"“”‘’]?'
+_SW_PROSE_RES = [re.compile(p, re.IGNORECASE) for p in (
+    # "ordered through the Sonderwunsch Factory Commissioning program",
+    # "optioned with slantnose bodywork as part of Porsche's Sonderwunsch program",
+    # "specified with experimental paint by way of Porsche's “Special Wishes”"
+    r'\b(?:ordered|specified|optioned|fitted|built|commissioned|equipped|manufactured|'
+    r'delivered|finished|produced|completed)\b[^.;]{0,120}?\b(?:through|via|from|with|under|by|'
+    r'as part of|for|at|by way of)\s+(?:[\w’\'$~,.“”"]+\s+){0,5}?' + _Q2 + _SW,
+    # "specified with $93k of Sonderwunsch commissioning", "the $13k Sonderwunsch"
+    r'\$[\d,.]+\s*k?\s+(?:(?:of|in)\s+)?(?:\w+\s+){0,2}?' + _Q2 + _SW,
+    # "Two Sonderwunsch 'Z' options were specified",
+    # "Special Wishes options added over $30,000 to the build"
+    _SW + _Q2 + r'[^.;]{0,30}\b(?:options?|features)\b[^.;]{0,20}\b(?:(?:were|was)\s+'
+    r'(?:specified|fitted|ordered)|added|total(?:l?ing)?)',
+    # "a Sonderwunsch interior", "mit einem Sonderwunsch-Innenraum",
+    # "This is a one owner “Special Wishes” car"
+    r'\b(?:a|an|its|this|einem|einen)\s+(?:[\w-]+\s+){0,3}?' + _Q2 + _SW + _Q2
+    + r'[\s-]?(?:interior|innenraum|cockpit|cabin|car|example|coupe|coupé|cabriolet|targa|turbo)\b',
+    # "a well-specified example of Porsche's 1980s Sonderwunsch programme"
+    r'\b(?:this|is an?|one)\b[^.;]{0,40}\bexample of\b[^.;]{0,40}?' + _SW,
+)]
+
+
+def parse_sonderwunsch(title: str | None, details_text: str | None, year: int | None = None) -> bool:
+    """A Sonderwunsch (Special Wishes) car, by its title, a bullet, or a prose
+    statement about this car."""
+    if _SW_OTHER_BUILDER_RE.search(title or ""):
+        return False
+    if year in SW_EXCLUSIVE_ERA:
+        return False
+    if _SW_SPECIAL_EDITION_RE.search(title or ""):
+        return False
+    head, _, tail = (details_text or "").partition(PROSE_SEPARATOR)
+    lines = [title or ""] + [ln.strip() for ln in head.split("\n") if ln.strip()]
+    if any(_SW_RE.search(ln) and not _SW_NOT_RE.search(ln) for ln in lines):
+        return True
+    return any(p.search(f) and not _SW_NOT_RE.search(f)
+               for f in split_fragments(tail) if _SW_RE.search(f)
+               for p in _SW_PROSE_RES)
+
+
+# Factory M491 "Turbo Look" (US) / "Supersport" (UK) on the 1984–89 Carrera 3.2:
+# Turbo body, brakes and suspension on the normally aspirated car. Not a replica
+# ("M491-Look", "Turbo-Look conversion", "930-style").
+_M491_RE = re.compile(r'\bM491\b(?![-\s]?(?:look|style))|\bturbo[-\s]?look\b|\bsupersport\b', re.IGNORECASE)
+_M491_NOT_RE = re.compile(r'\bconver\w*|\breplica\b|\btribute\b|\bclone\b|[-\s]style\b|\bM491[-\s]look\b|\bbackdat\w*',
+                          re.IGNORECASE)
+
+
+def parse_m491(title: str | None, details_text: str | None, year: int | None) -> bool:
+    if not year or not 1984 <= year <= 1989:
+        return False
+    lines = [title or ""] + split_bullets(details_text)
+    if any(_M491_NOT_RE.search(ln) for ln in lines if _M491_RE.search(ln)):
+        return False
+    return any(_M491_RE.search(ln) for ln in lines)
+
+
+def parse_options(title: str | None, details_text: str | None, year: int | None = None) -> list[str]:
     lines = [title or ""] + split_bullets(details_text)
     found = _scan(OPTIONS, lines)
     for label, pat in _TITLE_OPTIONS:
         if label not in found and pat.search(title or ""):
             found.append(label)
-    order = [label for label, _ in OPTIONS]
+    if parse_sonderwunsch(title, details_text, year):
+        found.append("Sonderwunsch")
+    if parse_m491(title, details_text, year):
+        found.append("M491")
+    order = ["Sonderwunsch", "M491"] + [label for label, _ in OPTIONS]
     return sorted(found, key=order.index)
 
 
@@ -225,21 +353,99 @@ def parse_provenance(title: str | None, details_text: str | None) -> list[str]:
     return _scan(PROVENANCE, [title or ""] + split_bullets(details_text))
 
 
+# Cars rebuilt by another maker: their "paint-to-sample" is that maker's own
+# paint, not a Porsche factory order. ("Turbo Remastered by Porsche
+# Sonderwunsch" is Porsche's own, hence the lookahead.)
+_OTHER_BUILDER_RE = re.compile(
+    r'\bsinger\b|\breimagined\b|\bgunther\s+werks\b|\bremastered\s+by\s+(?!porsche)|\bemory\b'
+    r'|\btheon\b|\bbackdate\b|\boutlaw\b',
+    re.IGNORECASE)
+
+
 def parse_pts(title: str | None, details_text: str | None) -> bool | None:
     """Paint to sample from the title, bullets, or a prose statement about this car."""
+    if _OTHER_BUILDER_RE.search(title or ""):
+        return None
     head, _, tail = (details_text or "").partition(PROSE_SEPARATOR)
     return (parse_paint_to_sample([title or ""] + split_bullets(head))
             or parse_paint_to_sample(split_fragments(tail), prose=True))
 
 
+# ── Models built with one gearbox only ───────────────────────────────────────
+#
+# (model_line, generation, variant) → the only factory gearbox. Only models
+# where Porsche offered exactly one; anything sold both ways is left out (991.2
+# GT3 — the Touring was manual-only but the wing car had both; 992 GT3, 718
+# GT4 and Spyder, 996/997 Turbo, Cayman R, 987 Spyder, 964 Speedster,
+# Sportomatic-era 911S/914-6). Race cars are left out: their gearboxes vary.
+_M, _P = "Manual", "PDK"
+SINGLE_GEARBOX: dict[tuple[str, str, str], str] = {
+    # Air-cooled
+    ("911", "F-Body", "Carrera RS 2.7"): _M,
+    ("911", "G-Body", "Carrera RS 3.0"): _M,
+    ("911", "G-Body", "930 Turbo"): _M,
+    ("911", "G-Body", "Turbo 3.3 Slant Nose"): _M,
+    ("911", "G-Body", "Speedster"): _M,
+    ("911", "964", "Carrera 4"): _M,
+    ("911", "964", "Carrera RS"): _M,
+    ("911", "964", "RS 3.8"): _M,
+    ("911", "964", "RS America"): _M,
+    ("911", "964", "Turbo"): _M,
+    ("911", "964", "Turbo S"): _M,
+    ("911", "993", "Carrera 4"): _M,
+    ("911", "993", "Carrera 4S"): _M,
+    ("911", "993", "Carrera RS"): _M,
+    ("911", "993", "GT2"): _M,
+    ("911", "993", "Turbo"): _M,
+    ("911", "993", "Turbo S"): _M,
+    # Mezger GT cars: manual only
+    **{("911", g, v): _M for g in ("996.1", "996.2") for v in ("GT2", "GT3", "GT3 RS")},
+    **{("911", g, v): _M for g in ("997.1", "997.2")
+       for v in ("GT2", "GT2 RS", "GT3", "GT3 RS", "GT3 RS 4.0")},
+    ("911", "997.2", "Sport Classic"): _M,
+    ("911", "991.1", "R"): _M,
+    ("911", "991.2", "Speedster"): _M,
+    ("911", "992.1", "S/T"): _M,
+    ("911", "992.1", "Sport Classic"): _M,
+    ("Cayman", "981", "GT4"): _M,
+    ("Boxster", "981", "Spyder"): _M,
+    # PDK only
+    ("911", "997.2", "Speedster"): _P,
+    ("911", "997.2", "Turbo S"): _P,
+    ("911", "991.1", "GT3"): _P,
+    ("911", "991.1", "GT3 RS"): _P,
+    ("911", "991.2", "GT3 RS"): _P,
+    ("911", "991.2", "GT2 RS"): _P,
+    ("911", "992.1", "GT3 RS"): _P,
+    ("911", "992.1", "Dakar"): _P,
+    **{("911", g, v): _P for g in ("991.1", "991.2", "992.1", "992.2") for v in ("Turbo", "Turbo S")},
+    ("Cayman", "718", "GT4 RS"): _P,
+    ("Boxster", "718", "Spyder RS"): _P,
+    ("911 GT1", "911 GT1", "base"): _M,
+}
+
+
+def model_gearbox(model_line: str | None, generation: str | None, variant: str | None) -> str | None:
+    return SINGLE_GEARBOX.get((model_line or "", generation or "", variant or ""))
+
+
 def derive(title: str | None, details_text: str | None,
-           year: int | None = None, model_line: str | None = None) -> dict:
+           year: int | None = None, model_line: str | None = None,
+           generation: str | None = None, variant: str | None = None) -> dict:
     """All fields this module derives, ready for the auction_results columns."""
+    stated = parse_transmission(title, details_text, year, model_line)
+    only = model_gearbox(model_line, generation, variant)
+    # A single-gearbox model settles it. A listing that says otherwise (a
+    # conversion, or a misread) gets None and shows up in the conflict report
+    # (data/migrate_lot_extras.py) for a person to decide.
+    transmission = stated if only is None else only if stated in (None, only) else None
     return {
-        "transmission": parse_transmission(title, details_text, year, model_line),
+        "transmission": transmission,
         "paint_to_sample": parse_pts(title, details_text),
         "chassis":      parse_chassis(details_text),
         "interior":     parse_interior(details_text),
-        "options":      ",".join(parse_options(title, details_text)) or None,
+        # M491 is a factory Porsche 911 option; RUF and other builders do not get the tag.
+        "options":      ",".join(o for o in parse_options(title, details_text, year)
+                                 if o != "M491" or model_line == "911") or None,
         "provenance":   ",".join(parse_provenance(title, details_text)) or None,
     }

@@ -12,7 +12,8 @@ Usage (from backend/ directory):
     python data/enrich_details.py bat --min-price 100000  # skip the everyday cars
     python data/enrich_details.py bat rm gooding          # per-lot sources
     python data/enrich_details.py mecum bonhams           # bulk sources (minutes)
-    python data/enrich_details.py broad-arrow             # Playwright
+    python data/enrich_details.py broad-arrow             # archive.org snapshots, ~3 lots/min
+    python data/enrich_details.py broad-arrow --refetch-thin   # redo lots fetched highlights-only
     python data/enrich_details.py all
     python data/enrich_details.py --reparse --dry-run     # re-run parsers on stored text, no network
     python data/enrich_details.py --reparse               #   ...and write the changes
@@ -33,6 +34,7 @@ sys.path.insert(0, BACKEND_DIR)
 
 from app.database import AsyncSessionLocal, engine
 from app.services.enrichment import SOURCES, FetchBlocked, enrich, reparse
+from app.utils.lot_details import PROSE_SEPARATOR
 from sqlalchemy import text
 
 SIGNIFICANT_PRICE = 150_000
@@ -80,6 +82,9 @@ async def main() -> None:
                         help="skip lots whose title already gave mileage and color")
     parser.add_argument("--include-complete", action="store_true",  # default now; kept for old commands
                         help="also fetch lots that already have mileage and color, to store their text")
+    parser.add_argument("--refetch-thin", action="store_true",
+                        help="first mark already-fetched lots with no description text as unfetched, "
+                             "so this run fetches them again (e.g. after a fetcher starts keeping more)")
     parser.add_argument("--reparse", action="store_true", help="re-run parsers over stored text; no network")
     parser.add_argument("--dry-run", action="store_true", help="with --reparse: show changes, write nothing")
     parser.add_argument("--stats", action="store_true", help="print coverage by source")
@@ -102,6 +107,17 @@ async def main() -> None:
                 verb = "would change" if args.dry_run else "changed"
                 print(f"[{name or 'all sources'}] re-parsed {checked} row(s), {verb} {len(changes)} value(s)")
         for key in keys if not args.reparse else []:
+            if args.refetch_thin:
+                # Stored text without a prose part came from a fetcher that kept
+                # only highlight bullets (Broad Arrow before 2026-11-02).
+                async with AsyncSessionLocal() as session:
+                    n = (await session.execute(text(
+                        "UPDATE auction_results SET details_fetched_at = NULL "
+                        "WHERE auction_source = :src AND details_fetched_at IS NOT NULL "
+                        "AND (details_text IS NULL OR strpos(details_text, :sep) = 0)"),
+                        {"src": SOURCES[key].name, "sep": PROSE_SEPARATOR})).rowcount
+                    await session.commit()
+                print(f"[{SOURCES[key].name}] {n} thin lot(s) marked for re-fetch")
             try:
                 await enrich(key, limit=args.limit, min_price=args.min_price,
                              include_complete=not args.only_incomplete)
