@@ -35,6 +35,13 @@ PTS_OVERRIDES: dict[int, tuple[bool, str]] = {
     17432: (False, "964 Turbo 3.6 Grand Prix White: on 964 chart MY1994; 'special-order' = interior; reviewed 2026-11-03"),
     18234: (False, "993 Turbo Polar Silver: on 993 chart MY1994-96 despite seller's PTS claim; reviewed 2026-11-03"),
     27971: (False, "964 Turbo 3.6 Midnight Blue Metallic: on 964 chart MY1994, no PTS text; reviewed 2026-11-03"),
+    # @ptsrs cross-check (data/ptsrs/crosscheck_auctions.py), owner-confirmed 2026-11-04
+    1542:  (True,  "2018 991.2 GT3 Nardo Grey (Y7C): PTS on 991.2 GT3 per @ptsrs Bsg2mNun9vv; owner-confirmed 2026-11-04"),
+    14864: (True,  "2021 718 GT4 Pastel Orange (Z17): PTS per @ptsrs CMsBjNYnP2P; owner-confirmed 2026-11-04"),
+    14778: (True,  "2023 718 GT4 RS Grey Black (7GS): PTS per @ptsrs C-A7m-VvQNH; owner-confirmed 2026-11-04"),
+    26173: (True,  "2019 991.2 GT3 RS Brewster Green (22B): PTS per @ptsrs CDwN8mIHWo7; owner-confirmed 2026-11-04"),
+    30426: (True,  "2022 992 Targa Bahama Yellow (Z14): PTS per @ptsrs CYfEw7HveNg; owner-confirmed 2026-11-04"),
+    10600: (False, "2023 992 Sport Classic in Sport Classic Grey: the model's own listed colour; owner-confirmed not PTS 2026-11-04"),
 }
 
 FIELDS = ("transmission", "paint_to_sample", "chassis", "interior", "options", "provenance")

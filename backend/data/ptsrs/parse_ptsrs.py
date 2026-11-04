@@ -125,12 +125,15 @@ def infer_phase(family: str | None, variant: str | None, posted: date, exact_yea
 _NEGATED = re.compile(r"(?:\bnot|\bnon|n't|\bwithout|\bno)[\s-]*(?:a\s+|an\s+|actually\s+)?$", re.I)
 _CLAIM = re.compile(r"\bPTS\b(?!RS)|Paint[- ]to[- ]Sample(?:\s+Plus)?|Sonderwunsch|special[- ]order", re.I)
 _MODEL_TOKEN = (r"(?:Porsche\s+)?(?:911\s+)?(?:\(?99[1-7](?:\.[12])?\)?|718|Cayman|Boxster|GT[234]\b|Carrera\b|"
-                r"Turbo\b|Targa\b|918\b|Sport Classic|Speedster|Dakar|S/T|911\b)")
+                r"Turbo\b|Targa\b|918\b|Sport Classic|Speedster|Dakar|S/T|911\b|RS\b)")
 _TITLE = r"[A-Z0-9][\w’'/.-]*"
 # Colour with a bracket that carries a paint code or a German name.
 _COL_PAREN = re.compile(r"(?P<name>" + _TITLE + r"(?:\s+" + _TITLE + r"){0,6}?)\s*\((?P<paren>[^)]{1,120})\)")
 # "PTS Brewster Green 911 R" — no bracket: Title-Case words right before a model.
-_COL_BARE = re.compile(r"(?:\bPTS\b|Paint[- ]to[- ]Sample)\s+(?P<name>(?:" + _TITLE + r"\s+){1,4}?)(?=" + _MODEL_TOKEN + r")")
+# Also "PTS Lichtgrün (Light Green/Birch Green) 991 GT3 RS": a bracket of
+# English names (no code, no German) between colour and model.
+_COL_BARE = re.compile(r"(?:\bPTS\b|Paint[- ]to[- ]Sample)\s+(?P<name>(?:" + _TITLE + r"\s+){1,4}?)"
+                       r"(?=(?:\([^)]{1,60}\)\s*)?" + _MODEL_TOKEN + r")")
 # PTS “Gold Metallic” / Paint to Sample "Signal Green"
 _COL_QUOTED = re.compile(r"(?:\bPTS\b|Paint[- ]to[- ]Sample)\s+[“\"](?P<name>[A-Z][^”\"]{2,40})[”\"]")
 # "finished in PTS Ivory", "dressed in Paint to Sample Gulf Blue"
@@ -145,6 +148,11 @@ _LEAD_JUNK = re.compile(r"^(?:\S+[’']s\s+|\d+\s+)?(?:(?:PTS|Paint|to|Sample|Pl
 
 
 def _clean_name(name: str) -> str | None:
+    # "Another PTS Grey Black", "brand new Paint-to-Sample Light Ivory": the
+    # colour is what follows the last claim inside the match.
+    claims = list(re.finditer(r"\bPTS\b(?!RS)|Paint[- ]to[- ]Sample(?:\s+Plus)?", name, re.I))
+    if claims:
+        name = name[claims[-1].end():]
     words = name.strip().split()
     while True:  # "This PTS Olive Green": strip lead words until nothing changes
         before = list(words)
@@ -335,9 +343,56 @@ def _claim_after_or_list(code, post, cap, posted, rows) -> int:
     return n
 
 
+_B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+
+
+def media_id(code: str) -> int:
+    """Instagram shortcode -> media ID (first 11 chars; IDs grow with time)."""
+    n = 0
+    for ch in code[:11]:
+        n = n * 64 + _B64.index(ch)
+    return n
+
+
+def load_export(path: str) -> dict:
+    """
+    {code: {cap, date, pass}} from either export shape: flat (interim) or keyed
+    by collector pass ({ptsrs_v1: {...}, ptsrs_first: {...}}). A post seen in
+    several passes keeps its longest caption (later passes saved full text).
+
+    Dates: the collector's saved `date` was sometimes a neighbouring post's
+    (the modal's <time> lagged a click), so every date is re-derived from the
+    media ID: ms = id >> 23 is a timestamp up to a constant offset, fitted as
+    the median of (saved date - ms) over all posts.
+    """
+    raw = json.load(open(path))
+    flat: dict = {}
+    if raw and all(k.startswith("ptsrs_") and isinstance(v, dict) for k, v in raw.items()):
+        for key, posts in raw.items():
+            for code, post in posts.items():
+                old = flat.get(code)
+                if not old or len(post.get("cap") or "") > len(old.get("cap") or ""):
+                    flat[code] = {**post, "pass": key}
+    else:
+        flat = raw
+    from datetime import datetime, timezone
+    from statistics import median
+    diffs = []
+    for code, post in flat.items():
+        if post.get("date"):
+            saved = datetime.fromisoformat(post["date"].replace("Z", "+00:00")).timestamp() * 1000
+            diffs.append(saved - (media_id(code) >> 23))
+    offset = median(diffs)
+    for code, post in flat.items():
+        ms = (media_id(code) >> 23) + offset
+        post["saved_date"] = post.get("date")
+        post["date"] = datetime.fromtimestamp(ms / 1000, timezone.utc).isoformat()
+    return flat
+
+
 if __name__ == "__main__":
-    src = sys.argv[1] if len(sys.argv) > 1 else os.path.join(DATA_DIR, "ptsrs_export_interim.json")
-    rows, stats = parse(json.load(open(src)))
+    src = sys.argv[1] if len(sys.argv) > 1 else os.path.join(DATA_DIR, "ptsrs_export.json")
+    rows, stats = parse(load_export(src))
     out = os.path.join(DATA_DIR, "ptsrs_evidence.json")
     json.dump(rows, open(out, "w"), indent=1, ensure_ascii=False)
     json.dump(parse.standard, open(os.path.join(DATA_DIR, "ptsrs_standard_statements.json"), "w"), indent=1, ensure_ascii=False)
