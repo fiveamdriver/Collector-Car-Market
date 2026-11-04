@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # The API is read-only: all writes happen through the ingest scripts in
 # backend/data/, which write via the ORM. These schemas serialize DB rows
@@ -28,7 +28,9 @@ class AuctionResultRead(BaseModel):
     sold_date: Optional[date] = None
     lot_title: Optional[str] = None
     exterior_color: Optional[str] = None
-    paint_to_sample: Optional[bool] = None
+    # Served as paint_to_sample but read from pts_verified: a listing's own PTS
+    # claim is shown only once data/verify_pts.py has recorded why it's certain.
+    paint_to_sample: Optional[bool] = Field(default=None, validation_alias="pts_verified")
     production_number: Optional[str] = None
     chassis: Optional[str] = None
     interior: Optional[str] = None

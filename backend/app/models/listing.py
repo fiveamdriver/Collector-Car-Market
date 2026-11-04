@@ -39,7 +39,13 @@ class AuctionResult(Base):
     sold_date: Mapped[Optional[date]] = mapped_column(index=True)
     lot_title: Mapped[Optional[str]]
     exterior_color: Mapped[Optional[str]]
+    # The listing's own PTS claim (parsed from its text). Internal: the site
+    # shows PTS only for verified cars, see pts_verified.
     paint_to_sample: Mapped[Optional[bool]]
+    # Why the PTS claim is beyond doubt ("owner: ...", "ptsrs: ...",
+    # "document: ..."), set by data/verify_pts.py. Internal reference only;
+    # never served by the API.
+    pts_basis: Mapped[Optional[str]] = mapped_column(Text)
     production_number: Mapped[Optional[str]]
     # Cleaned lot-page text (bullets, then prose) saved by data/enrich_details.py.
     # Keeping it means a parser fix is re-applied with --reparse, not a re-scrape.
@@ -56,6 +62,11 @@ class AuctionResult(Base):
     options: Mapped[Optional[str]]      # comma list, lot_extras.OPTIONS labels
     provenance: Mapped[Optional[str]]   # comma list, lot_extras.PROVENANCE labels
     created_at: Mapped[datetime] = mapped_column(default=func.now())
+
+    @property
+    def pts_verified(self) -> bool:
+        """The public PTS flag: claimed AND verified."""
+        return bool(self.paint_to_sample and self.pts_basis)
 
 
 class ActiveListing(Base):

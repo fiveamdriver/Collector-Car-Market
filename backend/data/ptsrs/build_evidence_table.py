@@ -15,7 +15,11 @@ import csv
 import json
 import os
 import re
+import sys
 from collections import defaultdict
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from app.utils.cards_911 import VARIANT_MY  # noqa: E402
 
 DATA_DIR = os.path.expanduser("~/Projects/CollectorCarMarket-data/ptsrs")
 _ALIAS = [(r"\bazzuro\b", "azzurro"), (r"\bgray\b", "grey"), (r"^racing green metallic$", "porsche racing green metallic")]
@@ -26,6 +30,20 @@ def colour_key(name: str) -> str:
     for pat, rep in _ALIAS:
         n = re.sub(pat, rep, n)
     return n
+
+
+def car_years(r) -> set[int]:
+    """Model years this evidence covers. A stated year is exact. Otherwise the
+    post year stands in only when that variant was still being built (a new
+    delivery); a car posted after its run ended ("a 997 GT3 RS 4.0", posted
+    2021) could be any year of the run, so the whole run is used."""
+    if r.get("car_year"):
+        return {r["car_year"]}
+    posted = int(r["date"][:4])
+    span = VARIANT_MY.get(r["generation"], {}).get(r.get("variant") or "") if r["model_line"] == "911" else None
+    if span and not (span[0] <= posted <= span[1] + 1):
+        return set(range(span[0], span[1] + 1))
+    return {posted}
 
 
 def main():
@@ -67,7 +85,7 @@ def main():
                 if r["post"] not in t["posts"]:
                     t["posts"].add(r["post"]); t["dates"].append(r["date"]); t["urls"].append(r["url"])
                 t["gen_source"].add(r.get("gen_source") or "")
-                t["years"].add(r.get("car_year") or int(r["date"][:4]))
+                t["years"] |= car_years(r)
             table[car + (colour_key(sorted(t["names"], key=len)[-1]),)] = t
     out = []
     for (line, gen, var, key), t in sorted(table.items()):

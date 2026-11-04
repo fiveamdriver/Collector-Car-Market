@@ -411,10 +411,16 @@ _PTS_NOT_FACTORY_RE = re.compile(
     re.IGNORECASE)
 
 
+# Business names that contain "PTS" but say nothing about the car's paint
+# (Wob Cars sells as "the PTS Porsche Collection" on BaT).
+_PTS_NAME_RE = re.compile(r"\bPTS\s+Porsche\s+Collection\b|\bPTSRS\b|@ptsrs\b", re.IGNORECASE)
+
+
 def parse_paint_to_sample(fragments: list[str], prose: bool = False) -> bool | None:
     """True when the fragments state this car is paint-to-sample. Prose needs a
     statement about the car's paint; a bullet or title only needs the words."""
     for f in fragments:
+        f = _PTS_NAME_RE.sub("", f)
         if _PTS_NOT_FACTORY_RE.search(f):
             continue
         if _special_order_paint(f):

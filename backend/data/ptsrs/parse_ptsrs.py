@@ -71,6 +71,12 @@ def model_of(text: str, posted: date) -> dict | None:
     if re.search(r"Taycan|Cayenne|Macan|Panamera|\b356\b|\b964\b.*Singer", t):
         return {"model_line": "other", "generation": None, "variant": None, "gen_source": None}
     sub, fam = _SUBGEN.search(t), _GEN.search(t)
+    # The car is the first generation named: "991 GT3 RS with 997.1 RS decals"
+    # is a 991, not a 997.1. Same family ("997 GT3 RS (997.2)") keeps the phase.
+    if sub and fam and fam.start() < sub.start() and fam.group(1) != sub.group(1):
+        sub = None
+        # The variant is the one named with that generation, not the later car.
+        t = t[:_SUBGEN.search(t).start()]
     if not (sub or fam or re.search(r"\b911\b|GT3|GT2|Carrera|Turbo|Targa|Speedster|Sport Classic|Dakar|S/T", t)):
         return None
     variant = next((v for v, p in _VARIANTS_911 if re.search(p, t)), None)
