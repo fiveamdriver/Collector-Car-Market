@@ -907,6 +907,14 @@ async def reparse(source: str | None = None, dry_run: bool = False) -> tuple[int
         for f in DETAIL_FIELDS:
             if f in filled or current[f] is None:
                 new[f] = parsed[f]
+        # Never trade a colour for a vaguer or missing one on re-parse: "Guards
+        # Red" must not become Mecum's labelled "Red", and a colour corrected by
+        # hand (2026-11-03 audit) must not be blanked because the page parser
+        # finds nothing.
+        old_color = current["exterior_color"]
+        if old_color and (not new["exterior_color"] or re.search(
+                rf"\b{re.escape(new['exterior_color'])}\b", old_color, re.IGNORECASE)):
+            new["exterior_color"] = old_color
         # A more specific name for the same color wins: a title or older
         # backfill said "Silver", the lot page says "Fluid Silver".
         old_color, page_color = current["exterior_color"], parsed["exterior_color"]

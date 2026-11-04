@@ -192,7 +192,8 @@ _COLOR_LEAD = (
     r'paint[-\s]to[-\s]sample|pts|correct|period[-\s]correct|factory[-\s]correct|striking|'
     r'stunning|beautiful|attractive|highly|very|desirable|handsome|classic|iconic|vibrant|'
     r'lovely|superb|cool|gorgeous|elegant|timeless|signature|sought[-\s]after|spectacular|'
-    r'ultra[-\s]desirable|period[-\s]appropriate|turbo|its original)[\s,]+)*'
+    r'ultra[-\s]desirable|period[-\s]appropriate|turbo|its original|distinctive|definitive|uncommon|'
+    r'only|unique|as[-\s]delivered|colou?r)[\s,]+)*'
 )
 # (pattern, known_only). known_only patterns are loose enough that only a name
 # from the color list is trusted; the others also accept unlisted Title-Case
@@ -224,7 +225,7 @@ _COLOR_PATTERNS = [
 _NOT_BODY = (
     r'interior|upholstery|leather|cloth|alcantara|vinyl|carpet|trim|seats?|'
     r'wheels?|calipers?|top|soft[-\s]?top|roof|hood|stripes?|decals?|dash|headliner|'
-    r'stitching|piping|belts?|tartan|pasha'
+    r'stitching|piping|belts?|tartan|pasha|wrap|wrapped|film'
 )
 _NOT_BODY_RE = re.compile(r'\b(?:' + _NOT_BODY + r')\b', re.IGNORECASE)
 # A parenthetical, or the tail of one cut off at the start of a window.
@@ -257,8 +258,17 @@ _COLOR_WORDS = (
 )
 # A full color name inside a longer phrase: 1–3 Title-Case words ending in a
 # color word ("Oryx White", "Fluid Silver", "Dark Blue Metallic").
+# "Titanium Metallic over Black Leather": a Title-Case name ending in a colour
+# word, at the start of a line. Not known_only; _normalize_color still requires
+# the colour-word ending. Registered here because it needs _COLOR_WORDS.
+_COLOR_PATTERNS.append((re.compile(
+    r'^((?:[A-Z][\w-]+\s+){0,2}' + _COLOR_WORDS + r'(?:\s+Metallic)?)\s+over\b'), False))
 _COLOR_NAME_RE = re.compile(r'\b(?:[A-Z][\w-]+ ){0,2}' + _COLOR_WORDS + r'(?: Metallic)?\b')
 _LEAD_RE = re.compile(r'^' + _COLOR_LEAD, re.IGNORECASE)
+
+
+_ORIGINALLY = re.compile(r"\boriginally\b", re.IGNORECASE)
+_ONLY_SCHEME = re.compile(r"(?:(?:original|rare|distinctive|colou?r|scheme|combination|livery)\s*)+", re.IGNORECASE)
 
 
 def _normalize_color(phrase: str, known_only: bool = False) -> str | None:
@@ -269,6 +279,10 @@ def _normalize_color(phrase: str, known_only: bool = False) -> str | None:
     """
     phrase = _LEAD_RE.sub("", phrase.strip(" -,.")).strip()
     if not phrase or len(phrase) > 100:
+        return None
+    # "Original Color Scheme", "Rare Color Combination", "Originally Painted
+    # Black" (the original colour, not necessarily today's): no colour stated.
+    if _ORIGINALLY.search(phrase) or _ONLY_SCHEME.fullmatch(phrase):
         return None
     known = _COLORS_LOWER.get(phrase.lower())
     if known:
@@ -426,6 +440,18 @@ def join_details(bullets: list[str] | None, prose: str | None = None) -> str | N
     return head + PROSE_SEPARATOR + tail if tail else head
 
 
+_EXTERIOR_LABEL = re.compile(r"^(?:EXTERIOR(?: COLOU?R)?|EXTERIOR PAINT|BODY COLOU?R|PAINT COLOU?R)$", re.IGNORECASE)
+
+
+def _labelled_exterior(bullets: list[str]) -> str | None:
+    for i, line in enumerate(bullets[:-1]):
+        if _EXTERIOR_LABEL.match(line.strip()):
+            value = bullets[i + 1].strip()
+            if value and not value.isupper() and value.lower() not in ("other", "n/a", "multicolor", "two tone"):
+                return _normalize_color(value) or value
+    return None
+
+
 def extract(text: str | None) -> dict:
     """
     mileage / exterior_color / paint_to_sample from stored detail text.
@@ -438,7 +464,12 @@ def extract(text: str | None) -> dict:
     bullets = [ln.strip() for ln in head.split("\n") if ln.strip()]
     prose = split_fragments(tail)
     mileage = parse_mileage(bullets) or parse_mileage(prose, prose=True)
-    color = parse_color(bullets, bullets=True)
+    # A labelled spec block (Mecum: "EXTERIOR COLOR" / "Burgundy" / "INTERIOR
+    # COLOR" / "Brown") states the paint outright. Without this the bullet scan
+    # below can land on the INTERIOR COLOR value.
+    color = _labelled_exterior(bullets)
+    if color is None:
+        color = parse_color(bullets, bullets=True)
     # A bullet that states the paint ("Finished in Paint to Sample azureblue356")
     # but whose name we can't read: leave the colour empty rather than take one
     # from the prose, which is as likely to be the interior or another car.

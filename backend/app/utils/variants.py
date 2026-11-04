@@ -21,7 +21,7 @@ import re
 #   "R"         -> the 991 R. A single letter matches inside almost anything, so
 #                  it is only ever correct bounded on both sides: "RS", "RSR",
 #                  "RUF" and "RoW" must not become the 991 R.
-_WORD_BOUNDED = frozenset({"Carrera T", "Turbo S", "R"})
+_WORD_BOUNDED = frozenset({"Carrera T", "Carrera 4", "Turbo S", "R"})
 
 # Coachbuilt cars are identified by their builder, not by the donor car's trim.
 # They have to be tested before the trim list, because a title like "911 Carrera 2
@@ -55,6 +55,11 @@ def match_variant(patterns, text: str, default: str = "base") -> str:
         return coachbuilt
     for pattern in patterns:
         if variant_matches(pattern, text):
+            # "Carrera 4 GTS" contains "Carrera 4" but is a GTS, which the site
+            # cards as Carrera GTS (as BaT's "997 Carrera 4 GTS" config does).
+            if (pattern == "Carrera 4" and "Carrera GTS" in patterns
+                    and re.search(r"Carrera\s*4\s*GTS\b", text)):
+                return "Carrera GTS"
             return pattern
     return default
 

@@ -29,7 +29,7 @@ from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
 from app.utils.lot_extras import parse_pts, parse_transmission
 from app.services.enrichment import enrich
-from app.utils.color_parser import scan_for_color
+from app.utils.lot_details import parse_color
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
 from app.utils.model_lines import match_model_line as match_model_line_shared
@@ -84,7 +84,7 @@ def parse_mileage_from_subtitle(text: str) -> int | None:
 
 # ── Model / variant parsing ───────────────────────────────────────────────────
 
-YEAR_RE = re.compile(r'\b(19|20)\d{2}\b')
+YEAR_RE = re.compile(r'\b(19|20)\d{2}\b(?!-(?:Mile|Kilometer|km)\b)', re.IGNORECASE)  # not "2000-Mile"
 
 # Ordered longest-match first
 
@@ -326,7 +326,11 @@ def map_record(item: dict, lot_date: str | None) -> dict | None:
 
     collection = item.get("collection") or ""
     mileage = parse_mileage_from_subtitle(collection)
-    exterior_color = scan_for_color(collection)
+    # Context-aware: the subtitle often names the interior, calipers or a wrap
+    # ("black-painted brake calipers", "Matte Black wrap"), and a bare scan for
+    # any colour word stored those as the paint. Unknown is better than wrong;
+    # the lot-page enrichment fills it from the full description.
+    exterior_color = parse_color([f.strip() for f in re.split(r"[|\n;]", collection) if f.strip()], bullets=True)
 
     return {
         "make":              "Porsche",

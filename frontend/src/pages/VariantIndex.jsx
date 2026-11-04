@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE, VARIANTS, VARIANT_HERO, CROSS_LISTINGS } from '../data/taxonomy'
+import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE, VARIANTS, VARIANT_HERO, CROSS_LISTINGS, HIDE_WHEN_EMPTY } from '../data/taxonomy'
 import { fetchAggregateStats, fetchAuctionResults } from '../api/client'
 import {
   combineStats, groupStatsFromRows, indexByKey, mergeGroups,
@@ -96,10 +96,12 @@ export default function VariantIndex() {
   const byVariant = useMemo(() => indexByKey(groupStats), [groupStats])
   const genStats  = useMemo(() => combineStats(groupStats), [groupStats])
 
-  const sortedVariants = useMemo(() => (
-    [...variants].sort((a, b) =>
-      statsFromGroup(byVariant[b]).avg - statsFromGroup(byVariant[a]).avg)
-  ), [variants, byVariant])
+  const sortedVariants = useMemo(() => {
+    const hideWhenEmpty = HIDE_WHEN_EMPTY[modelSlug]?.[generation] ?? []
+    return [...variants]
+      .filter(v => loading || !hideWhenEmpty.includes(v) || statsFromGroup(byVariant[v]).count > 0)
+      .sort((a, b) => statsFromGroup(byVariant[b]).avg - statsFromGroup(byVariant[a]).avg)
+  }, [variants, byVariant, loading, modelSlug, generation])
 
   // Photo cards only when every variant has a photo — a grid where some cards
   // have one and some don't reads as broken.

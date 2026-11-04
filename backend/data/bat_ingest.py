@@ -162,7 +162,8 @@ CONFIGS = [
 
 # ── Field parsers ─────────────────────────────────────────────────────────────
 
-YEAR_RE     = re.compile(r'\b(19|20)\d{2}\b')
+# Not followed by -Mile/-Kilometer: "2000-Mile 2006 Porsche 911" is a 2006.
+YEAR_RE     = re.compile(r'\b(19|20)\d{2}\b(?!-(?:Mile|Kilometer|km)\b)', re.IGNORECASE)
 MILEAGE_RE  = re.compile(r'([\d,]+)(k)?-(Mile|Kilometer)', re.IGNORECASE)
 
 # Order matters: longest match first. "Targa" must precede "Carrera T" or a

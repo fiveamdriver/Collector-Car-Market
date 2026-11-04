@@ -133,9 +133,33 @@ _COLORS = [
 ]
 
 # Deduplicate (case-insensitive, preserve first occurrence), then sort longest-first.
+def _porsche_official_names() -> list[str]:
+    """English names from Porsche's own colour charts and brochures
+    (data/porsche_colours/), so the parser knows Porsche's vocabulary."""
+    import os
+    import sys
+    here = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                        "data", "porsche_colours")
+    if not os.path.isdir(here):
+        return []
+    sys.path.insert(0, here)
+    try:
+        from brochure_transcription import BROCHURES
+        from colour_names import DE_EN
+    except ImportError:
+        return []
+    finally:
+        sys.path.remove(here)
+    names = {en for en, _ in DE_EN.values()}
+    for b in BROCHURES:
+        for entries in b["tiers"].values():
+            names.update(name for _, name, _ in entries)
+    return sorted(names)
+
+
 _seen: set[str] = set()
 _unique: list[str] = []
-for _c in _COLORS:
+for _c in _COLORS + _porsche_official_names() + ["Titanium Metallic"]:
     if _c.lower() not in _seen:
         _seen.add(_c.lower())
         _unique.append(_c)
@@ -147,6 +171,11 @@ _COLORS_LOWER = {c.lower(): c for c in COLORS}
 _YEAR_RE      = re.compile(r'\b(19|20)\d{2}\b')
 _MILEAGE_RE   = re.compile(r'^\s*[\d,]+k?-(?:Mile|Kilometer)\s+', re.IGNORECASE)
 _NORESERVE_RE = re.compile(r'^\s*No\s+Reserve:\s*', re.IGNORECASE)
+# Title prefixes that describe the car, not the paint: "Original-Owner Silver
+# Metallic", "Repainted Black", "20-Years-Owned Guards Red".
+_DESCRIPTOR_RE = re.compile(
+    r'^\s*(?:(?:One|Original|Single|First|Two|Second|\d+)-Owners?|\d+-Years?-Owned|Euro-Spec|'
+    r'RoW|Repainted|Refinished|Resprayed)[\s,]+', re.IGNORECASE)
 
 # Fallback: 1–3 Title-Case words ending in a known color word.
 # Catches valid colors not in the known list (e.g. new PTS releases, regional variants).
@@ -165,7 +194,9 @@ def scan_for_color(text: str | None) -> str | None:
         return None
     text_lower = text.lower()
     for color_lower, color_canonical in _COLORS_LOWER.items():
-        if color_lower in text_lower:
+        # Whole words only: "Titan" is a Porsche colour, and so is "Titanium
+        # Metallic"; a substring test read the second as the first.
+        if color_lower in text_lower and re.search(r"(?<![a-z])" + re.escape(color_lower) + r"(?![a-z])", text_lower):
             return color_canonical
     return None
 
@@ -207,6 +238,8 @@ def parse_exterior_color(title: str | None) -> str | None:
     prefix = title[:m.start()]
     prefix = _MILEAGE_RE.sub('', prefix)
     prefix = _NORESERVE_RE.sub('', prefix)
+    while _DESCRIPTOR_RE.match(prefix):
+        prefix = _DESCRIPTOR_RE.sub('', prefix, count=1)
     prefix = prefix.strip()
 
     if not prefix:
