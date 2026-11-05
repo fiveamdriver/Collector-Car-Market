@@ -161,7 +161,7 @@ def _parse_variant_raw(model_line: str, year: int, text: str) -> str:
             # "base" and renders nowhere.
             return "911"
         variant = match_variant(_911_VARIANTS, text)
-        return fix_964_carrera(variant, text) if gen == "964" else variant
+        return fix_964_carrera(variant, text, year) if gen == "964" else variant
 
     if model_line == "356":
         return parse_356_variant(text)

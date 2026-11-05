@@ -10,7 +10,7 @@ and by enrichment (app/services/derived.py) when a VIN re-files a car.
 CARDS = {
     "G-Body": None,  # G-Body variants are year-derived; only Speedster moves here
     "964": {"Carrera 2", "Carrera 4", "Carrera RS", "RS 3.8", "RS America",
-            "Turbo", "Turbo S", "Speedster", "Targa", "Cabriolet"},
+            "Turbo", "Turbo 3.6", "Turbo S", "Speedster", "Targa", "Cabriolet"},
     "993": {"Carrera", "Carrera 4", "Carrera S", "Carrera 4S", "Carrera RS",
             "Turbo", "Turbo S", "GT2", "Targa", "Cabriolet"},
     "996.1": {"Carrera", "Carrera 4", "GT3", "Cabriolet"},

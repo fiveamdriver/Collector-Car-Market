@@ -11,6 +11,10 @@ from app.schemas.listing import ActiveListingRead, AuctionResultRead
 
 router = APIRouter()
 
+# Lots that did not sell are kept in the table for the record but are never
+# results: every query below must include this filter.
+_IS_SALE = AuctionResult.sale_status.is_(None) | AuctionResult.sale_status.not_in(("not_sold", "withdrawn"))
+
 
 # --- Stats ---
 
@@ -32,7 +36,7 @@ async def get_model_line_stats(db: AsyncSession = Depends(get_db)) -> list[Model
         func.count().label("count"),
         func.count(AuctionResult.sold_price).label("priced_count"),
         func.avg(AuctionResult.sold_price).label("avg_sold_price"),
-    ).group_by(AuctionResult.model_line)
+    ).where(_IS_SALE).group_by(AuctionResult.model_line)
 
     rows = (await db.execute(query)).all()
     return [
@@ -100,7 +104,7 @@ async def get_aggregate_stats(
     """
     group_col = _GROUPABLE[group_by]
 
-    filters = []
+    filters = [_IS_SALE]
     if make:
         filters.append(AuctionResult.make == make)
     if model_line:
@@ -187,7 +191,7 @@ async def list_auction_results(
     db: AsyncSession = Depends(get_db),
 ) -> list[AuctionResultRead]:
     """Return auction results filtered by the given fields, ordered newest first."""
-    query = select(AuctionResult)
+    query = select(AuctionResult).where(_IS_SALE)
     if make:
         query = query.where(AuctionResult.make == make)
     if model_line:
@@ -209,7 +213,7 @@ async def get_auction_result(
     db: AsyncSession = Depends(get_db),
 ) -> AuctionResultRead:
     row = await db.get(AuctionResult, record_id)
-    if row is None:
+    if row is None or row.sale_status in ("not_sold", "withdrawn"):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Auction result {record_id} not found",

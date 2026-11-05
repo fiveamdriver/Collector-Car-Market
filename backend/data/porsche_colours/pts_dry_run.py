@@ -161,6 +161,13 @@ for b in BROCHURES + BROCHURES_2:
 
 AIR_EXCLUDED = re.compile(r"RS|GT2|Turbo S|Slant Nose|Club Sport|Speedster|America", re.I)
 WATER_EXCLUDED = re.compile(r"GT2|GT3|RS|R$|Speedster|Sport Classic|S/T|Dakar|Turbo S|GTS", re.I)
+# Limited editions with their own colour range, named only in the title (the variant
+# field says "SC" / "Carrera 3.2"). E.g. 1980 SC "Weissach": Platinum Metallic or
+# Black Metallic only, so a Platinum Weissach is standard although Platinum is off
+# the normal MY1980 range (2026-11-05, id 27750).
+EDITION_EXCLUDED = re.compile(
+    r"weissach|jubil(?:ä|ae)?um|jubilee|25th anniversary|commemorative|ferry porsche|30 jahre|30th anniversary|"
+    r"signature edition|anniversary edition", re.I)
 NINE97_RANGE = {"Carrera", "Carrera S", "Carrera 4", "Carrera 4S", "Targa", "Cabriolet"}
 
 
@@ -191,6 +198,8 @@ def scope_of(r) -> tuple[str | None, str]:
     if gen in ("F-Body", "G-Body", "964", "993"):
         if AIR_EXCLUDED.search(var):
             return None, f"{var}: special/limited model, no palette"
+        if EDITION_EXCLUDED.search(r.get("lot_title") or ""):
+            return None, "limited edition with its own colour range, no palette"
         return "911air", ""
     if gen in ("996.1", "996.2"):
         if WATER_EXCLUDED.search(var):
@@ -219,6 +228,14 @@ def scope_of(r) -> tuple[str | None, str]:
     return None, f"{gen}: no palette yet"
 
 
+# Ranges that look complete on paper but are demonstrably not, so they must never
+# prove a colour off-list. (911air, 1997): the chart's last 993 column plus the
+# "993-1997" brochure lack Grand Prix White, Speed Yellow and Polar Silver, all
+# offered on 1997 993s (2026-11-05: 23 unclaimed MY1997 cars "off range", e.g.
+# 6 Grand Prix White, 5 Speed Yellow); the brochure's names are 986 launch colours.
+KNOWN_INCOMPLETE = {("911air", 1997)}
+
+
 def palette(scope, my):
     """(names, codes, evidence, partial) for scope + model year, or None."""
     my_key = None if scope in ("cgt", "918", "992st", "992dakar") else my
@@ -235,7 +252,7 @@ def palette(scope, my):
     # complete: Porsche's whole range (standard + special) for this scope+MY is on file, so an
     # off-list colour can be called PTS. A brochure flagged complete, or an overview chart
     # whose every German name maps to English (not partial).
-    complete = bool((b and b["complete"]) or (c and not c["partial"]))
+    complete = bool((b and b["complete"]) or (c and not c["partial"])) and (scope, my_key) not in KNOWN_INCOMPLETE
     return names, codes, evidence, partial, complete
 
 

@@ -487,7 +487,11 @@ BROCHURES_2 = [
                "metallic": [(None, "Carrara White Metallic", ""), (None, "Dolomite Silver Metallic", ""),
                             (None, "GT Silver Metallic", ""), (None, "Agate Grey Metallic", ""),
                             (None, "Aventurine Green Metallic", ""), (None, "Gentian Blue Metallic", ""),
-                            (None, "Jet Black Metallic", "")],
+                            (None, "Jet Black Metallic", ""),
+                            # Not in this ROW brochure, but still standard on US MY2022 cars: window
+                            # stickers of 7 BaT MY2022 Carrera S / Targa 4S / Turbo S list it as an
+                            # ordinary factory colour (code M5F), none as PTS (checked 2026-11-05).
+                            (None, "Night Blue Metallic", "US market MY2022")],
                "special": [(None, "Crayon", "ROW name"), (None, "Chalk", "US name, same paint"), (None, "Python Green", ""),
                            (None, "Lava Orange", ""), (None, "Carmine Red", ""), (None, "Shark Blue", "")]}},
 ]

@@ -409,7 +409,7 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
     else:
         variant = parse_variant(strip_turbo_impostor(title))
     if generation == '964':
-        variant = fix_964_carrera(variant, title)
+        variant = fix_964_carrera(variant, title, year)
     if model_line == '911':
         if variant == 'base':
             variant = resolve_911_base(generation, title)

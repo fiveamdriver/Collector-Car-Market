@@ -61,6 +61,10 @@ class AuctionResult(Base):
     interior: Mapped[Optional[str]]
     options: Mapped[Optional[str]]      # comma list, lot_extras.OPTIONS labels
     provenance: Mapped[Optional[str]]   # comma list, lot_extras.PROVENANCE labels
+    # NULL = sold (the normal case). 'not_sold' / 'withdrawn' rows are kept for
+    # the record but never served by the API; 'unverified' = the lot page is
+    # gone so status/price could not be re-checked (still served).
+    sale_status: Mapped[Optional[str]] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(default=func.now())
 
     @property

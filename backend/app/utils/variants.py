@@ -130,20 +130,36 @@ def is_early_carrera_4(year: int, text: str) -> bool:
     return year == 1989 and bool(_C4.search(text)) and not _C2.search(text)
 
 
-def fix_964_carrera(variant: str, text: str) -> str:
+# The 964 Turbo is two cars: the 3.3 (MY1991-92, the G-Body engine) and the 3.6
+# (MY1993-94: 360 PS, lower, 18" Cup wheels). They have separate cards. Model
+# year decides — in the data every 1991-92 Turbo is a 3.3 and every 1993-94 one a
+# 3.6; "3.6" in a 3.3's text is the Carrera's engine or "Turbo 3.6" wheels
+# (checked 2026-11-05, 151 cars). Turbo S stays its own card.
+TURBO_36_FROM_MY = 1993
+
+
+def split_964_turbo(variant: str, year: int | None) -> str:
+    """'Turbo' -> 'Turbo 3.6' for a MY1993+ 964 Turbo; anything else unchanged."""
+    if variant == "Turbo" and year and year >= TURBO_36_FROM_MY:
+        return "Turbo 3.6"
+    return variant
+
+
+def fix_964_carrera(variant: str, text: str, year: int | None = None) -> str:
     """
     Resolve a generic 964 'Carrera' / 'base' (or a mislabelled 'Carrera 2' /
     'Carrera 4') into Carrera 2 or Carrera 4. Variants that are already a
     specific car (RS America, Turbo, Speedster...) pass through untouched; a
     'base' that is really one of them (title says Targa) is promoted to it. A
     'base' whose title names neither drive layout nor a car stays 'base'.
+    With `year`, a Turbo is filed on the 3.3 or 3.6 card (split_964_turbo).
     """
     if variant not in ("Carrera", "base", "Carrera 2", "Carrera 4"):
-        return variant
+        return split_964_turbo(variant, year)
     if variant == "base":
         for pat, name in _964_SPECIALS:
             if pat.search(text):
-                return name
+                return split_964_turbo(name, year)
     has4, has2 = bool(_C4.search(text)), bool(_C2.search(text))
     if has4 and not has2:
         return "Carrera 4"

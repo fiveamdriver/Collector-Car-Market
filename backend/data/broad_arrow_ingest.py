@@ -243,7 +243,7 @@ def _parse_variant_raw(model_line: str, year: int, text: str) -> str:
             # "base" and renders nowhere.
             return "911"
         variant = match_variant(_911_VARIANTS, text)
-        return fix_964_carrera(variant, text) if gen == "964" else variant
+        return fix_964_carrera(variant, text, year) if gen == "964" else variant
 
     if model_line == "356":
         return parse_356_variant(text)
@@ -282,7 +282,40 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
 
 # ── Schema.org car mapper ─────────────────────────────────────────────────────
 
-def map_schema_car(schema: dict) -> dict | None:
+_CARD_PRICE_RE = re.compile(r"(US\$|\$|€|£|CHF)\s*(\d[\d,.'’ ]*\d|\d)")
+_CARD_CURRENCY = {"US$": "USD", "$": "USD", "€": "EUR", "£": "GBP", "CHF": "CHF"}
+
+
+def parse_card(card_text: str) -> tuple[str, int | None, str | None]:
+    """
+    (status, local price, currency) from a results-list card's visible text,
+    e.g. "... Lot 70 | The Quail Auction 2026 Sold Price: $620,000".
+
+    status: 'sold', 'not_sold' ("Not Sold", "Now Asking", "Estimate Available
+    Upon Request"), 'withdrawn' or 'unknown' (no card text). A sold card with
+    no amount ("Sold After Auction" with the price unpublished) gives
+    ('sold', None, None): unknown beats wrong.
+    """
+    text = " ".join((card_text or "").split())
+    if not text:
+        return "unknown", None, None
+    if re.search(r"\bwithdrawn\b", text, re.I):
+        return "withdrawn", None, None
+    if re.search(r"not sold|now asking|estimate available", text, re.I):
+        return "not_sold", None, None
+    matches = _CARD_PRICE_RE.findall(text)
+    if not matches:
+        return "sold", None, None
+    symbol, amount = matches[-1]
+    amount = re.sub(r"[.,]\d{2}$", "", amount.strip())     # drop cents
+    digits = re.sub(r"\D", "", amount)                       # 1,930.000 / 1'234'567 / 145 000
+    price = int(digits) if digits else None
+    if not price:                                            # "Sold Price: €0" — site glitch
+        return "sold", None, None
+    return "sold", price, _CARD_CURRENCY[symbol]
+
+
+def map_schema_car(schema: dict, card_text: str = "") -> dict | None:
     lot_url = schema.get("url") or ""
     if not lot_url:
         return None
@@ -292,21 +325,29 @@ def map_schema_car(schema: dict) -> dict | None:
     if "porsche" not in manufacturer:
         return None
 
-    # Price: raw integer ÷ 10 = local currency amount
-    # Apply FX conversion for non-USD events (Schema.org always says "USD" — unreliable)
-    offers     = schema.get("offers") or {}
-    price_raw  = offers.get("price")
-    if not price_raw:
+    # Status and price come from the card's visible text, never the JSON-LD:
+    # offers.price is x10 for some sales and plain for others, is hammer-only
+    # on older sales, and is filled for unsold / withdrawn / "Now Asking" lots
+    # too (2026-11-04/05 audit: 21 lots stored at 1/10, 68 + 48 unsold stored
+    # as sales). Lots that did not sell are skipped, like every other source.
+    status, local_price, currency = parse_card(card_text)
+    if status != "sold":
         return None
-    try:
-        local_price = int(str(price_raw).replace(",", "")) // 10
-    except (ValueError, TypeError):
-        return None
-    if local_price <= 0:
+    in_stock = "InStock" in str((schema.get("offers") or {}).get("availability") or "")
+    if in_stock and local_price is None:
+        # Still offered on the site and no sale price shown: not a sale.
+        # (A post-auction sale can be InStock but then shows "for $X".)
         return None
     event_code_for_price = extract_event_code(lot_url)
-    fx_rate    = NON_USD_RATES.get(event_code_for_price or "", 1.0)
-    sold_price = round(local_price * fx_rate)
+    sold_price = None
+    if local_price is not None:
+        if currency == "USD":
+            sold_price = local_price
+        elif (fx_rate := NON_USD_RATES.get(event_code_for_price or "")) is not None:
+            sold_price = round(local_price * fx_rate)
+        else:
+            print(f"  WARNING: {currency} price on {lot_url} but no NON_USD_RATES entry "
+                  f"for {event_code_for_price!r}; stored without a price")
 
     # Mileage: Schema.org unitCode "SMI" (miles) or "KMT" (km)
     odo        = schema.get("mileageFromOdometer") or {}
@@ -351,6 +392,9 @@ def map_schema_car(schema: dict) -> dict | None:
         "mileage":           mileage,
         "thumbnail_url":     thumbnail,
         "sold_price":        sold_price,
+        # NULL = an ordinary sale; post-auction deals are marked so a missing
+        # price is explained (Broad Arrow rarely publishes those prices).
+        "sale_status":       "sold_after_auction" if "sold after auction" in card_text.lower() else None,
         "auction_source":    "Broad Arrow",
         "auction_url":       lot_url,
         "sold_date":         sold_date,
@@ -371,6 +415,19 @@ async def fetch_results_page(page, page_num: int) -> list[dict]:
             .map(s => { try { return JSON.parse(s.textContent) } catch(e) { return null } })
             .filter(s => s && s['@type'] === 'Car')
     """)
+    cards = await page.evaluate("""() =>
+        Array.from(document.querySelectorAll('a.vehicle-card')).map(c => {
+            const ld = c.querySelector('script[type="application/ld+json"]');
+            let url = null;
+            try { url = JSON.parse(ld.textContent).url } catch (e) {}
+            const clone = c.cloneNode(true);
+            clone.querySelectorAll('script').forEach(x => x.remove());
+            return [url, clone.textContent];
+        })
+    """)
+    texts = {url: text for url, text in (cards or []) if url}
+    for schema in schemas or []:
+        schema["_card_text"] = texts.get(schema.get("url"), "")
     return schemas or []
 
 
@@ -437,7 +494,7 @@ async def ingest() -> None:
                 if code and event_date(code) is None:
                     unknown_events.add(code)
 
-                rec = map_schema_car(schema)
+                rec = map_schema_car(schema, schema.get("_card_text", ""))
                 if rec is None:
                     continue
 
