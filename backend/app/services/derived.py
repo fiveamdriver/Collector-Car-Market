@@ -42,6 +42,17 @@ PTS_OVERRIDES: dict[int, tuple[bool, str]] = {
     26173: (True,  "2019 991.2 GT3 RS Brewster Green (22B): PTS per @ptsrs CDwN8mIHWo7; owner-confirmed 2026-11-04"),
     30426: (True,  "2022 992 Targa Bahama Yellow (Z14): PTS per @ptsrs CYfEw7HveNg; owner-confirmed 2026-11-04"),
     10600: (False, "2023 992 Sport Classic in Sport Classic Grey: the model's own listed colour; owner-confirmed not PTS 2026-11-04"),
+    # 918 Spyder in Oryx White: not among Porsche's 12 918 colours (918 brochure pp.70-71); owner-confirmed PTS 2026-11-04.
+    # Some wear the factory-applied matte-black/Martini wrap (Weissach option) over the PTS paint.
+    556:   (True,  "918 Spyder PTS Oryx White (off 918 brochure range); owner-confirmed 2026-11-04"),
+    558:   (True,  "918 Spyder Oryx White (off 918 brochure range); owner-confirmed PTS 2026-11-04"),
+    16904: (True,  "918 Spyder PTS Metallic Oryx White under factory Martini/black wrap; owner-confirmed 2026-11-04"),
+    18159: (True,  "918 Spyder ordered PTS Metallic Oryx White, factory matte-black wrap + Martini; owner-confirmed 2026-11-04"),
+    18033: (True,  "918 Spyder ordered PTS Metallic Oryx White, factory matte-black wrap + Martini; owner-confirmed 2026-11-04"),
+    # 918: no metallic white and no Gulf livery/colours in Porsche's 918 range (brochure pp.70-71); owner-confirmed 2026-11-04.
+    26826: (True,  "918 Spyder 'Paint to Sample Metallic White' (Mecum); off 918 range; owner-confirmed 2026-11-04"),
+    18329: (True,  "918 Spyder 'paint to sample Metallic White ... unavailable as a standard color' (RM); owner-confirmed 2026-11-04"),
+    16775: (True,  "918 Spyder factory-paint-to-sample Gulf livery (Gooding); off 918 range; owner-confirmed 2026-11-04"),
 }
 
 FIELDS = ("transmission", "paint_to_sample", "chassis", "interior", "options", "provenance")

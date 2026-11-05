@@ -280,6 +280,20 @@ def parse_pts(title: str, color: str | None) -> bool | None:
 
 # ── Record mapper ─────────────────────────────────────────────────────────────
 
+# Mecum tags photos by category, but many lots (older sales especially) leave the
+# gallery untagged. Prefer a tagged exterior shot; otherwise the first untagged
+# photo, which is the gallery's lead image. Never an interior/engine/document shot.
+_UNTAGGED = (None, "", "Uncategorized", "Other")
+
+
+def pick_thumbnail(images: list[dict]) -> str | None:
+    for want in (lambda c: c == "Exterior", lambda c: c in _UNTAGGED):
+        for img in images:
+            if img.get("url") and want(img.get("category")):
+                return img["url"]
+    return None
+
+
 def map_record(node: dict) -> dict | None:
     title = node.get("title") or ""
 
@@ -335,12 +349,7 @@ def map_record(node: dict) -> dict | None:
     color      = parse_color(color_raw)
     pts        = parse_pts(title, color_raw)
 
-    # Thumbnail — first exterior image from images list
-    images_list = node.get("images") or []
-    thumbnail = next(
-        (img["url"] for img in images_list if img.get("category") == "Exterior"),
-        None,
-    )
+    thumbnail = pick_thumbnail(node.get("images") or [])
 
     # URL — use `link` field (includes numeric DB id: /lots/1161580/slug/)
     lot_url = node.get("link") or None

@@ -42,7 +42,14 @@ BROCHURES = [
                             ("Q9", "Slate Grey Metallic", ""), ("F8", "Midnight Blue Metallic", ""), ("F4", "Horizon Blue Metallic", ""),
                             ("A8", "Polar Silver Metallic", "")],
                "solid": [("A1", "Black", ""), ("M1", "Signal Green", ""), ("G1", "Guards Red", ""), ("N4", "Mint Green", ""),
-                         ("P5", "Grand Prix White", ""), ("G4", "Rubystone Red", ""), ("F2", "Maritime Blue", "")]}},
+                         ("P5", "Grand Prix White", ""), ("G4", "Rubystone Red", ""), ("F2", "Maritime Blue", "")],
+               # Added 2026-11-04 (audit): p7 'SPECIAL METALLIC COLOURS' was missed in the first pass. Numbers 50-59
+               # are the brochure's own list numbers, not paint codes. Cover: "Colours and interiors '92".
+               "special": [(None, "Satin Black Metallic", "p7 no. 50"), (None, "Cassis Red Metallic", "p7 no. 52"),
+                           (None, "Granite Green Metallic", "p7 no. 53"), (None, "Lagoon Green Metallic", "p7 no. 54"),
+                           (None, "Zermatt Silver Metallic", "p7 no. 55"), (None, "Marine Blue Metallic", "p7 no. 56"),
+                           (None, "Violet Blue Metallic", "p7 no. 57"), (None, "Tahoe Blue Metallic", "p7 no. 58"),
+                           (None, "Turquoise Metallic", "p7 no. 59")]}},
     {"file": "964-1993-colour-information-int.pdf", "page": 4, "label_year": "1993", "model_year": 1993,
      "models": ["911 (964)", "928"], "notes": "printed 8/92 (WKV 127 420 93)",
      "tiers": {"metallic": [("Z8", "Black Metallic", ""), ("F8", "Midnight Blue Metallic", ""), ("F9", "Amethyst Metallic", ""),
@@ -156,3 +163,32 @@ BROCHURES = [
                             (None, "Dark Blue Metallic", ""), (None, "Meteor Grey Metallic", ""), (None, "GT Silver Metallic", "")],
                "special": [(None, "Liquid Metal Silver", ""), (None, "Liquid Metal Chrome Blue", "")]}},
 ]
+
+# ── Model-year evidence and completeness (audit 2026-11-04) ──────────────────
+# my_basis: what ON THE DOCUMENT fixes its model year (file names are not evidence).
+# complete: True only if the document lists standard AND special (extra-cost) colours,
+#           i.e. Porsche's whole factory range for that car+MY. Only complete palettes may
+#           be used to call an off-list colour paint-to-sample.
+AUDIT = {
+    "911-f-1965-1966-colour-information-de-int-fr-it.pdf": {"my_basis": None, "complete": False},
+    "911-f-1967-colour-information-de-int-fr-it.pdf": {"my_basis": "68xx codes; identical to Farbkarte 5.1967 (MY1968) in the 1969 file", "complete": False},
+    "964-1991-colour-information-int.pdf": {"my_basis": "cover 'Colours and Interior Trim '91'", "complete": False},
+    "964-1992-colour-information-int.pdf": {"my_basis": "cover 'Colours and interiors '92'", "complete": True},
+    "964-1993-colour-information-int.pdf": {"my_basis": "printed 8/92 (WKV 127 420 93)", "complete": False},
+    "964-1995-colour-information-int.pdf": {"my_basis": "printed VM 8/94", "complete": False},
+    "993-1996-colour-information-int.pdf": {"my_basis": "Stand 8/95", "complete": False},
+    "993-1997-colour-information-int.pdf": {"my_basis": "Stand 5/96", "complete": False},
+    "993-1998-colour-information-de-int-fr-it.pdf": {"my_basis": "996 + 986 + 993 range together = MY1998 only year all three were sold", "complete": False},
+    "996-1999-colour-information-de-int-fr-it.pdf": {"my_basis": "MY1999 996/986 card (same as 986-1999 file)", "complete": False},
+    "996-gt2-2005-colour-information-int.pdf": {"my_basis": None, "complete": False},
+    "carrera-gt-2003-farbinformation-de.pdf": {"my_basis": "single-MY-range car", "complete": True},
+    "997-2005-colour-information-int.pdf": {"my_basis": "'introduction planned for 10/2004' footnotes (997 launch)", "complete": True},
+    "997-2006-colour-information-int.pdf": {"my_basis": "cover 'The new 911 Turbo' (06/2006); Meteor Grey from 08/2006 -> MY2007 Turbo", "complete": True},
+    "997-2007-colour-information-int.pdf": {"my_basis": "Meteor Grey 'introduction planned 08/2006'", "complete": True},
+    "997-2008-colour-information-int.pdf": {"my_basis": "range sits strictly between 2007 card (Carmon Red, Lapis/Lagoon) and 2009 card "
+                                            "(Dark Blue, Aqua Blue, Racing Green): keeps 997.1 Cobalt/Midnight/Forest, adds Macadamia/Ruby Red/Malachite", "complete": True},
+    "997-2009-colour-information-int.pdf": {"my_basis": "997.2 range; Dark Blue 'from 10/2009'", "complete": True},
+    "997-2010-colour-information-int.pdf": {"my_basis": "identical to 2009 card; Dark Blue from 10/2009", "complete": True},
+    "997-2012-colour-information-int.pdf": {"my_basis": "cover 'The new 911' (991 launch)", "complete": True},
+    "918-spyder-color-information-en.pdf": {"my_basis": "single-MY-range car; 'four solid and six metallic colours'", "complete": True},
+}

@@ -34,7 +34,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(HERE)))
 from sqlalchemy import text  # noqa: E402
 
 from app.database import AsyncSessionLocal  # noqa: E402
-from brochure_transcription import BROCHURES  # noqa: E402
+from brochure_transcription import AUDIT, BROCHURES  # noqa: E402
+from brochure_transcription_2 import BROCHURES_2  # noqa: E402
 from colour_names import DE_EN, NOT_A_COLOUR  # noqa: E402
 
 # ── Palettes ────────────────────────────────────────────────────────────────
@@ -44,6 +45,7 @@ _NORM_DROP = re.compile(r"\b(metallic|met|pearl|perlcolor|paint|non-metallic|uni
 _ALIASES = [  # listing spellings -> Porsche's
     (r"\baventurine\b", "aventura"), (r"\bguard red\b", "guards red"), (r"\bindian red\b", "guards red"),
     (r"\bindischrot\b", "guards red"), (r"\bblack pearl\b", "black"), (r"\bschwarz\b", "black"),
+    (r"\bcarrera white\b", "carrara white"), (r"\bgaurds?\b", "guards"),   # common listing misspellings
 ]
 # Title words the colour parser sometimes keeps ("Original-Owner Silver Metallic").
 _NOT_COLOUR_WORDS = re.compile(r"\b(original|owner|one|mile|miles|kilometer|kilometers|\d+k?)\b", re.I)
@@ -71,11 +73,18 @@ def de_base(de: str) -> str:
     return norm(re.sub(r"[- ]?(met\.?|metallic|perlcolor)$", "", de.strip()))
 
 
+def _hues(n: str) -> frozenset:
+    return frozenset(t for t in n.split() if t in COLOUR_WORDS and t != "metallic")
+
+
 def on_list(colour: str, names: dict, finish: str | None = None) -> bool:
-    """Colour (and finish, when the listing states one) is on the palette."""
+    """Colour (and finish, when the listing states one) is on the palette.
+    Same distinctive words AND the same hue words: 'Jet Green' is not 'Jet Black',
+    'Carrara White' is 'Carrara White' ('Ruby Star' vs 'Ruby Star Neo' stay distinct)."""
     d = distinctive(colour)
+    h = _hues(colour)
     for n, finishes in names.items():
-        if n == colour or (d and d == distinctive(n)):
+        if n == colour or (d and d == distinctive(n) and (not h or not _hues(n) or h == _hues(n))):
             if finish is None or finish in finishes:
                 return True
     return False
@@ -121,7 +130,7 @@ for row in json.load(open(os.path.join(HERE, "factory_palettes_overview.json")))
     else:
         p["partial"] = True
 
-brochure = defaultdict(lambda: {"names": defaultdict(set), "codes": set(), "src": set()})
+brochure = defaultdict(lambda: {"names": defaultdict(set), "codes": set(), "src": set(), "complete": False})
 _BROCHURE_SCOPE = {  # file -> scope keys it adds to (scope, MY)
     "964-1991": [("911air", 1991)], "964-1992": [("911air", 1992)], "964-1993": [("911air", 1993)],
     "964-1995": [("911air", 1995)], "993-1996": [("911air", 1996)], "993-1997": [("911air", 1997), ("986", 1997)],
@@ -130,13 +139,19 @@ _BROCHURE_SCOPE = {  # file -> scope keys it adds to (scope, MY)
     "997-2008": [("997", 2008)], "997-2009": [("997", 2009)], "997-2010": [("997", 2010)],
     "997-2012": [("991launch", 2012)], "carrera-gt-2003": [("cgt", None)], "918-spyder": [("918", None)],
 }
-for b in BROCHURES:
-    key = next((k for k in _BROCHURE_SCOPE if b["file"].startswith(k)), None)
-    if not key:
-        continue
-    for scope in _BROCHURE_SCOPE[key]:
+for b in BROCHURES + BROCHURES_2:
+    if "scopes" in b:
+        scopes = b["scopes"]
+    else:
+        key = next((k for k in _BROCHURE_SCOPE if b["file"].startswith(k)), None)
+        if not key:
+            continue
+        scopes = _BROCHURE_SCOPE[key]
+    complete = b["complete"] if "complete" in b else AUDIT.get(b["file"], {}).get("complete", False)
+    for scope in scopes:
         p = brochure[scope]
         p["src"].add(f'{b["file"]} p{b["page"]}')
+        p["complete"] = p["complete"] or complete
         for tier, entries in b["tiers"].items():
             for code, name, _ in entries:
                 finish = "met" if tier == "metallic" or "metallic" in name.lower() else "uni"
@@ -157,6 +172,20 @@ def scope_of(r) -> tuple[str | None, str]:
         return "918", ""
     if ml == "Boxster" and gen == "986":
         return "986", ""
+    # model-specific ranges (GT, 718/981): key "<model_line>|<generation>|<variant>"
+    key = f"{ml}|{gen}|{var}"
+    if any(k[0] == key for b in BROCHURES_2 for k in b.get("scopes", [])):
+        return key, ""
+    if ml in ("Boxster", "Cayman") and gen == "718" and var in ("base", "S", "GTS"):
+        if var == "GTS" and not (my and my >= 2021):      # GTS 4.0 (MY21+) shares the base range
+            return None, "718 GTS 2.5: no range yet"
+        return "718|base", ""
+    if ml in ("Boxster", "Cayman") and gen == "718" and var == "T":
+        return "718|T", ""
+    if ml in ("Boxster", "Cayman") and gen in ("987.1", "987.2"):
+        if var not in ("base", "S"):
+            return None, f"{ml} {var}: special/limited model, no palette"
+        return ("987b" if ml == "Boxster" else "987c"), ""
     if ml != "911":
         return None, "model not covered by the colour PDFs"
     if gen in ("F-Body", "G-Body", "964", "993"):
@@ -173,6 +202,18 @@ def scope_of(r) -> tuple[str | None, str]:
         if var not in NINE97_RANGE:
             return None, f"997 {var}: no palette"
         return "997", ""
+    # Carrera family only (GTS / T / Turbo / GT models have their own ranges and brochures)
+    if gen == "991.2" and var in ("Carrera", "Carrera S", "Carrera 4", "Carrera 4S", "Cabriolet", "Targa"):
+        return "991.2", ""
+    if gen == "992.1" and (var in ("Carrera", "Carrera S", "Carrera 4", "Carrera 4S", "Cabriolet")
+                           or (var == "Targa" and my and my >= 2021)):
+        return "992", ""
+    if gen == "992.2" and var in ("Carrera", "Carrera S", "Carrera 4", "Carrera 4S", "Carrera GTS", "Cabriolet", "Targa"):
+        return "992.2", ""
+    if gen == "992.1" and var == "S/T":
+        return "992st", ""
+    if gen == "992.1" and var == "Dakar":
+        return "992dakar", ""
     if gen == "991.1" and my == 2012 and var in ("Carrera", "Carrera S", "Cabriolet"):
         return "991launch", ""
     return None, f"{gen}: no palette yet"
@@ -180,7 +221,7 @@ def scope_of(r) -> tuple[str | None, str]:
 
 def palette(scope, my):
     """(names, codes, evidence, partial) for scope + model year, or None."""
-    my_key = None if scope in ("cgt", "918") else my
+    my_key = None if scope in ("cgt", "918", "992st", "992dakar") else my
     c, b = chart.get((scope, my_key)), brochure.get((scope, my_key))
     if not c and not b:
         return None
@@ -191,7 +232,11 @@ def palette(scope, my):
     codes = (c["codes"] if c else set()) | (b["codes"] if b else set())
     evidence = "factory chart" if c else "brochure"
     partial = bool(c and c["partial"])
-    return names, codes, evidence, partial
+    # complete: Porsche's whole range (standard + special) for this scope+MY is on file, so an
+    # off-list colour can be called PTS. A brochure flagged complete, or an overview chart
+    # whose every German name maps to English (not partial).
+    complete = bool((b and b["complete"]) or (c and not c["partial"]))
+    return names, codes, evidence, partial, complete
 
 
 # ── Listing evidence ─────────────────────────────────────────────────────────
@@ -223,7 +268,7 @@ async def main():
         if not pal:
             stats[("PTS-tagged" if pts else "untagged", "no palette")] += 1
             continue
-        names, codes, evidence, partial = pal
+        names, codes, evidence, partial, _complete = pal
         txt = f'{r["lot_title"] or ""}\n{r["details_text"] or ""}'
         if pts and PTS_DOC.search(txt):
             stats[("PTS-tagged", "documented — kept")] += 1

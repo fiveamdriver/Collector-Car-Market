@@ -133,6 +133,13 @@ _COLORS = [
 ]
 
 # Deduplicate (case-insensitive, preserve first occurrence), then sort longest-first.
+_PTSRS_COLOUR_WORD = re.compile(
+    r"white|black|red|blue|green|grey|gray|silver|yellow|orange|brown|purple|violet|gold|beige|ivory|bronze|"
+    r"pink|turquoise|aqua|lilac|magenta|olive|cream|chalk|crayon|burgundy|ruby|amethyst|copper|cognac|mint|lime|"
+    r"sand|stone|rose|peach|plum|lavender|coral|cherry|emerald|jade|cobalt|graphite|anthracite|carmine|"
+    r"caramel|sepia|tangerine|apricot|aubergine|grigio|rosso|verde|azzurro|azzuro|giallo|arancio|bianco|nero|blau|gr[uü]n|gelb", re.I)
+
+
 def _porsche_official_names() -> list[str]:
     """English names from Porsche's own colour charts and brochures
     (data/porsche_colours/), so the parser knows Porsche's vocabulary."""
@@ -146,14 +153,30 @@ def _porsche_official_names() -> list[str]:
     try:
         from brochure_transcription import BROCHURES
         from colour_names import DE_EN
+        try:
+            from brochure_transcription_2 import BROCHURES_2
+        except ImportError:
+            BROCHURES_2 = []
     except ImportError:
         return []
     finally:
         sys.path.remove(here)
     names = {en for en, _ in DE_EN.values()}
-    for b in BROCHURES:
+    for b in BROCHURES + BROCHURES_2:
         for entries in b["tiers"].values():
             names.update(name for _, name, _ in entries)
+    # Colours @ptsrs documents as PTS (internal evidence table, if present locally).
+    import json
+    table = os.path.expanduser("~/Projects/CollectorCarMarket-data/ptsrs/pts_evidence_table.json")
+    if os.path.exists(table):
+        try:
+            for e in json.load(open(table)):
+                for n in [e.get("colour")] + list(e.get("also_called") or []):
+                    # only real colour names (captions sometimes give model words: 'Spyder', 'Turbo S Coupe')
+                    if n and 3 <= len(n) <= 40 and _PTSRS_COLOUR_WORD.search(n) and len(n.split()) >= 2:
+                        names.add(n.strip())
+        except (ValueError, OSError):
+            pass
     return sorted(names)
 
 
@@ -201,6 +224,13 @@ def scan_for_color(text: str | None) -> str | None:
     return None
 
 
+_LEADING_ADJ = re.compile(
+    r"^(?:(?:tasteful|stunning|beautiful|gorgeous|lovely|rare|very rare|desirable|striking|attractive|classic|timeless|"
+    r"iconic|elegant|sharp|vibrant|handsome|sinister|menacing|sought[- ]after|stock|fresh|great|nice|clean|"
+    r"pretty|bold|eye[- ]catching|unusual|uncommon|unique|seldom[- ]seen|popular|exquisite|spectacular|traditional|"
+    r"understated|subtle)\s+)+", re.I)
+
+
 def parse_color_from_phrase(phrase: str | None) -> str | None:
     """
     Normalize a raw color phrase extracted from auction text (e.g. 'Finished in X over Y').
@@ -208,7 +238,10 @@ def parse_color_from_phrase(phrase: str | None) -> str | None:
     """
     if not phrase:
         return None
-    phrase = phrase.strip()
+    # 'Tasteful White', 'Stock Black', 'Unusual Schiefergrau Metallic': the adjective is the writer's, not the paint's
+    phrase = _LEADING_ADJ.sub("", phrase.strip()).strip()
+    if not phrase:
+        return None
     known = scan_for_color(phrase)
     if known:
         return known
