@@ -159,9 +159,9 @@ export const VARIANTS = {
     '964': [
       // The 964 was sold as the rear-drive Carrera 2 and the all-wheel-drive
       // Carrera 4, so those are its cards; there is no generic 'Carrera'.
-      // Turbo = the 3.3 (MY1991-92); Turbo 3.6 = MY1993-94, its own car.
+      // The Turbo is split by engine: 3.3 (MY1991-92) and 3.6 (MY1993-94).
       'Carrera 2', 'Carrera 4', 'Carrera RS', 'RS 3.8', 'RS America',
-      'Turbo', 'Turbo 3.6', 'Turbo S', 'Speedster', 'Targa', 'Cabriolet',
+      'Turbo 3.3', 'Turbo 3.6', 'Turbo S', 'Speedster', 'Targa', 'Cabriolet',
     ],
     // Carrera 4S starts here, alongside the first glass-roof Targa.
     '993': [

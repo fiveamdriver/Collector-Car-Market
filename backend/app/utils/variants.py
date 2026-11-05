@@ -139,9 +139,11 @@ TURBO_36_FROM_MY = 1993
 
 
 def split_964_turbo(variant: str, year: int | None) -> str:
-    """'Turbo' -> 'Turbo 3.6' for a MY1993+ 964 Turbo; anything else unchanged."""
-    if variant == "Turbo" and year and year >= TURBO_36_FROM_MY:
-        return "Turbo 3.6"
+    """964 'Turbo' -> 'Turbo 3.3' (MY1991-92) or 'Turbo 3.6' (MY1993+); anything
+    else unchanged. Without a year a Turbo stays 'Turbo' (not a card: shows up
+    in checks rather than landing on the wrong one)."""
+    if variant == "Turbo" and year:
+        return "Turbo 3.6" if year >= TURBO_36_FROM_MY else "Turbo 3.3"
     return variant
 
 
