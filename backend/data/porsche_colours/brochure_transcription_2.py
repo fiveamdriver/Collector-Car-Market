@@ -517,6 +517,34 @@ GT_718 = [
        _SOLID4, ("Carrara White Metallic", "Jet Black Metallic", "Agate Grey Metallic", "Gentian Blue Metallic",
                  "Dolomite Silver Metallic", "GT Silver Metallic"),
        ("Shark Blue", "Lava Orange", "Crayon", "Chalk", "Python Green"), "Chalk = US name of Crayon"),
+    # 992.1 GT3 / Touring MY2023-24: Porsche 'Porsche models' range brochure WSLU23000823 (US) /
+    # WSLU23000220 (WW), 911 GT3 swatch page (13 colours), and the configurator list in DuPont
+    # Registry's '2023 Porsche 992 911 GT3 Color Options' (standard / $840 metallic / $4,220
+    # special) agree exactly. vs MY2022: + Arctic Grey; - Lava Orange, Dolomite Silver.
+    _e("911|992.1|GT3", [2023, 2024], "Porsche-models brochure WSLU23000823/…0220 + configurator (DuPont Registry 2023)",
+       "MY2023 configurator list = MY2024 range brochure",
+       _SOLID4, ("Carrara White Metallic", "Jet Black Metallic", "Agate Grey Metallic", "GT Silver Metallic",
+                 "Gentian Blue Metallic"),
+       ("Shark Blue", "Arctic Grey", "Arctic Gray", "Crayon", "Chalk", "Python Green", "Ruby Star Neo"),
+       "Arctic Gray / Chalk = US names. Ruby Star Neo: made a regular (special) 911/718 colour for 2023 "
+       "(evo.co.uk 205439; DuPont Registry 'special color option, not PTS'), not on the MY2024 swatch page but "
+       "kept here so a 'PTS Ruby Star Neo' claim is never badged. The original Ruby Star stays PTS."),
+    # 992.1 Turbo / Turbo S MY2021 launch range: Carscoops configurator piece (03/2020: 4 solid,
+    # 8 metallic, specials 'including' Python Green, Lava Orange, Chalk, Carmine Red) + Porsche
+    # dealer colour list (Porsche Colorado Springs, 2021 Turbo S Cabriolet). NOT complete: the
+    # specials are 'including', so this can show a colour is standard but never prove PTS.
+    _e("911|992.1|Turbo S", [2021], "Carscoops 2020-03 configurator + Porsche Colorado Springs 2021 list",
+       "MY2021 launch range", _SOLID4,
+       ("Carrara White Metallic", "Jet Black Metallic", "Agate Grey Metallic", "Dolomite Silver Metallic",
+        "GT Silver Metallic", "Gentian Blue Metallic", "Night Blue Metallic", "Aventurine Green Metallic"),
+       ("Python Green", "Lava Orange", "Chalk", "Crayon", "Carmine Red"), "specials list may be partial",
+       complete=False),
+    _e("911|992.1|Turbo", [2021], "same as 992.1 Turbo S MY2021 (one range for Turbo and Turbo S)",
+       "MY2021 launch range", _SOLID4,
+       ("Carrara White Metallic", "Jet Black Metallic", "Agate Grey Metallic", "Dolomite Silver Metallic",
+        "GT Silver Metallic", "Gentian Blue Metallic", "Night Blue Metallic", "Aventurine Green Metallic"),
+       ("Python Green", "Lava Orange", "Chalk", "Crayon", "Carmine Red"), "specials list may be partial",
+       complete=False),
     # 991.2
     _e("911|991.2|GT3", [2018], "brochure WSLG1801000120 / …0223 (US)", "print code WSLG1801… MY2018",
        _SOLID4, ("Carrara White Metallic", "Jet Black Metallic", "Agate Grey Metallic", "GT Silver Metallic",
