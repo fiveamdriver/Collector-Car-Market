@@ -43,8 +43,8 @@ function listOf(csv) {
 
 // The few facts a buyer scans for, as short tags. Order: what most changes the
 // price first. Capped so a heavily optioned car doesn't push the price off.
-const TAG_OPTIONS    = ['Sonderwunsch', 'M491', 'Weissach', 'Lightweight', 'Touring Package', 'Clubsport', 'X50/X51']
-const TAG_PROVENANCE = ['One Owner', 'Matching Numbers']
+const TAG_OPTIONS    = ['Sonderwunsch', 'N/GT', 'M491', 'Weissach', 'Lightweight', 'Touring Package', 'Clubsport', 'X50/X51']
+const TAG_PROVENANCE = []
 const MAX_TAGS = 4
 // "Club Sport" and "Clubsport" are the same word to a reader.
 const squash = s => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -58,6 +58,17 @@ function tagsFor(r) {
     ...TAG_OPTIONS.filter(t => options.includes(t)),
     ...TAG_PROVENANCE.filter(t => provenance.includes(t)),
   ].filter(t => !variant.includes(squash(t))).slice(0, MAX_TAGS)
+}
+// Filter chips: every tag a car can carry, in the order collectors rank them.
+// A chip only shows when some (not all) cars on the page have it.
+const FILTER_TAGS = ['PTS', 'Sonderwunsch', 'Lightweight', 'N/GT', 'Weissach', 'M491', 'Clubsport',
+                     'Touring Package', 'X50/X51']
+// Stored label -> what the site shows ("Leichtbau" is the word collectors use).
+const TAG_LABEL = { Lightweight: 'Leichtbau', 'Touring Package': 'Touring' }
+const tagLabel = t => TAG_LABEL[t] ?? t
+function hasTag(r, t) {
+  if (t === 'PTS') return !!r.paint_to_sample
+  return listOf(r.options).includes(t) || listOf(r.provenance).includes(t)
 }
 function specLine(r) {
   return [r.transmission, r.interior && `${r.interior} interior`].filter(Boolean).join(' · ')
@@ -78,6 +89,8 @@ export default function ResultsTable({ results }) {
   const [sortBy, setSortBy] = useState('date-desc')
   const [filterYear, setFilterYear] = useState(null)
   const [view, setView] = useState('grid')
+  const [activeTags, setActiveTags] = useState([])
+  const toggleTag = t => setActiveTags(a => a.includes(t) ? a.filter(x => x !== t) : [...a, t])
 
   useEffect(() => {
     if (!openCol) return
@@ -91,8 +104,31 @@ export default function ResultsTable({ results }) {
     [results]
   )
 
+  // Chips for this page: tags some cars have, minus ones every car has or that
+  // only repeat the variant's own name (Clubsport on the Club Sport card).
+  const pageTags = useMemo(() => {
+    const variant = squash(results[0]?.variant)
+    return FILTER_TAGS.filter(t => {
+      const n = results.filter(r => hasTag(r, t)).length
+      return n > 0 && n < results.length && !(variant && variant.includes(squash(t)))
+    })
+  }, [results])
+
+  // Leaving a page whose chips don't exist here must not filter everything out.
+  useEffect(() => { setActiveTags(a => a.filter(t => pageTags.includes(t))) }, [pageTags])
+
+  const byYear = useMemo(
+    () => (filterYear ? results.filter(r => r.year === filterYear) : results),
+    [results, filterYear]
+  )
+  // Count per chip = cars left if it were added to the current selection.
+  const tagCounts = useMemo(() => Object.fromEntries(pageTags.map(t => [t,
+    byYear.filter(r => [...activeTags.filter(a => a !== t), t].every(a => hasTag(r, a))).length,
+  ])), [pageTags, byYear, activeTags])
+
   const visible = useMemo(() => {
-    let rows = filterYear ? results.filter(r => r.year === filterYear) : [...results]
+    // Every selected tag must match (PTS + Leichtbau = lightweight PTS cars).
+    let rows = byYear.filter(r => activeTags.every(t => hasTag(r, t)))
     // ISO date strings compare correctly as strings; '' sorts null dates last
     // in desc and first in asc instead of NaN-ordering them arbitrarily.
     switch (sortBy) {
@@ -102,7 +138,7 @@ export default function ResultsTable({ results }) {
       case 'price-asc':  rows.sort((a, b) => (a.sold_price ?? 0) - (b.sold_price ?? 0)); break
     }
     return rows
-  }, [results, sortBy, filterYear])
+  }, [byYear, activeTags, sortBy])
 
   const openDropdown = (col, e) => {
     e.stopPropagation()
@@ -127,6 +163,30 @@ export default function ResultsTable({ results }) {
 
   return (
     <>
+      {pageTags.length > 0 && (
+        <div className="tag-filter-row" role="group" aria-label="Filter by tag">
+          {pageTags.map(t => {
+            const on = activeTags.includes(t)
+            return (
+              <button
+                key={t}
+                className={`tag-chip${on ? ' tag-chip--on' : ''}`}
+                aria-pressed={on}
+                disabled={!on && tagCounts[t] === 0}
+                onClick={() => toggleTag(t)}
+              >
+                {tagLabel(t)}
+                <span className="tag-chip-count">{tagCounts[t]}</span>
+              </button>
+            )
+          })}
+          {activeTags.length > 0 && (
+            <button className="tag-chip-clear" onClick={() => setActiveTags([])}>
+              Clear · {visible.length} of {byYear.length}
+            </button>
+          )}
+        </div>
+      )}
       <div className="results-toolbar">
         <div className="results-toolbar-controls">
           {view === 'grid' && controls.map(c => (
@@ -175,7 +235,7 @@ export default function ResultsTable({ results }) {
                   {specLine(r) && <span className="result-card-spec">{specLine(r)}</span>}
                   {tagsFor(r).length > 0 && (
                     <span className="result-card-tags">
-                      {tagsFor(r).map(t => <span key={t} className="result-tag">{t}</span>)}
+                      {tagsFor(r).map(t => <span key={t} className="result-tag">{tagLabel(t)}</span>)}
                     </span>
                   )}
                   <span className="result-card-date">{fmtDate(r.sold_date)}</span>

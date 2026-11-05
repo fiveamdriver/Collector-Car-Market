@@ -160,7 +160,7 @@ export const VARIANTS = {
       // The 964 was sold as the rear-drive Carrera 2 and the all-wheel-drive
       // Carrera 4, so those are its cards; there is no generic 'Carrera'.
       // The Turbo is split by engine: 3.3 (MY1991-92) and 3.6 (MY1993-94).
-      'Carrera 2', 'Carrera 4', 'Carrera RS', 'RS 3.8', 'RS America',
+      'Carrera 2', 'Carrera 4', 'Carrera RS', 'RS 3.8', 'Carrera 4 Leichtbau', 'RS America',
       'Turbo 3.3', 'Turbo 3.6', 'Turbo S', 'Speedster', 'Targa', 'Cabriolet',
     ],
     // Carrera 4S starts here, alongside the first glass-roof Targa.
@@ -227,14 +227,16 @@ export const VARIANTS = {
     '981': ['base', 'S', 'GTS', 'Spyder'],
     '718': ['base', 'S', 'GTS', 'Spyder', 'Spyder RS'],
   },
+  // No plain 'Clubsport' race cards: factory Clubsport 911s are street-legal and
+  // live on their street card (only non-street-legal cars are race cars).
   '911-race': {
     'F-Body':  ['RSR'],
     'G-Body':  ['RSR', 'RSR Turbo'],
-    '964':     ['RSR 3.8', 'Carrera Cup', 'Clubsport'],
-    '993':     ['GT2 R', 'Cup 3.8 RSR', 'Carrera Cup', 'Clubsport'],
-    '996':     ['GT3 Cup', 'GT3 RSR', 'GT3 R', 'Carrera Cup', 'Clubsport'],
-    '997':     ['GT3 RSR', 'GT3 Cup', 'Clubsport'],
-    '991':     ['RSR', 'GT3 R', 'GT2 RS Clubsport', 'GT3 Cup', 'Clubsport'],
+    '964':     ['RSR 3.8', 'Carrera Cup'],
+    '993':     ['GT2 R', 'Cup 3.8 RSR', 'Carrera Cup'],
+    '996':     ['GT3 Cup', 'GT3 RSR', 'GT3 R', 'Carrera Cup'],
+    '997':     ['GT3 RSR', 'GT3 Cup'],
+    '991':     ['RSR', 'GT3 R', 'GT2 RS Clubsport', 'GT3 Cup'],
     '992':     ['GT3 Cup', 'GT3 R', 'GT2 RS Clubsport'],
   },
   // One variant per era, so each generation card opens straight to its results.

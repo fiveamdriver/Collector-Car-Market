@@ -9,7 +9,7 @@ and by enrichment (app/services/derived.py) when a VIN re-files a car.
 # generations a boundary move can land in.
 CARDS = {
     "G-Body": None,  # G-Body variants are year-derived; only Speedster moves here
-    "964": {"Carrera 2", "Carrera 4", "Carrera RS", "RS 3.8", "RS America",
+    "964": {"Carrera 2", "Carrera 4", "Carrera 4 Leichtbau", "Carrera RS", "RS 3.8", "RS America",
             "Turbo 3.3", "Turbo 3.6", "Turbo S", "Speedster", "Targa", "Cabriolet"},
     "993": {"Carrera", "Carrera 4", "Carrera S", "Carrera 4S", "Carrera RS",
             "Turbo", "Turbo S", "GT2", "Targa", "Cabriolet"},

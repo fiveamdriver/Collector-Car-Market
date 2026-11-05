@@ -86,8 +86,10 @@ def classify_911_race(rec) -> tuple[str, str] | None:
         return gen, "GT3 R"
     if _GT2_RS_CS.search(t):
         return gen, "GT2 RS Clubsport"
-    if _CLUBSPORT.search(t):
-        return gen, "Clubsport"
+    # Plain "Clubsport" is NOT routed here: on the 964 RS (N/GT), RS 3.8, 993 RS,
+    # GT2 and GT3 / GT3 RS it is a factory package on a street-legal, registered
+    # car (2026-11-05; migrate_clubsport_to_street.py moved 37 back). Only
+    # non-street-legal cars belong on the race line.
     return None
 
 

@@ -429,6 +429,38 @@ def model_gearbox(model_line: str | None, generation: str | None, variant: str |
     return SINGLE_GEARBOX.get((model_line or "", generation or "", variant or ""))
 
 
+# 964 Carrera RS N/GT (M003, ~290 built, the Group N/GT homologation car) is what
+# listings also call the "Carrera RS Clubsport". On a 964 RS the tag reads N/GT.
+# Title-only: lot essays on ordinary RSs and RS Americas mention the N/GT as
+# background ("Then came the N/GT..."). The RS 3.8 is a different car.
+_NGT_TITLE = re.compile(r'\bN[/-]GT\b|\bNGT\b|\bM003\b', re.IGNORECASE)
+_964_RS = re.compile(r'\bCarrera\s+RS\b', re.IGNORECASE)
+_NOT_NGT = re.compile(r'\bAmerica\b|\bRS\s?3\.8\b', re.IGNORECASE)
+
+
+def ngt_options(options: list[str], title: str | None, generation: str | None) -> list[str]:
+    """On a 964 Carrera RS, 'Clubsport' (or N/GT in the title) becomes 'N/GT'."""
+    t = title or ""
+    if generation != "964" or not _964_RS.search(t) or _NOT_NGT.search(t):
+        return options
+    if "Clubsport" in options or _NGT_TITLE.search(t):
+        return ["N/GT"] + [o for o in options if o not in ("Clubsport", "N/GT")]
+    return options
+
+
+# The 964's only Leichtbau cars are the Carrera 4 Lightweight (22, Weissach Cup
+# development cars, 1990-91) and the Turbo S Leichtbau (86, Porsche Exclusive,
+# 1992-93). "Leichtbau sport version" on a Carrera RS is just the RS's standard
+# (non-Touring) spec, so the tag stays off every other 964 (checked 2026-11-05).
+_964_LEICHTBAU = re.compile(r'\bCarrera\s*4|\bC4\b|\bTurbo\s*S\b', re.IGNORECASE)
+
+
+def leichtbau_options(options: list[str], title: str | None, generation: str | None) -> list[str]:
+    if generation == "964" and "Lightweight" in options and not _964_LEICHTBAU.search(title or ""):
+        return [o for o in options if o != "Lightweight"]
+    return options
+
+
 def derive(title: str | None, details_text: str | None,
            year: int | None = None, model_line: str | None = None,
            generation: str | None = None, variant: str | None = None) -> dict:
@@ -445,7 +477,7 @@ def derive(title: str | None, details_text: str | None,
         "chassis":      parse_chassis(details_text),
         "interior":     parse_interior(details_text),
         # M491 is a factory Porsche 911 option; RUF and other builders do not get the tag.
-        "options":      ",".join(o for o in parse_options(title, details_text, year)
+        "options":      ",".join(o for o in leichtbau_options(ngt_options(parse_options(title, details_text, year), title, generation), title, generation)
                                  if o != "M491" or model_line == "911") or None,
         "provenance":   ",".join(parse_provenance(title, details_text)) or None,
     }

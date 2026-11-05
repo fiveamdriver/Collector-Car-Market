@@ -114,7 +114,8 @@ def is_964_rs_38(text: str) -> bool:
 # The Carrera 4 came first — the 964 launched for MY1989 as the C4 alone, and the
 # C2 followed for 1990. A 1989 "Carrera 4" is therefore a 964, but the year
 # ladder files every 1989 car as G-Body; callers use is_early_carrera_4().
-_C4 = re.compile(r'\bCarrera\s*4\b|\bC4\b', re.IGNORECASE)
+# "Carrera 4RS Lightweight" (Bonhams' name for a C4 Leichtbau) is a Carrera 4 too.
+_C4 = re.compile(r'\bCarrera\s*4(?:\b|RS\b)|\bC4\b', re.IGNORECASE)
 _C2 = re.compile(r'\bCarrera\s*2\b|\bC2\b', re.IGNORECASE)
 _964_SPECIALS = [
     (re.compile(r'\bAmerica\b', re.IGNORECASE), "RS America"),
@@ -147,6 +148,20 @@ def split_964_turbo(variant: str, year: int | None) -> str:
     return variant
 
 
+# The Carrera 4 Leichtbau (22 built at Weissach, 1990-91, Carrera Cup development
+# cars; sold $450k-$1M+) has its own card, apart from the ~$110k Carrera 4.
+# Bonhams titles one "Carrera 4RS Lightweight". Look-alikes stay on their card.
+_C4_LEICHTBAU = re.compile(
+    r'\b(?:Carrera\s*4|C4)\s*(?:RS\s*)?[\'"“”‘’]?(?:Lightweight|Leichtbau)\b'
+    r'|\b(?:Lightweight|Leichtbau)\s+(?:Carrera\s*4|C4)\b', re.IGNORECASE)
+_C4_LEICHTBAU_NOT = re.compile(r'tribute|replica|recreation|evocation|-style|\bstyle\b|conversion', re.IGNORECASE)
+
+
+def is_964_c4_leichtbau(text: str) -> bool:
+    """True if `text` names a factory 964 Carrera 4 Leichtbau."""
+    return bool(_C4_LEICHTBAU.search(text or "")) and not _C4_LEICHTBAU_NOT.search(text or "")
+
+
 def fix_964_carrera(variant: str, text: str, year: int | None = None) -> str:
     """
     Resolve a generic 964 'Carrera' / 'base' (or a mislabelled 'Carrera 2' /
@@ -158,6 +173,8 @@ def fix_964_carrera(variant: str, text: str, year: int | None = None) -> str:
     """
     if variant not in ("Carrera", "base", "Carrera 2", "Carrera 4"):
         return split_964_turbo(variant, year)
+    if is_964_c4_leichtbau(text):
+        return "Carrera 4 Leichtbau"
     if variant == "base":
         for pat, name in _964_SPECIALS:
             if pat.search(text):
@@ -246,9 +263,31 @@ for _gen in ("993", "996.1", "996.2", "997.1", "997.2", "991.1", "991.2", "992.1
 _CABRIOLET_FIRST_YEAR = {"G-Body": 1983}
 
 
+# Same for the Targa, on every water-/air-cooled generation that has a Targa card
+# (996.1 has none: the glass-roof 996 Targa is a 996.2). Search configs stamp the
+# drivetrain ("Carrera 2", "Carrera 4") on a "Carrera 2 Targa", which filed 75
+# Targas on the coupe cards until 2026-11-05. F-/G-Body body styles are decided
+# by their own year-based rules.
+_TARGA_GENS = {"964", "993", "996.2", "997.1", "997.2", "991.1", "991.2", "992.1", "992.2"}
+
+
+# A title that says "Turbo S" is the Turbo S, on generations that card it. BaT's
+# search groups stamped "Turbo" / "Cabriolet" / "Carrera S" on 77 of them (74
+# 2005 996 Turbo S on the Turbo card; 997.2 Turbo S Cabriolets) until 2026-11-05.
+# Turbo cabriolets stay with their Turbo card (see _CABRIOLET_SOURCE_TRIMS).
+_TURBO_S = re.compile(r"\bTurbo\s+S\b(?![-\s]?(?:style|look|wheels?))", re.IGNORECASE)
+_TURBO_S_GENS = {"993", "996.2", "997.2", "991.1", "991.2", "992.1", "992.2"}
+_TURBO_S_FROM = {"Turbo", "Cabriolet", "Carrera", "Carrera S", "Carrera 4S", "Targa", "base"}
+
+
 def cabriolet_variant(generation: str, variant: str, text: str, year: int | None = None) -> str:
-    """'Cabriolet' for a Carrera-family cabriolet, else `variant` unchanged."""
+    """'Turbo S' / 'Cabriolet' / 'Targa' by what the title names, else `variant` unchanged."""
+    if generation in _TURBO_S_GENS and variant in _TURBO_S_FROM and _TURBO_S.search(text or ""):
+        return "Turbo S"
     trims = _CABRIOLET_SOURCE_TRIMS.get(generation)
+    if (generation in _TARGA_GENS and trims and variant in trims
+            and _TARGA_WORD.search(text or "")):
+        return "Targa"
     first = _CABRIOLET_FIRST_YEAR.get(generation)
     if first and year is not None and year < first:
         return variant

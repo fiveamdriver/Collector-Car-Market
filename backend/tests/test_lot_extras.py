@@ -345,3 +345,28 @@ class M491Tests(unittest.TestCase):
         self.assertFalse(m("1983 Porsche 911SC Turbo-Look Conversion", None, 1983))
         self.assertFalse(m("1986 Porsche 911 Carrera Turbo-Look Conversion", None, 1986))
         self.assertFalse(m("1985 Porsche 911 Carrera 930-Style Widebody", None, 1985))
+
+
+class NGTTagTests(unittest.TestCase):
+    def test_964_rs_ngt(self):
+        from app.utils.lot_extras import derive
+        o = lambda t: derive(t, None, 1992, "911", "964")["options"]
+        self.assertEqual(o("1992 Porsche 911 Carrera RS N/GT"), "N/GT")
+        self.assertEqual(o("Porsche 911 Type 964 Carrera RS N-GT Coupé 1991"), "N/GT")
+        self.assertEqual(o("1992 Porsche 911 Carrera RS Clubsport"), "N/GT")
+        self.assertIsNone(o("1992 Porsche 911 Carrera RS"))
+        self.assertEqual(o("1993 Porsche 964 Carrera RS 3.8 Clubsport"), "Clubsport")
+        self.assertIsNone(o("1993 Porsche 964 Carrera RS America"))
+
+    def test_other_generations_keep_clubsport(self):
+        from app.utils.lot_extras import derive
+        self.assertEqual(derive("1987 Porsche 911 Carrera Clubsport", None, 1987, "911", "G-Body")["options"], "Clubsport")
+
+
+class Leichtbau964Tests(unittest.TestCase):
+    def test_only_c4_and_turbo_s(self):
+        from app.utils.lot_extras import derive
+        o = lambda t, d=None: derive(t, d, 1992, "911", "964")["options"]
+        self.assertEqual(o("1991 Porsche 911 Carrera 4 Lightweight"), "Lightweight")
+        self.assertEqual(o("1993 Porsche 964 Turbo S Leichtbau"), "Lightweight")
+        self.assertIsNone(o("1992 Porsche 911 Carrera RS", "A German-market “Leichtbau” sport version"))
