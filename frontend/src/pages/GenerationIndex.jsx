@@ -33,6 +33,8 @@ export default function GenerationIndex() {
   }, [modelLine])
 
   const byGen = useMemo(() => indexByKey(groupStats), [groupStats])
+  // Photo cards only when every generation has a photo (else white text on a blank card).
+  const showPhotos = generations.length > 0 && generations.every(g => GEN_IMAGES[g])
 
   if (!model) return <Navigate to="/" replace />
 
@@ -50,19 +52,36 @@ export default function GenerationIndex() {
       {error   && <p className="status error">Error: {error}</p>}
 
       {!loading && !error && (
-        <div className="card-grid card-grid--4col">
+        <div className={showPhotos ? 'card-grid card-grid--photo' : 'card-grid card-grid--4col'}>
           {generations.map(gen => {
             const subGens = groups[gen]
             const stats = subGens
               ? combineStats(subGens.map(sg => byGen[sg]))
               : statsFromGroup(byGen[gen])
+            const imgStyle = GEN_IMAGE_POSITION[gen] ? { objectPosition: GEN_IMAGE_POSITION[gen] } : undefined
+            if (showPhotos) {
+              // Same card as the variant pages: photo fills the card, text on top.
+              return (
+                <Link key={gen} to={`/${modelSlug}/${gen}`} className="index-card index-card--bg">
+                  <img src={GEN_IMAGES[gen]} alt="" className="index-card-bg-img"
+                    loading="lazy" decoding="async" style={imgStyle} />
+                  <div className="index-card-header">
+                    <span className="index-card-name">{GEN_LABELS[gen] ?? gen}</span>
+                    <span className="index-card-count">{stats.count.toLocaleString()} sold</span>
+                  </div>
+                  {GEN_YEARS[gen] && <span className="index-card-years">{GEN_YEARS[gen]}</span>}
+                  {stats.count > 0 && (
+                    <div className="index-card-avg">${stats.avg.toLocaleString()} avg</div>
+                  )}
+                </Link>
+              )
+            }
             return (
               <Link key={gen} to={`/${modelSlug}/${gen}`} className="index-card">
                 {GEN_IMAGES[gen] && (
                   <div className="index-card-img-wrap">
                     <img src={GEN_IMAGES[gen]} alt={GEN_LABELS[gen] ?? gen} className="index-card-img"
-                      loading="lazy" decoding="async"
-                      style={GEN_IMAGE_POSITION[gen] ? { objectPosition: GEN_IMAGE_POSITION[gen] } : undefined} />
+                      loading="lazy" decoding="async" style={imgStyle} />
                   </div>
                 )}
                 <div className="index-card-body">
