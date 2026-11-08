@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { activeTagsFor, filterByYear, hasTag, listOf, NO_FILTERS, pageTagsFor, squash } from '../utils/resultFilters'
 
 function fmtPrice(n) {
   return n != null ? `$${n.toLocaleString()}` : '—'
@@ -36,18 +37,11 @@ function stripColor(s, color) {
   return s.replace(new RegExp('^' + color.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*', 'i'), '').trim()
 }
 
-// options / provenance are stored as comma-separated labels.
-function listOf(csv) {
-  return csv ? csv.split(',').filter(Boolean) : []
-}
-
 // The few facts a buyer scans for, as short tags. Order: what most changes the
 // price first. Capped so a heavily optioned car doesn't push the price off.
 const TAG_OPTIONS    = ['Sonderwunsch', 'N/GT', 'M491', 'Weissach', 'Lightweight', 'Touring Package', 'Clubsport', 'X50/X51']
 const TAG_PROVENANCE = []
 const MAX_TAGS = 4
-// "Club Sport" and "Clubsport" are the same word to a reader.
-const squash = s => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 function tagsFor(r) {
   const options = listOf(r.options), provenance = listOf(r.provenance)
   // A tag that only repeats the car's own variant (Clubsport on the Carrera 3.2
@@ -59,17 +53,9 @@ function tagsFor(r) {
     ...TAG_PROVENANCE.filter(t => provenance.includes(t)),
   ].filter(t => !variant.includes(squash(t))).slice(0, MAX_TAGS)
 }
-// Filter chips: every tag a car can carry, in the order collectors rank them.
-// A chip only shows when some (not all) cars on the page have it.
-const FILTER_TAGS = ['PTS', 'Sonderwunsch', 'Lightweight', 'N/GT', 'Weissach', 'M491', 'Clubsport',
-                     'Touring Package', 'X50/X51']
 // Stored label -> what the site shows ("Leichtbau" is the word collectors use).
 const TAG_LABEL = { Lightweight: 'Leichtbau', 'Touring Package': 'Touring' }
 const tagLabel = t => TAG_LABEL[t] ?? t
-function hasTag(r, t) {
-  if (t === 'PTS') return !!r.paint_to_sample
-  return listOf(r.options).includes(t) || listOf(r.provenance).includes(t)
-}
 function specLine(r) {
   return [r.transmission, r.interior && `${r.interior} interior`].filter(Boolean).join(' · ')
 }
@@ -82,15 +68,14 @@ function detailTip(r) {
   ].filter(Boolean).join('\n') || undefined
 }
 
-export default function ResultsTable({ results }) {
+// Filters are owned by the page (MarketDetail) so its stats and chart follow
+// them; this component shows the chips and reports changes.
+export default function ResultsTable({ results, filters = NO_FILTERS, onFiltersChange = () => {} }) {
   const [lightbox, setLightbox] = useState(null)
   const [openCol, setOpenCol] = useState(null)
   const [dropPos, setDropPos] = useState({ top: 0, left: 0 })
   const [sortBy, setSortBy] = useState('date-desc')
-  const [filterYear, setFilterYear] = useState(null)
   const [view, setView] = useState('grid')
-  const [activeTags, setActiveTags] = useState([])
-  const toggleTag = t => setActiveTags(a => a.includes(t) ? a.filter(x => x !== t) : [...a, t])
 
   useEffect(() => {
     if (!openCol) return
@@ -104,23 +89,15 @@ export default function ResultsTable({ results }) {
     [results]
   )
 
-  // Chips for this page: tags some cars have, minus ones every car has or that
-  // only repeat the variant's own name (Clubsport on the Club Sport card).
-  const pageTags = useMemo(() => {
-    const variant = squash(results[0]?.variant)
-    return FILTER_TAGS.filter(t => {
-      const n = results.filter(r => hasTag(r, t)).length
-      return n > 0 && n < results.length && !(variant && variant.includes(squash(t)))
-    })
-  }, [results])
+  // A chip only shows when some (not all) cars on the page have it.
+  const pageTags = useMemo(() => pageTagsFor(results), [results])
+  const activeTags = useMemo(() => activeTagsFor(filters, pageTags), [filters, pageTags])
+  const filterYear = filters.year
+  const setFilterYear = year => onFiltersChange({ year, tags: activeTags })
+  const setActiveTags = tags => onFiltersChange({ year: filterYear, tags })
+  const toggleTag = t => setActiveTags(activeTags.includes(t) ? activeTags.filter(x => x !== t) : [...activeTags, t])
 
-  // Leaving a page whose chips don't exist here must not filter everything out.
-  useEffect(() => { setActiveTags(a => a.filter(t => pageTags.includes(t))) }, [pageTags])
-
-  const byYear = useMemo(
-    () => (filterYear ? results.filter(r => r.year === filterYear) : results),
-    [results, filterYear]
-  )
+  const byYear = useMemo(() => filterByYear(results, filterYear), [results, filterYear])
   // Count per chip = cars left if it were added to the current selection.
   const tagCounts = useMemo(() => Object.fromEntries(pageTags.map(t => [t,
     byYear.filter(r => [...activeTags.filter(a => a !== t), t].every(a => hasTag(r, a))).length,
