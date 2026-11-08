@@ -964,6 +964,12 @@ tbody td {
 }
 
 /* Tag filter chips: one line above the sort controls, multi-select. */
+/* Under the stats when the table's filters narrow them. */
+.filter-note {
+  margin: -4px 0 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
 .tag-filter-row {
   display: flex;
   flex-wrap: wrap;

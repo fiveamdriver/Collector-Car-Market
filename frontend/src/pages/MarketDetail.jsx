@@ -4,6 +4,7 @@ import { ALL_MODELS, MODEL_LINE, VARIANTS, VARIANT_HERO, MODEL_HERO, VARIANT_MOD
 import VARIANT_DESCRIPTIONS, { PRODUCTION_NUMBERS, MODEL_DESCRIPTIONS, MODEL_PRODUCTION } from '../data/variantDescriptions'
 import { fetchAuctionResults, fetchActiveListings } from '../api/client'
 import { calcStats, groupByMonth } from '../utils/aggregation'
+import { applyFilters, isFiltered, NO_FILTERS, pageTagsFor } from '../utils/resultFilters'
 import { fromSlug } from '../utils/slugs'
 import { variantLabel } from '../utils/variantLabel'
 import Breadcrumb from '../components/Breadcrumb'
@@ -102,8 +103,18 @@ export default function MarketDetail() {
     return () => { stale = true }
   }, [tab, modelLine, generation, variant])
 
-  const stats       = useMemo(() => calcStats(results),    [results])
-  const monthlyData = useMemo(() => groupByMonth(results), [results])
+  // Table filters (tag chips, year) live here so the stats and the chart follow
+  // them. They belong to one market: on another page they read as no filters.
+  const marketKey = `${modelLine}|${generation}|${variant}`
+  const [filterState, setFilterState] = useState({ key: marketKey, ...NO_FILTERS })
+  const filters    = filterState.key === marketKey ? filterState : NO_FILTERS
+  const setFilters = f => setFilterState({ key: marketKey, year: f.year, tags: f.tags })
+
+  const pageTags    = useMemo(() => pageTagsFor(results), [results])
+  const filtered    = useMemo(() => applyFilters(results, filters, pageTags), [results, filters, pageTags])
+  const filteredOn  = isFiltered(filters, pageTags)
+  const stats       = useMemo(() => calcStats(filtered),    [filtered])
+  const monthlyData = useMemo(() => groupByMonth(filtered), [filtered])
 
   if (!model) return <Navigate to="/" replace />
 
@@ -220,10 +231,15 @@ export default function MarketDetail() {
                     productionCount={productionCount}
                   />
                 : <StatsBar {...stats} />}
+              {filteredOn && (
+                <p className="filter-note">
+                  Stats and chart show the {filtered.length} of {results.length} sales matching your filters.
+                </p>
+              )}
               {monthlyData.length >= 2 && (
                 <PriceHistoryChart monthlyData={monthlyData} />
               )}
-              <ResultsTable results={results} />
+              <ResultsTable results={results} filters={filters} onFiltersChange={setFilters} />
             </>
           )}
         </>
