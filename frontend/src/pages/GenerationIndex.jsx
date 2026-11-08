@@ -52,7 +52,7 @@ export default function GenerationIndex() {
       {error   && <p className="status error">Error: {error}</p>}
 
       {!loading && !error && (
-        <div className={showPhotos ? 'card-grid card-grid--photo' : 'card-grid card-grid--4col'}>
+        <div className={showPhotos ? 'card-grid card-grid--photo card-grid--gen' : 'card-grid card-grid--4col'}>
           {generations.map(gen => {
             const subGens = groups[gen]
             const stats = subGens

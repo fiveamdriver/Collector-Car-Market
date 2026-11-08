@@ -449,6 +449,9 @@ button { font-family: inherit; cursor: pointer; }
 .index-card--bg .index-card-name,
 .index-card--bg .index-card-avg { color: #fff; }
 .index-card--bg .index-card-count { color: rgba(255, 255, 255, 0.8); }
+/* Generation page (/911): a little air between the page title and the photo cards. */
+.card-grid--gen { margin-top: 20px; }
+
 /* Generation cards also carry their years, between the name and the avg. */
 .index-card--bg .index-card-years { color: rgba(255, 255, 255, 0.8); margin: -2px 0 4px; }
 
