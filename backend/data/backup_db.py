@@ -7,8 +7,8 @@ this repo is public, and the rows are scraped auction records). Run this before
 any bulk migration or ingest, and keep the output outside the repo.
 
 Usage (from backend/ directory):
-    python data/backup_db.py                 # -> ~/Projects/CollectorCarMarket-data/backups/<date>/
-    python data/backup_db.py /some/dir       # -> /some/dir/<date>/
+    python data/backup_db.py                 # -> ~/Projects/CollectorCarMarket-data/backups/<date_time>/
+    python data/backup_db.py /some/dir       # -> /some/dir/<date_time>/
 
 Uses the app's own connection (app.database), so credentials stay in backend/.env.
 """
@@ -17,7 +17,7 @@ import csv
 import gzip
 import os
 import sys
-from datetime import date
+from datetime import datetime
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BACKEND_DIR)
@@ -48,7 +48,7 @@ async def dump(model, out_dir: str) -> int:
 
 async def main() -> None:
     root = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_ROOT
-    out_dir = os.path.join(root, date.today().isoformat())
+    out_dir = os.path.join(root, datetime.now().strftime("%Y-%m-%d_%H%M%S"))  # one folder per run, never overwritten
     os.makedirs(out_dir, exist_ok=True)
     for model in (AuctionResult, ActiveListing):
         await dump(model, out_dir)

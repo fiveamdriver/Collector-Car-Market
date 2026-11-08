@@ -53,6 +53,11 @@ def match_variant(patterns, text: str, default: str = "base") -> str:
     coachbuilt = coachbuilder_variant(text)
     if coachbuilt:
         return coachbuilt
+    # Gooding writes the RS as "993 Carrera 3.8 RS"; every pattern expects
+    # "Carrera RS", so those cars fell through to plain Carrera. Tributes keep
+    # their words and are not rewritten.
+    if _CARRERA_38_RS.search(text) and not _RS_38_NOT_FACTORY.search(text):
+        text = _CARRERA_38_RS.sub("Carrera RS 3.8", text)
     for pattern in patterns:
         if variant_matches(pattern, text):
             # "Carrera 4 GTS" contains "Carrera 4" but is a GTS, which the site
@@ -78,6 +83,7 @@ def match_variant(patterns, text: str, default: str = "base") -> str:
 # "RSR 3.8" does not match: the pattern needs "RS" followed by a space, and the
 # competition cars are routed to 911 Race / RSR 3.8 by migrate_race_cleanup.py.
 _RS_38 = re.compile(r'\bRS 3\.8')
+_CARRERA_38_RS = re.compile(r'\bCarrera\s+3\.8\s+RS\b')
 
 # Swaps, backdates and tributes carry the same "RS 3.8" text without being one of
 # the ~55 factory cars. Kept in sync with migrate_964_38.py.
@@ -102,7 +108,8 @@ def is_boxster_rs60(text: str) -> bool:
 
 def is_964_rs_38(text: str) -> bool:
     """True if `text` names a factory 964 Carrera RS 3.8 (the street car)."""
-    return bool(_RS_38.search(text)) and not _RS_38_NOT_FACTORY.search(text)
+    named = _RS_38.search(text) or _CARRERA_38_RS.search(text)   # "RS 3.8" or "Carrera 3.8 RS"
+    return bool(named) and not _RS_38_NOT_FACTORY.search(text)
 
 
 # ── 964 Carrera 2 / Carrera 4 ─────────────────────────────────────────────────
