@@ -42,6 +42,10 @@ PTS_OVERRIDES: dict[int, tuple[bool, str]] = {
     26173: (True,  "2019 991.2 GT3 RS Brewster Green (22B): PTS per @ptsrs CDwN8mIHWo7; owner-confirmed 2026-11-04"),
     30426: (True,  "2022 992 Targa Bahama Yellow (Z14): PTS per @ptsrs CYfEw7HveNg; owner-confirmed 2026-11-04"),
     10600: (False, "2023 992 Sport Classic in Sport Classic Grey: the model's own listed colour; owner-confirmed not PTS 2026-11-04"),
+    # Badge review of cars with no complete factory palette, 2026-11-08.
+    9271:  (False, "2009 997.1 Turbo Slate Grey Metallic: standard no-cost metallic on the 997.1 Turbo chart (911 Turbo brochure 2006); not shown to have left the range by MY2009; reviewed 2026-11-08"),
+    30888: (False, "2023 992.1 Carrera GTS Cabriolet America Edition Azure Blue: the edition's only colour (Azureblue356, PTS Plus made for this edition); owner-confirmed not PTS 2026-11-08"),
+    19750: (False, "1994 964 Speedster, Strosek Mega Speedster conversion: 'special order Maritime Blue' not shown to be factory paint; reviewed 2026-11-08"),
     # 918 Spyder in Oryx White: not among Porsche's 12 918 colours (918 brochure pp.70-71); owner-confirmed PTS 2026-11-04.
     # Some wear the factory-applied matte-black/Martini wrap (Weissach option) over the PTS paint.
     556:   (True,  "918 Spyder PTS Oryx White (off 918 brochure range); owner-confirmed 2026-11-04"),

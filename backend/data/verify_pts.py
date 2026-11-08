@@ -337,6 +337,20 @@ def document_basis(r) -> str | None:
     return None
 
 
+def is_owner_rejected(row_id: int) -> bool:
+    """A hand-reviewed 'not PTS' (PTS_OVERRIDES False) is final: no other basis may badge the car."""
+    ov = PTS_OVERRIDES.get(row_id)
+    return bool(ov) and not ov[0]
+
+
+def decide_basis(r, by_car) -> str | None:
+    ov = PTS_OVERRIDES.get(r["id"])
+    if ov:
+        return f"owner: {ov[1]}" if ov[0] else None
+    return (ptsrs_basis(r, by_car) or document_basis(r) or factory_basis(r)
+            or (f"review: {REVIEWED[r['id']]}" if r["id"] in REVIEWED else None))
+
+
 async def main(apply: bool):
     by_car = load_ptsrs()
     async with AsyncSessionLocal() as s:
@@ -354,11 +368,9 @@ async def main(apply: bool):
         ))).mappings().fetchall()
         out, stats, updates, colour_audit = [], Counter(), [], []
         for r in rows:
-            ov = PTS_OVERRIDES.get(r["id"])
-            basis = ((f"owner: {ov[1]}" if ov and ov[0] else None) or ptsrs_basis(r, by_car) or document_basis(r)
-                     or factory_basis(r) or (f"review: {REVIEWED[r['id']]}" if r["id"] in REVIEWED else None))
+            basis = decide_basis(r, by_car)
             stated = stated_pts_colours(r)
-            if not basis:
+            if not basis and not is_owner_rejected(r["id"]):
                 # the listing's own PTS colour name, when the colour field is vaguer or a wrap
                 for c in stated:
                     r2 = dict(r, exterior_color=c)

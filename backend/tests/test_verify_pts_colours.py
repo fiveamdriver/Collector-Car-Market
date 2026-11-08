@@ -105,5 +105,22 @@ class CatalogueRules(unittest.TestCase):
         self.assertIsNone(v._proper_colour("Porsche Custom-Ordered"))
 
 
+class OwnerDecisions(unittest.TestCase):
+    def test_rejected_car_gets_no_basis_even_with_pts_document(self):
+        # 9271: hand-reviewed not PTS; a quoted L999 must not re-badge it.
+        r = row("Option sticker: L999 special-order metallic paint", "Slate Grey Metallic",
+                id=9271, year=2009, model_line="911", generation="997.1", variant="Turbo")
+        self.assertTrue(v.is_owner_rejected(9271))
+        self.assertIsNone(v.decide_basis(r, {}))
+
+    def test_confirmed_car_uses_owner_basis(self):
+        r = row("", "Nardo Grey", id=1542, year=2018, model_line="911", generation="991.2", variant="GT3")
+        self.assertTrue(v.decide_basis(r, {}).startswith("owner: "))
+
+    def test_no_reviewed_entry_contradicts_an_owner_rejection(self):
+        clash = [i for i in v.REVIEWED if v.is_owner_rejected(i)]
+        self.assertEqual(clash, [])
+
+
 if __name__ == "__main__":
     unittest.main()
