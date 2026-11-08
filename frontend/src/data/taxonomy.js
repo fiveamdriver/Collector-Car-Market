@@ -291,7 +291,7 @@ export const VARIANT_HERO = {
     },
     '964': {
       'Carrera 2':           '/images/911_variants/964/964_carrera2.jpg',
-      'Carrera 4':           '/images/911_variants/964/964_carrera4.jpg',
+      'Carrera 4':           '/images/911_variants/964/964_C4.jpeg',
       'Carrera RS':          '/images/911_variants/964/964_carrerars.webp',
       'RS 3.8':              '/images/911_variants/964/964_RS38.jpg',
       'Carrera 4 Leichtbau': '/images/911_variants/964/964_carrera4_leichtbau.jpg',
