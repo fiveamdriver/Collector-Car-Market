@@ -7,7 +7,8 @@ Usage (from backend/ directory):
 
 No API key or authentication required. Re-running is safe — duplicates are
 skipped by auction_url. Non-USD lots (EUR/GBP/CHF/CAD) are converted to USD
-via FX_RATES at ingest time.
+at the ECB rate of their sale date (app/utils/fx.py); the stated amount and
+currency are kept in original_price / original_currency.
 """
 import asyncio
 import certifi
@@ -27,6 +28,7 @@ import app.models  # noqa: F401
 from app.config import DATABASE_PATH
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.utils import fx
 from app.utils.lot_extras import parse_pts, parse_transmission
 from app.services.enrichment import enrich
 from app.utils.lot_details import parse_color
@@ -45,6 +47,14 @@ SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 
 SEARCH_URL   = "https://rmsothebys.com/api/search/SearchLots"
 LOT_BASE_URL = "https://rmsothebys.com"
+
+
+def lot_url_for(link: str) -> str | None:
+    """Absolute lot URL from the search API's `link`, which has been both a
+    path ("/auctions/...") and, since late 2026, a full URL."""
+    if not link:
+        return None
+    return link if link.startswith("http") else f"{LOT_BASE_URL}{link}"
 PAGE_SIZE    = 40
 
 # ── Mileage parsing ────────────────────────────────────────────────────────────
@@ -205,21 +215,10 @@ def parse_variant(model_line: str, year: int, text: str) -> str:
 
 _PRICE_RE = re.compile(r'[\$£€]?([\d,]+)\s*(USD|CAD|EUR|GBP|CHF)?', re.IGNORECASE)
 
-# Local currency → USD, matching bonhams_ingest.py.  Approximate mid-market
-# rates; update periodically for accuracy on recent sales.
-FX_RATES: dict[str, float] = {
-    "USD": 1.00,
-    "EUR": 1.09,
-    "GBP": 1.27,
-    "CHF": 1.13,
-    "CAD": 0.73,
-}
-
-
-def parse_price_usd(value: str) -> int | None:
+def parse_price(value: str) -> tuple[int, str] | None:
     """
     Parse the sold price from RM's value string (e.g. '$1,250,000 USD' or
-    '£3,492,500 GBP') and convert it to USD via FX_RATES.
+    '£3,492,500 GBP') into (amount, ISO currency), unconverted.
     Returns None if the value is unparseable.
     """
     if not value:
@@ -237,7 +236,7 @@ def parse_price_usd(value: str) -> int | None:
     if not m:
         return None
     try:
-        return round(int(m.group(1).replace(",", "")) * FX_RATES[currency])
+        return int(m.group(1).replace(",", "")), currency
     except ValueError:
         return None
 
@@ -252,7 +251,7 @@ def fetch_lot_date(lot_path: str) -> str | None:
     Fetch the lot HTML page and extract datePublished from its JSON-LD block.
     Returns an ISO date string (YYYY-MM-DD) or None on failure.
     """
-    url = f"{LOT_BASE_URL}{lot_path}"
+    url = lot_url_for(lot_path)
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     try:
         with urllib.request.urlopen(req, timeout=15, context=SSL_CTX) as resp:
@@ -302,9 +301,10 @@ def map_record(item: dict, lot_date: str | None) -> dict | None:
     if not year:
         return None
 
-    sold_price = parse_price_usd(item.get("value") or "")
-    if sold_price is None:
+    parsed = parse_price(item.get("value") or "")
+    if parsed is None:
         return None
+    original_price, original_currency = parsed
 
     if lot_date is None:
         return None
@@ -312,6 +312,14 @@ def map_record(item: dict, lot_date: str | None) -> dict | None:
     try:
         sold_date = datetime.strptime(lot_date, "%Y-%m-%d").date()
     except ValueError:
+        return None
+
+    try:
+        sold_price = fx.to_usd(original_price, original_currency, sold_date)
+    except fx.FxError as exc:
+        # Skipped, not stored with a guessed rate; the next run retries it
+        # (refresh data/fx/ecb_eurofxref.csv if the sale is newer than it).
+        print(f"  FX skip {item.get('link')}: {exc}")
         return None
 
     model_line = parse_model_line(title)
@@ -322,7 +330,7 @@ def map_record(item: dict, lot_date: str | None) -> dict | None:
         generation = model_line
 
     link = item.get("link") or ""
-    lot_url = f"{LOT_BASE_URL}{link}" if link else None
+    lot_url = lot_url_for(link)
 
     collection = item.get("collection") or ""
     mileage = parse_mileage_from_subtitle(collection)
@@ -343,6 +351,8 @@ def map_record(item: dict, lot_date: str | None) -> dict | None:
         "mileage":           mileage,
         "thumbnail_url":     item.get("crop") or None,
         "sold_price":        sold_price,
+        "original_price":    original_price,
+        "original_currency": original_currency,
         "auction_source":    "RM Sotheby's",
         "auction_url":       lot_url,
         "sold_date":         sold_date,
@@ -390,7 +400,7 @@ async def ingest() -> None:
 
         for item in sold_items:
             link = item.get("link") or ""
-            lot_url = f"{LOT_BASE_URL}{link}" if link else None
+            lot_url = lot_url_for(link)
 
             if lot_url and lot_url in existing:
                 total_skipped += 1

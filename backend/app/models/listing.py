@@ -33,7 +33,11 @@ class AuctionResult(Base):
     is_widebody: Mapped[Optional[bool]]
     mileage: Mapped[Optional[int]]
     thumbnail_url: Mapped[Optional[str]]
-    sold_price: Mapped[Optional[int]]
+    sold_price: Mapped[Optional[int]]   # always USD (app/utils/fx.py for other currencies)
+    # The price as the auction house stated it, before conversion: whole units
+    # of original_currency (ISO 4217). NULL = not recorded (older ingests).
+    original_price: Mapped[Optional[int]]
+    original_currency: Mapped[Optional[str]] = mapped_column(Text)
     auction_source: Mapped[str]
     auction_url: Mapped[Optional[str]]
     sold_date: Mapped[Optional[date]] = mapped_column(index=True)

@@ -14,7 +14,9 @@ Usage (from backend/ directory):
 Re-running is safe — duplicates are skipped by auction_url.
 
 Price:   price.hammerPremium (hammer + buyer's premium), in the lot's local
-         currency, converted to USD via FX_RATES to match the other sources
+         currency, converted to USD at the ECB rate of the sale date
+         (app/utils/fx.py; the stated amount is kept in original_price /
+         original_currency) to match the other sources
          (Gooding / RM store the premium-inclusive realized price).
 Date:    hammerTime.datetime (exact sale timestamp).
 Mileage: not a structured field — left NULL (backfill later if needed).
@@ -40,6 +42,7 @@ import app.models  # noqa: F401
 from app.config import DATABASE_URL
 from app.database import AsyncSessionLocal, Base, engine
 from app.models.listing import AuctionResult
+from app.utils import fx
 from app.utils.lot_extras import parse_transmission
 from app.services.enrichment import enrich
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
@@ -70,14 +73,6 @@ UA                 = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
 # and other memorabilia that also match a "porsche" text query).
 CAR_DEPT_CODE = "MOT-CAR"
 
-# Local currency → USD.  Bonhams sells in USD/EUR/GBP/CHF; approximate
-# mid-market rates.  Update periodically for accuracy on recent sales.
-FX_RATES: dict[str, float] = {
-    "USD": 1.00,
-    "EUR": 1.09,
-    "GBP": 1.27,
-    "CHF": 1.13,
-}
 
 
 # ── Model / variant parsing ───────────────────────────────────────────────────
@@ -250,11 +245,8 @@ def map_lot(doc: dict) -> dict | None:
     local = price.get("hammerPremium") or price.get("hammerPrice")
     if not local or local <= 0:
         return None
-    iso = (doc.get("currency") or {}).get("iso_code") or "USD"
-    fx  = FX_RATES.get(iso)
-    if fx is None:
-        return None  # unknown currency — skip rather than store a wrong number
-    sold_price = round(float(local) * fx)
+    iso = ((doc.get("currency") or {}).get("iso_code") or "USD").upper()
+    original_price = round(float(local))
 
     # Sale date from the hammer timestamp.
     sold_date = None
@@ -264,6 +256,14 @@ def map_lot(doc: dict) -> dict | None:
             sold_date = datetime.fromisoformat(dt.replace("Z", "+00:00")).date()
         except (ValueError, TypeError):
             sold_date = None
+
+    # Converted at the ECB rate of the sale date. An unknown currency, or a
+    # non-USD lot with no date, is skipped rather than stored with a wrong number.
+    try:
+        sold_price = fx.to_usd(original_price, iso, sold_date)
+    except fx.FxError as exc:
+        print(f"  FX skip lot {doc.get('lotId')}: {exc}")
+        return None
 
     lot_url = build_lot_url(doc)
     if not lot_url:
@@ -291,6 +291,8 @@ def map_lot(doc: dict) -> dict | None:
         "mileage":           None,       # not a structured field
         "thumbnail_url":     thumbnail,
         "sold_price":        sold_price,
+        "original_price":    original_price,
+        "original_currency": iso,
         "auction_source":    "Bonhams",
         "auction_url":       lot_url,
         "sold_date":         sold_date,
