@@ -307,7 +307,7 @@ export const VARIANT_HERO = {
       'Carrera':    '/images/911_variants/993/993_carrera.webp',
       'Carrera 4':  '/images/911_variants/993/993_carrera4.webp',
       'Carrera S':  '/images/911_variants/993/993_carreraS.jpeg',
-      'Carrera 4S': '/images/911_variants/993/964_carrera4S.jpeg',
+      'Carrera 4S': '/images/911_variants/993/993_C4S.webp',
       'Carrera RS': '/images/911_variants/993/993_carreraRS.jpeg',
       'Turbo':      '/images/911_variants/993/993_turbo.jpg',
       'Turbo S':    '/images/911_variants/993/993_turbos.jpg',
