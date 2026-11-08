@@ -295,7 +295,7 @@ export const VARIANT_HERO = {
       'Carrera RS':          '/images/911_variants/964/964_carrerars.webp',
       'RS 3.8':              '/images/911_variants/964/964_RS38.jpg',
       'Carrera 4 Leichtbau': '/images/911_variants/964/964_carrera4_leichtbau.jpg',
-      'RS America':          '/images/911_variants/964/964_rsamerica.jpeg',
+      'RS America':          '/images/911_variants/964/964_rsamerica_card.jpeg',
       'Turbo 3.3':           '/images/911_variants/964/964_turbo3.3.jpg',
       'Turbo 3.6':           '/images/911_variants/964/964_turbo36.avif',
       'Turbo S':             '/images/911_variants/964/1993-porsche-911-turbo-s-lightweight-6a9615d43cd69.webp',
