@@ -70,9 +70,6 @@ export default function GenerationIndex() {
                     <span className="index-card-count">{stats.count.toLocaleString()} sold</span>
                   </div>
                   {GEN_YEARS[gen] && <span className="index-card-years">{GEN_YEARS[gen]}</span>}
-                  {stats.count > 0 && (
-                    <div className="index-card-avg">${stats.avg.toLocaleString()} avg</div>
-                  )}
                 </Link>
               )
             }
