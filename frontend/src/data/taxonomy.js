@@ -194,7 +194,9 @@ export const VARIANTS = {
     // series, "911 Turbo Coupé (2001-05)").
     '996.1': ['Carrera', 'Carrera 4', 'GT3', 'Cabriolet'],
     '996.2': [
-      'Carrera', 'Carrera 4', 'Carrera 4S',
+      // No Carrera 4 card (owner, 2026-11-08): the US got the 996.2 C4 only as a
+      // Cabriolet, and its one coupe sale (a Gemballa GTR 500) is on Carrera.
+      'Carrera', 'Carrera 4S',
       'Turbo', 'Turbo S', 'GT3', 'GT3 RS', 'GT2', 'Targa', 'Cabriolet',
     ],
     '997.1': [
@@ -270,14 +272,9 @@ export const VARIANTS = {
 // Hero image for each variant, as a full path under /images. Variants not
 // listed here have no photo yet and show the empty hero panel.
 
-// Cards shown only while they have at least one sale. For variants a market
-// mostly never got: the 996.2 Carrera 4 was US-sold as a Cabriolet only (those
-// sit on the Cabriolet card), but a European narrow-body C4 coupe can still
-// sell, and its card then reappears by itself.
+// Cards shown only while they have at least one sale, keyed [model][generation].
 export const HIDE_WHEN_EMPTY = {
-  '911': {
-    '996.2': ['Carrera 4'],
-  },
+  '911': {},
 }
 
 export const VARIANT_HERO = {
