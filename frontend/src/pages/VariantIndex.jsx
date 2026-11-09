@@ -195,7 +195,8 @@ export default function VariantIndex() {
                   <span className="index-card-name">{variantLabel(model, variant)}</span>
                   <span className="index-card-count">{stats.count} sold</span>
                 </div>
-                {stats.count > 0 && (
+                {/* Photo cards show name + sold only (owner, 2026-11-08); the avg is on the variant page. */}
+                {!showPhotos && stats.count > 0 && (
                   <div className="index-card-avg">${stats.avg.toLocaleString()} avg</div>
                 )}
                 {!showPhotos && <Sparkline data={monthly} />}
