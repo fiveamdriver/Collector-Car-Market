@@ -345,7 +345,7 @@ export const VARIANT_HERO = {
       'Turbo':      '/images/911_variants/996/996.2/996_turbo.jpg',
       'Turbo S':    '/images/911_variants/996/996.2/996_turboS.jpg',
       'GT3':        '/images/911_variants/996/996.2/996.2_GT3.jpg',
-      'GT3 RS':     '/images/911_variants/996/996.2/996.2_gt3rs.avif',
+      'GT3 RS':     '/images/911_variants/996/996.2/996_GT3RS.webp',
       'GT2':        '/images/911_variants/996/996.2/996_GT2.jpeg',
       'Targa':      '/images/911_variants/996/996.2/996_targa.png',
       'Cabriolet':  '/images/911_variants/996/996.2/996.2_cabriolet.jpeg',
@@ -469,7 +469,7 @@ export const MODEL_HERO = {
 // these are kept separate so a group doesn't show the same photo twice.
 export const SUBGEN_CARD_IMAGES = {
   '996.1': '/images/911_variants/996/996.1/996.1_GT3.jpg',
-  '996.2': '/images/911_gen_page_cards/996.2_carrera.jpeg',
+  '996.2': '/images/911_variants/996/996.2/996_GT3RS.webp',
 }
 
 // Card images for generation index and hero pages.
@@ -482,7 +482,7 @@ export const GEN_IMAGES = {
   '993':    '/images/911_gen_page_cards/993GT2.png',
   '996':    '/images/911_gen_page_cards/996.2_carrera.jpeg',
   '996.1':  '/images/911_variants/996/996.1/996.1_GT3.jpg',
-  '996.2':  '/images/911_variants/996/996.2/996.2_gt3rs.avif',
+  '996.2':  '/images/911_variants/996/996.2/996_GT3RS.webp',
   '997':    '/images/911_gen_page_cards/997GT2.png',
   '997.1':  '/images/911_gen_page_cards/997GT2.png',
   '997.2':  '/images/911_gen_page_cards/997GT2.png',
