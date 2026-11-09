@@ -457,6 +457,14 @@ export const MODEL_HERO = {
   'rs-spyder':  null,
 }
 
+// Sub-generation cards (/911/996 -> 996.1, 996.2) become photo cards when every
+// sub-generation of the group has a photo here. GEN_IMAGES is the hero photo;
+// these are kept separate so a group doesn't show the same photo twice.
+export const SUBGEN_CARD_IMAGES = {
+  '996.1': '/images/911_variants/996/996.1/996.1_GT3.jpg',
+  '996.2': '/images/911_gen_page_cards/996.2_carrera.jpeg',
+}
+
 // Card images for generation index and hero pages.
 // Used by GenerationIndex, SubGenerationIndex, and VariantIndex.
 export const GEN_IMAGES = {

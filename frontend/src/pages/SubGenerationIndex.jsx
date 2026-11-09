@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE } from '../data/taxonomy'
+import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE, SUBGEN_CARD_IMAGES } from '../data/taxonomy'
 import { fetchAggregateStats } from '../api/client'
 import { combineMonthly, combineStats, indexByKey, statsFromGroup, toMonthlySeries } from '../utils/aggregation'
 import Breadcrumb from '../components/Breadcrumb'
@@ -20,6 +20,7 @@ export default function SubGenerationIndex() {
   const model    = ALL_MODELS.find(m => m.slug === modelSlug)
   const modelLine = MODEL_LINE[modelSlug]
   const subGens  = GENERATION_GROUPS[modelSlug]?.[seg1] ?? []
+  const showPhotos = subGens.length > 0 && subGens.every(g => SUBGEN_CARD_IMAGES[g])
 
   const [groupStats, setGroupStats] = useState([])
   const [loading, setLoading] = useState(true)
@@ -94,13 +95,18 @@ export default function SubGenerationIndex() {
       {error   && <p className="status error">Error: {error}</p>}
 
       {!loading && !error && (
-        <div className="card-grid">
+        <div className={showPhotos ? 'card-grid card-grid--photo' : 'card-grid'}>
           {subGens.map(subGen => {
             const group   = byGen[subGen]
             const stats   = statsFromGroup(group)
             const monthly = toMonthlySeries(group?.monthly)
             return (
-              <Link key={subGen} to={`/${modelSlug}/${seg1}/${subGen}`} className="index-card">
+              <Link key={subGen} to={`/${modelSlug}/${seg1}/${subGen}`}
+                className={`index-card${showPhotos ? ' index-card--bg' : ''}`}>
+                {showPhotos && (
+                  <img src={SUBGEN_CARD_IMAGES[subGen]} alt="" loading="lazy" decoding="async"
+                    className="index-card-bg-img" />
+                )}
                 <div className="index-card-header">
                   <span className="index-card-name">{subGen}</span>
                   <span className="index-card-count">{stats.count} sold</span>
@@ -108,7 +114,7 @@ export default function SubGenerationIndex() {
                 {stats.count > 0 && (
                   <div className="index-card-avg">${stats.avg.toLocaleString()} avg</div>
                 )}
-                <Sparkline data={monthly} />
+                {!showPhotos && <Sparkline data={monthly} />}
               </Link>
             )
           })}
