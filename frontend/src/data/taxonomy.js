@@ -118,9 +118,9 @@ export const VARIANT_MODELS = {
   '914': ['914/6', 'base'],
   // Race-car trims as the ingests file them ('Race' = an unnamed race build).
   '924-race': ['GTP', 'Carrera GTR', 'GTR', 'D Production', 'Race'],
-  '944-race': ['GTP', 'Turbo Cup', 'Turbo S', 'Race'],
-  '968-race': ['Turbo RS', 'Turbo S', 'Race'],
-  '928-race': ['Club Sport', 'Race'],
+  '944-race': ['GTP', 'Turbo Cup', 'Race'],
+  '968-race': ['Turbo RS', 'Race'],
+  '928-race': ['Race'],
 }
 
 // Card image + production years for the transaxle children and 914, used by
