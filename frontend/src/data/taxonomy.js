@@ -350,8 +350,35 @@ export const VARIANT_HERO = {
       'Targa':      '/images/911_variants/996/996.2/996_targa.png',
       'Cabriolet':  '/images/911_variants/996/996.2/996.2_cabriolet.jpeg',
     },
-    '997.1':  { 'GT2': '/images/911_gen_page_cards/997GT2.png' },
-    '997.2':  { 'GT3 RS 4.0': '/images/Front_page_cards/Regular_models/997RS4.0v2.png' },
+    '997.1': {
+      'Carrera':    '/images/911_variants/997/997.1/997.1_carrera.png',
+      'Carrera 4':  '/images/911_variants/997/997.1/997.1_carrera4.jpeg',
+      'Carrera S':  '/images/911_variants/997/997.1/997.1_carreraS.avif',
+      'Carrera 4S': '/images/911_variants/997/997.1/997.1_C4S.avif',
+      'Turbo':      '/images/911_variants/997/997.1/997.1_turbo.webp',
+      'GT3':        '/images/911_variants/997/997.1/997.1_GT3.avif',
+      'GT3 RS':     '/images/911_variants/997/997.1/997.1_GT3RS.png',
+      'GT2':        '/images/911_variants/997/997.1/997.1_GT2.webp',
+      'Targa':      '/images/911_variants/997/997.1/997.1_targa.jpg',
+      'Cabriolet':  '/images/911_variants/997/997.1/997.1_cabriolet.jpeg',
+    },
+    '997.2': {
+      'Carrera':      '/images/911_variants/997/997.2/997.2_carrera.jpg',
+      'Carrera 4':    '/images/911_variants/997/997.2/997.2_C4.jpg',
+      'Carrera S':    '/images/911_variants/997/997.2/997.2_C2S.jpeg',
+      'Carrera 4S':   '/images/911_variants/997/997.2/997.2_C4S.jpeg',
+      'Carrera GTS':  '/images/911_variants/997/997.2/997.2_carreragts.avif',
+      'Turbo':        '/images/911_variants/997/997.2/997.2_turbo.jpg',
+      'Turbo S':      '/images/911_variants/997/997.2/997.2_TurboS.jpg',
+      'GT3':          '/images/911_variants/997/997.2/997.2_GT3.webp',
+      'GT3 RS':       '/images/911_variants/997/997.2/997.2_GT3RS.webp',
+      'GT3 RS 4.0':   '/images/911_variants/997/997.2/997.2_gt3rs4.0.jpg',
+      'GT2 RS':       '/images/911_variants/997/997.2/997.2_gt2rs.webp',
+      'Sport Classic': '/images/911_variants/997/997.2/997.2_sportclassic.jpg',
+      'Speedster':    '/images/911_variants/997/997.2/997.2_speedster.jpg',
+      'Targa':        '/images/911_variants/997/997.2/997.2_targa.jpeg',
+      'Cabriolet':    '/images/911_variants/997/997.2/997.2_cabriolet.jpeg',
+    },
     '991.2':  { 'GT2 RS': '/images/911_gen_page_cards/991gt2rs.png' },
     '992.1':  { 'S/T': '/images/911_gen_page_cards/992ST_.jpg' },
   },
@@ -464,12 +491,21 @@ export const MODEL_HERO = {
   'rs-spyder':  null,
 }
 
-// Sub-generation cards (/911/996 -> 996.1, 996.2) become photo cards when every
-// sub-generation of the group has a photo here. GEN_IMAGES is the hero photo;
+// Extra zoom for a card photo whose car sits small in the frame, keyed by the
+// photo path so it follows the photo wherever it's used as a card.
+export const CARD_PHOTO_ZOOM = {
+  '/images/911_variants/997/997.2/997.2_gt2rs.webp': 1.15,
+  '/images/911_variants/997/997.2/997.2_TurboS.jpg': 1.15,
+}
+
+// Sub-generation cards (/911/996 -> 996.1, 996.2) become photo cards when they
+// have a photo here. GEN_IMAGES is the hero photo;
 // these are kept separate so a group doesn't show the same photo twice.
 export const SUBGEN_CARD_IMAGES = {
   '996.1': '/images/911_variants/996/996.1/996.1_GT3.jpg',
   '996.2': '/images/911_variants/996/996.2/996_GT3RS.webp',
+  '997.1': '/images/911_variants/997/997.1/997.1_GT3RS.png',
+  '997.2': '/images/911_variants/997/997.2/997.2_gt3rs4.0.jpg',
 }
 
 // Card images for generation index and hero pages.

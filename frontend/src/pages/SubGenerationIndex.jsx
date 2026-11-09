@@ -20,7 +20,9 @@ export default function SubGenerationIndex() {
   const model    = ALL_MODELS.find(m => m.slug === modelSlug)
   const modelLine = MODEL_LINE[modelSlug]
   const subGens  = GENERATION_GROUPS[modelSlug]?.[seg1] ?? []
-  const showPhotos = subGens.length > 0 && subGens.every(g => SUBGEN_CARD_IMAGES[g])
+  // Photo layout as soon as any sub-generation has a photo; a card without one
+  // stays a plain sparkline card until its photo lands (997.2, 2026-11-09).
+  const showPhotos = subGens.some(g => SUBGEN_CARD_IMAGES[g])
 
   const [groupStats, setGroupStats] = useState([])
   const [loading, setLoading] = useState(true)
@@ -100,11 +102,12 @@ export default function SubGenerationIndex() {
             const group   = byGen[subGen]
             const stats   = statsFromGroup(group)
             const monthly = toMonthlySeries(group?.monthly)
+            const photo   = SUBGEN_CARD_IMAGES[subGen]
             return (
               <Link key={subGen} to={`/${modelSlug}/${seg1}/${subGen}`}
-                className={`index-card${showPhotos ? ' index-card--bg' : ''}`}>
-                {showPhotos && (
-                  <img src={SUBGEN_CARD_IMAGES[subGen]} alt="" loading="lazy" decoding="async"
+                className={`index-card${photo ? ' index-card--bg' : ''}`}>
+                {photo && (
+                  <img src={photo} alt="" loading="lazy" decoding="async"
                     className="index-card-bg-img" />
                 )}
                 <div className="index-card-header">
@@ -114,7 +117,7 @@ export default function SubGenerationIndex() {
                 {stats.count > 0 && (
                   <div className="index-card-avg">${stats.avg.toLocaleString()} avg</div>
                 )}
-                {!showPhotos && <Sparkline data={monthly} />}
+                {!photo && <Sparkline data={monthly} />}
               </Link>
             )
           })}
