@@ -82,14 +82,46 @@ for (const model of ALL_MODELS) {
   // model_line — nothing can be orphaned by a taxonomy whitelist there.
 }
 
+// Whole model lines with no page at all. The checks above only look inside
+// lines the taxonomy already lists, so a line it doesn't know (912, Cayenne)
+// was invisible to them. Lines left off on purpose are listed here, with why.
+const HIDDEN_ON_PURPOSE = {
+  'Cayenne':  'not a collector line (owner, 2026-11-08)',
+  'Panamera': 'not a collector line (owner, 2026-11-08)',
+  'Macan':    'not a collector line (owner, 2026-11-08)',
+  'Taycan':   'not a collector line (owner, 2026-11-08)',
+  '912':      'held: data kept, no page yet (owner, 2026-11-08)',
+}
+const shownLines = new Set(Object.values(MODEL_LINE))
+const statsRes = await fetch(`${API}/stats/model-lines`)
+if (!statsRes.ok) throw new Error(`${statsRes.status} ${statsRes.statusText} — ${API}/stats/model-lines`)
+const hiddenOk = []
+for (const line of await statsRes.json()) {
+  if (shownLines.has(line.model_line)) continue
+  if (HIDDEN_ON_PURPOSE[line.model_line]) {
+    hiddenOk.push({ ...line, why: HIDDEN_ON_PURPOSE[line.model_line] })
+    continue
+  }
+  record({ slug: null, modelLine: line.model_line, level: 'model_line', generation: null,
+           value: line.model_line, rows: line.count })
+}
+
 const totalRows = findings.reduce((n, f) => n + f.rows, 0)
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ orphanedRows: totalRows, findings }, null, 2))
+  console.log(JSON.stringify({ orphanedRows: totalRows, findings, hiddenOnPurpose: hiddenOk }, null, 2))
 } else if (!findings.length) {
   console.log('✓ No orphaned data — every generation and variant in the database has a home in the UI.')
 } else {
   console.log(`✗ ${totalRows} row(s) in the database cannot be displayed by the site.\n`)
+  const lines = findings.filter(f => f.level === 'model_line')
+  if (lines.length) {
+    console.log('  Model lines with no page (not in MODEL_LINE or HIDDEN_ON_PURPOSE):')
+    for (const f of lines.sort((a, b) => b.rows - a.rows)) {
+      console.log(`    "${f.value}"  — ${f.rows} rows`)
+    }
+    console.log()
+  }
   const gens = findings.filter(f => f.level === 'generation')
   const vars = findings.filter(f => f.level === 'variant')
 
@@ -109,6 +141,10 @@ if (AS_JSON) {
     console.log()
   }
   console.log('  Each is either a taxonomy entry to add, or a classifier bug to fix.')
+}
+
+if (!AS_JSON && hiddenOk.length) {
+  console.log(`  Hidden on purpose: ${hiddenOk.map(l => `${l.model_line} (${l.count})`).join(', ')}`)
 }
 
 process.exit(findings.length ? 1 : 0)

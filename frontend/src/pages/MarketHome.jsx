@@ -27,6 +27,7 @@ const MODEL_YEARS = {
   'emory':         '1996–present',
   'ruf':           '1977–present',
   '911-race':   '1973–present',
+  'transaxle-race': '1978–1994',
   '911-gt1':    '1996–1998',
   'cayman-gt4-clubsport': '2016–present',
   '917':        '1969–1973',

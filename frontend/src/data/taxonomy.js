@@ -25,6 +25,11 @@ export const MODEL_LINE = {
   '911-race':   '911 Race',
   '911-gt1':    '911 GT1',
   'cayman-gt4-clubsport': 'Cayman Race',
+  // Transaxle race cars: one group card on the home page, a page per model.
+  '924-race':   '924 Race',
+  '944-race':   '944 Race',
+  '968-race':   '968 Race',
+  '928-race':   '928 Race',
   '917':        '917',
   '910':        '910',
   '956':        '956',
@@ -83,12 +88,19 @@ export const ALL_MODELS = [
   { slug: '956',        label: '956',        type: 'standalone', category: 'race' },
   { slug: 'rs-spyder',  label: 'RS Spyder',  type: 'standalone', category: 'race' },
   { slug: 'cayman-gt4-clubsport', label: 'Cayman GT4 Clubsport', type: 'standalone', category: 'race' },
+  { slug: 'transaxle-race', label: 'Transaxle Race Cars', type: 'group', category: 'race' },
+  // Children of 'transaxle-race': reached through its group page, not shown on the home page.
+  { slug: '924-race', label: '924', type: 'variant-model', category: 'transaxle-race' },
+  { slug: '944-race', label: '944', type: 'variant-model', category: 'transaxle-race' },
+  { slug: '968-race', label: '968', type: 'variant-model', category: 'transaxle-race' },
+  { slug: '928-race', label: '928', type: 'variant-model', category: 'transaxle-race' },
 ]
 
 // Child model slugs for "group" models (a card that opens into several models,
 // the way the 911 opens into generations).
 export const GROUP_CHILDREN = {
   'transaxle': ['924', '944', '968', '928'],
+  'transaxle-race': ['924-race', '944-race', '968-race', '928-race'],
 }
 
 // Curated variant lists for "variant-model" models — models that split into
@@ -104,6 +116,11 @@ export const VARIANT_MODELS = {
   '968': ['Turbo S', 'Club Sport', 'base'],
   '928': ['GTS', 'GT', 'S4', 'Club Sport', 'base'],
   '914': ['914/6', 'base'],
+  // Race-car trims as the ingests file them ('Race' = an unnamed race build).
+  '924-race': ['GTP', 'Carrera GTR', 'GTR', 'D Production', 'Race'],
+  '944-race': ['GTP', 'Turbo Cup', 'Turbo S', 'Race'],
+  '968-race': ['Turbo RS', 'Turbo S', 'Race'],
+  '928-race': ['Club Sport', 'Race'],
 }
 
 // Card image + production years for the transaxle children and 914, used by
@@ -114,6 +131,10 @@ export const TRANSAXLE_META = {
   '968': { years: '1992–1995', img: null },
   '928': { years: '1978–1995', img: null },
   '914': { years: '1969–1976', img: '/images/Front_page_cards/Regular_models/porsche%20914.jpg' },
+  '924-race': { years: '1978–1982', img: '/images/Racecar/924_carreraGTR.jpeg' },
+  '944-race': { years: '1981–1991', img: null },
+  '968-race': { years: '1992–1994', img: null },
+  '928-race': { years: '1978–1987', img: null },
 }
 
 // Groups that have sub-generations; keyed by the group URL slug
@@ -388,6 +409,7 @@ export const MODEL_IMAGES = {
   '911-race':   '/images/Front_page_cards/Racecars/RSR.jpg',
   '911-gt1':    '/images/Front_page_cards/Racecars/gt1.png',
   'cayman-gt4-clubsport': '/images/Front_page_cards/Racecars/cayman_gt4rs_clubsport.jpg',
+  'transaxle-race': '/images/Racecar/924_carreraGTR.jpeg',
   '917':        '/images/Front_page_cards/Racecars/917.png',
   '910':        '/images/Front_page_cards/Racecars/910_1.jpeg',
   '956':        '/images/Front_page_cards/Racecars/956.jpg',
