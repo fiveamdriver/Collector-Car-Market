@@ -35,9 +35,14 @@ _LINE_RES: tuple[tuple[str, re.Pattern], ...] = (
     ("924", re.compile(r'\b924\s?(?:S|GTS?)?\b')),
 )
 
-# Non-street cars.  "Clone", "Replica" and "Prototype" are not race cars as
-# such, but they are not comparable to a factory street sale either, and
-# lumping them into the street average is the behaviour we are fixing.
+# Non-street cars.  "Clone" and "Replica" are not race cars as such, but they
+# are not comparable to a factory street sale either.
+#
+# Owner rule (2026-11-08): if it is street legal, it is not a race car. So
+# "Prototype" is NOT a race word: the 928 Club Sport and 968 Turbo S
+# prototypes were registered road cars (factory drivers' company cars, a
+# press car on plates). "Challenge" is a race series word except in Porsche
+# Classic's "Restoration Challenge", which restores road cars.
 _RACE_RE = re.compile(
     r'\bGTP\b'
     r'|\bGTR\b'
@@ -46,9 +51,8 @@ _RACE_RE = re.compile(
     r'|\bSCCA\b'
     r'|\bNASA\b'
     r'|\bTrack Car\b'
-    r'|\bChallenge\b'
+    r'|(?<!Restoration )\bChallenge\b'
     r'|\bTurbo Cup\b'      # 944 Turbo Cup: one-make race series car, not a street Turbo
-    r'|\bPrototype\b'
     r'|\bClone\b'
     r'|\bReplica\b',
     re.IGNORECASE,
@@ -68,7 +72,7 @@ _RACE_RE = re.compile(
 #
 #   "1986 Porsche 944 Turbo Tribute"  → not a Turbo at all; falls back to base.
 #
-# Replica / Clone / Prototype are caught earlier by _RACE_RE and never reach here.
+# Replica / Clone are caught earlier by _RACE_RE and never reach here.
 _STYLE_PREFIX_RE = re.compile(r'^[^,]*?-Style\b,?\s*', re.IGNORECASE)
 _YEAR_RE = re.compile(r'\b(19|20)\d{2}\b')
 _TRIBUTE_RE = re.compile(
@@ -112,8 +116,8 @@ def is_race(model_line: str, title: str) -> bool:
 
     The 968 Turbo RS is the competition car (4 built).  The 968 Turbo S is the
     road-legal homologation car it was derived from (14 built) and stays on the
-    street line — though a "Turbo S Prototype" or "Turbo S Clone" still lands
-    here via the generic patterns above.
+    street line, prototype included; a "Turbo S Clone" still lands here via
+    the generic patterns above.
     """
     title = title or ""
     if _RACE_RE.search(title):
