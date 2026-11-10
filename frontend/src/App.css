@@ -446,6 +446,9 @@ button { font-family: inherit; cursor: pointer; }
 .index-card--bg:hover .index-card-bg-img { transform: scale(calc(var(--zoom, 1) * 1.03)); }
 
 .index-card--bg .index-card-name { font-size: 20px; }
+/* Avg sits right under the name on photo cards. */
+.index-card--bg .index-card-header { margin-bottom: 0; }
+.index-card--bg .index-card-avg { font-size: 12px; }
 
 .index-card--bg .index-card-name,
 .index-card--bg .index-card-avg { color: #fff; }

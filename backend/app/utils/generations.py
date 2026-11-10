@@ -19,7 +19,7 @@ generations and keeps its own ladder in data/migrate_race_cars.py.
 
 import re
 
-from app.utils.variants import is_early_carrera_4, strip_turbo_impostor
+from app.utils.variants import is_early_carrera_4, is_project_gold, strip_turbo_impostor
 
 _CARRERA_S = re.compile(r"Carrera S\b(?!\s*GTS)", re.IGNORECASE)
 
@@ -51,6 +51,8 @@ def get_911_generation(year: int, title: str = "", vin: str | None = None) -> st
     The 964 launched for MY1989 as the Carrera 4 alone, so a 1989 "Carrera 4"
     is a 964 even though the rest of 1989 is G-Body.
     """
+    if is_project_gold(title):
+        return "993"  # 2018 new-build 993 Turbo, see variants.is_project_gold
     v = _clean_vin(vin) or _clean_vin(_vin_in(title))
     my = _vin_model_year(v, year) if v else None
     if v and my is None:

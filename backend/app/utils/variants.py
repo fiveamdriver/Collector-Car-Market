@@ -461,3 +461,15 @@ def gbody_variant(text: str, year: int | None, targa_card: bool = True) -> str:
     if y >= 1984:
         return "Carrera 3.2"
     return "911"
+
+
+# Porsche Classic's "911 Turbo Classic Series 'Project Gold'" (one car, built
+# 2018, sold by RM at the Porsche Experience Center 2018) is a new-build 993
+# Turbo with the 450 hp WLS power kit of the period Turbo S. Its model year says
+# 991.2, so every ingest would file it there; owner decision 2026-11-10: the
+# 993 Turbo S card.
+_PROJECT_GOLD = re.compile(r"\bProject\s+Gold\b|\bTurbo\s+Classic\s+Series\b", re.IGNORECASE)
+
+
+def is_project_gold(text: str) -> bool:
+    return bool(_PROJECT_GOLD.search(text or ""))
