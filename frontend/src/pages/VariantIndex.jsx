@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE, VARIANTS, VARIANT_HERO, CARD_PHOTO_ZOOM, CROSS_LISTINGS, HIDE_WHEN_EMPTY } from '../data/taxonomy'
+import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE, VARIANTS, VARIANT_HERO, CARD_PHOTO_ZOOM, CARD_PHOTO_POS, CROSS_LISTINGS, HIDE_WHEN_EMPTY } from '../data/taxonomy'
 import { fetchAggregateStats, fetchAuctionResults } from '../api/client'
 import {
   combineStats, groupStatsFromRows, indexByKey, mergeGroups,
@@ -189,8 +189,10 @@ export default function VariantIndex() {
                     loading="lazy"
                     decoding="async"
                     className="index-card-bg-img"
-                    style={CARD_PHOTO_ZOOM[variantPhotos[variant]]
-                      ? { '--zoom': CARD_PHOTO_ZOOM[variantPhotos[variant]] } : undefined}
+                    style={{
+                      ...(CARD_PHOTO_ZOOM[variantPhotos[variant]] && { '--zoom': CARD_PHOTO_ZOOM[variantPhotos[variant]] }),
+                      ...(CARD_PHOTO_POS[variantPhotos[variant]] && { objectPosition: CARD_PHOTO_POS[variantPhotos[variant]] }),
+                    }}
                   />
                 )}
                 <div className="index-card-header">

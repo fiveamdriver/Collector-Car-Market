@@ -544,6 +544,13 @@ export const CARD_PHOTO_ZOOM = {
   '/images/911_variants/997/997.2/997.2_TurboS.jpg': 1.15,
 }
 
+// Where a card photo is anchored when the card crops it (CSS object-position;
+// default 'center'). An x above 50% shows more of the right side, so the car
+// sits further left on the card.
+export const CARD_PHOTO_POS = {
+  '/images/911_variants/992/992.1/911_dakar.jpg': '75% center',
+}
+
 // Sub-generation cards (/911/996 -> 996.1, 996.2) become photo cards when they
 // have a photo here. GEN_IMAGES is the hero photo;
 // these are kept separate so a group doesn't show the same photo twice.
