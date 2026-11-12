@@ -555,7 +555,7 @@ export const MODEL_HERO = {
 export const CARD_PHOTO_ZOOM = {
   '/images/911_variants/997/997.2/997.2_gt2rs.webp': 1.15,
   '/images/911_variants/997/997.2/997.2_TurboS.jpg': 1.15,
-  '/images/911_gen_page_cards/992ST_card.jpg': 1.15,   // /911 page 992 card
+  '/images/911_gen_page_cards/992ST_card.jpg': 1.25,   // /911 page 992 card
 }
 
 // Where a card photo is anchored when the card crops it (CSS object-position;
