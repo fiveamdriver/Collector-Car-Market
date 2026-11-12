@@ -432,7 +432,7 @@ export const VARIANT_HERO = {
   'cayman':  {
     '987.1': {
       'base': '/images/Mid Engine/Cayman/987/987.1/987.1_cayman.jpg',
-      'S':    '/images/Mid Engine/Cayman/987/987.1/987.1_caymanS.jpg',
+      'S':    '/images/Mid Engine/Cayman/987/987.1/987.1_caymanS.avif',
     },
     '987.2': {
       'base': '/images/Mid Engine/Cayman/987/987.2/987.2_cayman.jpg',
@@ -573,7 +573,7 @@ export const SUBGEN_CARD_IMAGES = {
   // Non-911 lines share generation names (Cayman and Boxster both have a
   // 987.1), so their entries are keyed '<modelSlug>/<gen>'. Photo = the
   // generation's most expensive variant by average sale.
-  'cayman/987.1': '/images/Mid Engine/Cayman/987/987.1/987.1_caymanS.jpg',
+  'cayman/987.1': '/images/Mid Engine/Cayman/987/987.1/987.1_caymanS.avif',
   'cayman/987.2': '/images/Mid Engine/Cayman/987/987.2/987.2_caymanR.avif',
 }
 
