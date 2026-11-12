@@ -421,7 +421,7 @@ export const VARIANT_HERO = {
       'Turbo S':       '/images/911_variants/992/992.1/992_TURBOS.webp',
       'GT3':           '/images/911_variants/992/992.1/992_GT3.jpg',
       'GT3 RS':        '/images/911_variants/992/992.1/992_GT3RS.webp',
-      'S/T':           '/images/911_gen_page_cards/992ST_.jpg',
+      'S/T':           '/images/911_variants/992/992.1/911_ST/911_st3.jpg',
       'Sport Classic': '/images/911_variants/992/992.1/992_sportclassic.jpg',
       'Dakar':         '/images/911_variants/992/992.1/992_dakar.jpg',
       'Targa':         '/images/911_variants/992/992.1/992_targa.webp',
