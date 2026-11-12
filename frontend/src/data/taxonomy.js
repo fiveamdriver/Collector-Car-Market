@@ -557,6 +557,7 @@ export const CARD_PHOTO_ZOOM = {
 // sits further left on the card.
 export const CARD_PHOTO_POS = {
   '/images/911_variants/992/992.1/911_dakar.jpg': '0% center',
+  '/images/Mid Engine/Cayman/987/987.1/987.1_caymanS.avif': '20% center',
 }
 
 // Sub-generation cards (/911/996 -> 996.1, 996.2) become photo cards when they

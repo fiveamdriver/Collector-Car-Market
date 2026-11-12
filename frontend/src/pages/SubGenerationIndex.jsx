@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE, SUBGEN_CARD_IMAGES } from '../data/taxonomy'
+import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE, SUBGEN_CARD_IMAGES, CARD_PHOTO_POS, CARD_PHOTO_ZOOM } from '../data/taxonomy'
 import { fetchAggregateStats } from '../api/client'
 import { combineMonthly, combineStats, indexByKey, statsFromGroup, toMonthlySeries } from '../utils/aggregation'
 import Breadcrumb from '../components/Breadcrumb'
@@ -113,7 +113,11 @@ export default function SubGenerationIndex() {
                 className={`index-card${photo ? ' index-card--bg' : ''}`}>
                 {photo && (
                   <img src={photo} alt="" loading="lazy" decoding="async"
-                    className="index-card-bg-img" />
+                    className="index-card-bg-img"
+                    style={{
+                      ...(CARD_PHOTO_ZOOM[photo] && { '--zoom': CARD_PHOTO_ZOOM[photo] }),
+                      ...(CARD_PHOTO_POS[photo] && { objectPosition: CARD_PHOTO_POS[photo] }),
+                    }} />
                 )}
                 <div className="index-card-header">
                   <span className="index-card-name">{subGen}</span>
