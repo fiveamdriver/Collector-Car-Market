@@ -548,7 +548,7 @@ export const CARD_PHOTO_ZOOM = {
 // default 'center'). An x above 50% shows more of the right side, so the car
 // sits further left on the card.
 export const CARD_PHOTO_POS = {
-  '/images/911_variants/992/992.1/911_dakar.jpg': '25% center',
+  '/images/911_variants/992/992.1/911_dakar.jpg': '0% center',
 }
 
 // Sub-generation cards (/911/996 -> 996.1, 996.2) become photo cards when they
