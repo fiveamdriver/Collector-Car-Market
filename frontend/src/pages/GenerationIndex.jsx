@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, GENERATIONS, GEN_IMAGES, GEN_LABELS, GEN_YEARS, MODEL_LINE } from '../data/taxonomy'
+import { ALL_MODELS, GENERATION_GROUPS, GENERATIONS, GEN_LABELS, genImage, GEN_YEARS, MODEL_LINE } from '../data/taxonomy'
 import { fetchAggregateStats } from '../api/client'
 import { combineStats, indexByKey, statsFromGroup } from '../utils/aggregation'
 import Breadcrumb from '../components/Breadcrumb'
+
+// Models whose generation page shows photo cards before every generation has a
+// photo (owner, 2026-11-12: Cayman 987 first, 981/718 to follow).
+const PHOTO_CARDS_PARTIAL = new Set(['cayman'])
 
 const GEN_IMAGE_POSITION = {
   'G-Body': 'center bottom',
@@ -33,8 +37,12 @@ export default function GenerationIndex() {
   }, [modelLine])
 
   const byGen = useMemo(() => indexByKey(groupStats), [groupStats])
-  // Photo cards only when every generation has a photo (else white text on a blank card).
-  const showPhotos = generations.length > 0 && generations.every(g => GEN_IMAGES[g])
+  // Photo cards when every generation has a photo, or, for models listed in
+  // PHOTO_CARDS_PARTIAL, as soon as one does (the rest stay plain until their
+  // photo lands). The 356 page keeps the plain layout until all four exist.
+  const showPhotos = generations.length > 0 && (PHOTO_CARDS_PARTIAL.has(modelSlug)
+    ? generations.some(g => genImage(modelSlug, g))
+    : generations.every(g => genImage(modelSlug, g)))
 
   if (!model) return <Navigate to="/" replace />
 
@@ -59,11 +67,12 @@ export default function GenerationIndex() {
               ? combineStats(subGens.map(sg => byGen[sg]))
               : statsFromGroup(byGen[gen])
             const imgStyle = GEN_IMAGE_POSITION[gen] ? { objectPosition: GEN_IMAGE_POSITION[gen] } : undefined
-            if (showPhotos) {
+            const photo = genImage(modelSlug, gen)
+            if (showPhotos && photo) {
               // Same card as the variant pages: photo fills the card, text on top.
               return (
                 <Link key={gen} to={`/${modelSlug}/${gen}`} className="index-card index-card--bg">
-                  <img src={GEN_IMAGES[gen]} alt="" className="index-card-bg-img"
+                  <img src={photo} alt="" className="index-card-bg-img"
                     loading="lazy" decoding="async" style={imgStyle} />
                   <div className="index-card-header">
                     <span className="index-card-name">{GEN_LABELS[gen] ?? gen}</span>
@@ -75,9 +84,9 @@ export default function GenerationIndex() {
             }
             return (
               <Link key={gen} to={`/${modelSlug}/${gen}`} className="index-card">
-                {GEN_IMAGES[gen] && (
+                {photo && (
                   <div className="index-card-img-wrap">
-                    <img src={GEN_IMAGES[gen]} alt={GEN_LABELS[gen] ?? gen} className="index-card-img"
+                    <img src={photo} alt={GEN_LABELS[gen] ?? gen} className="index-card-img"
                       loading="lazy" decoding="async" style={imgStyle} />
                   </div>
                 )}

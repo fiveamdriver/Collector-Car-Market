@@ -582,6 +582,9 @@ export const SUBGEN_CARD_IMAGES = {
 // Card images for generation index and hero pages.
 // Used by GenerationIndex, SubGenerationIndex, and VariantIndex.
 export const GEN_IMAGES = {
+  // Non-911 lines share generation names (Cayman and Boxster both have a 987),
+  // so theirs are keyed '<modelSlug>/<gen>'; read them through genImage().
+  'cayman/987': '/images/Mid Engine/Cayman/987/987.2/987.2_caymanR.avif',
   '356 A':  '/images/Canepa Images/356.jpeg',
   'F-Body': '/images/911_gen_page_cards/2.7CARRERA_RS.jpg',
   'G-Body': '/images/911_gen_page_cards/930turbogbodygen.jpg',
@@ -637,3 +640,7 @@ export const GEN_LABELS = {
   'Modern':  '2019–2020',
 }
 
+// Generation photo for a model: a '<modelSlug>/<gen>' key first, then the bare
+// generation (911 entries).
+export const genImage = (modelSlug, gen) =>
+  GEN_IMAGES[`${modelSlug}/${gen}`] ?? GEN_IMAGES[gen]

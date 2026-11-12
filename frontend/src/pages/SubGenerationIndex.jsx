@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE, SUBGEN_CARD_IMAGES, CARD_PHOTO_POS, CARD_PHOTO_ZOOM } from '../data/taxonomy'
+import { ALL_MODELS, GENERATION_GROUPS, GEN_YEARS, genImage, MODEL_LINE, SUBGEN_CARD_IMAGES, CARD_PHOTO_POS, CARD_PHOTO_ZOOM } from '../data/taxonomy'
 import { fetchAggregateStats } from '../api/client'
 import { combineMonthly, combineStats, indexByKey, statsFromGroup, toMonthlySeries } from '../utils/aggregation'
 import Breadcrumb from '../components/Breadcrumb'
@@ -84,9 +84,9 @@ export default function SubGenerationIndex() {
         </div>
 
         <div className="gen-hero-right">
-          {GEN_IMAGES[seg1] && (
+          {genImage(modelSlug, seg1) && (
             <img
-              src={GEN_IMAGES[seg1]}
+              src={genImage(modelSlug, seg1)}
               alt={`${model.label} ${seg1}`}
               className="gen-hero-img"
             />
