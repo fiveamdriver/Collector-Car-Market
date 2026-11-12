@@ -375,7 +375,7 @@ export const VARIANT_HERO = {
       'GT3':          '/images/911_variants/997/997.2/997.2_GT3.webp',
       'GT3 RS':       '/images/911_variants/997/997.2/997.2_GT3RS.webp',
       'GT3 RS 4.0':   '/images/911_variants/997/997.2/997.2_gt3rs4.0.jpg',
-      'GT2 RS':       '/images/911_variants/997/997.2/997.2_gt2rs.webp',
+      'GT2 RS':       '/images/911_variants/997/997.2/997.2_GT2RSsecond.jpg',
       'Sport Classic': '/images/911_variants/997/997.2/997.2_sportclassic.jpg',
       'Speedster':    '/images/911_variants/997/997.2/997.2_speedster.jpg',
       'Targa':        '/images/911_variants/997/997.2/997.2_targa.jpeg',
@@ -553,7 +553,6 @@ export const MODEL_HERO = {
 // Extra zoom for a card photo whose car sits small in the frame, keyed by the
 // photo path so it follows the photo wherever it's used as a card.
 export const CARD_PHOTO_ZOOM = {
-  '/images/911_variants/997/997.2/997.2_gt2rs.webp': 1.15,
   '/images/911_variants/997/997.2/997.2_TurboS.jpg': 1.15,
   '/images/911_gen_page_cards/992ST_card.jpg': 1.25,   // /911 page 992 card
 }
