@@ -39,7 +39,7 @@ function stripColor(s, color) {
 
 // The few facts a buyer scans for, as short tags. Order: what most changes the
 // price first. Capped so a heavily optioned car doesn't push the price off.
-const TAG_OPTIONS    = ['Sonderwunsch', 'N/GT', 'M491', 'Weissach', 'Lightweight', 'Touring Package', 'Clubsport', 'X50/X51']
+const TAG_OPTIONS    = ['Canepa', 'Sonderwunsch', 'N/GT', 'M491', 'Weissach', 'Lightweight', 'Touring Package', 'Clubsport', 'X50/X51']
 const TAG_PROVENANCE = []
 const MAX_TAGS = 4
 function tagsFor(r) {
@@ -276,7 +276,10 @@ export default function ResultsTable({ results, filters = NO_FILTERS, onFiltersC
               <tr key={r.id} className={i % 2 === 1 ? 'row-alt' : ''}>
                 <td>{fmtDate(r.sold_date)}</td>
                 <td>{r.year}</td>
-                <td className="td-listing">{truncate(stripColor(stripYear(r.lot_title, r.mileage != null), r.exterior_color), 40)}</td>
+                <td className="td-listing">
+                  {truncate(stripColor(stripYear(r.lot_title, r.mileage != null), r.exterior_color), 40)}
+                  {hasTag(r, 'Canepa') && <span className="result-tag result-tag--inline">Canepa</span>}
+                </td>
                 <td className="td-photo">
                   {r.thumbnail_url
                     ? <img src={r.thumbnail_url} alt="" loading="lazy" decoding="async" className="result-thumb result-thumb--clickable" onClick={() => setLightbox(r.thumbnail_url)} />

@@ -455,6 +455,31 @@ def ngt_options(options: list[str], title: str | None, generation: str | None) -
 _964_LEICHTBAU = re.compile(r'\bCarrera\s*4|\bC4\b|\bTurbo\s*S\b', re.IGNORECASE)
 
 
+# ── Canepa (959) ──────────────────────────────────────────────────────────────
+# Canepa of Scotts Valley is the 959 specialist; a 959 it re-engineered (the
+# "959 SC Reimagined by Canepa", Stage One / Phase II / Gen 3 engines, 959S
+# conversions, Canepa suspension) trades as its own thing (owner, 2026-11-12).
+# A sentence must tie Canepa to work on the car: "serviced at Canepa",
+# "imported by Bruce Canepa", "Canepa service binders" and quotes from Bruce
+# Canepa are not Canepa cars.
+_CANEPA_RE = re.compile(r'\bcanepa\b', re.IGNORECASE)
+_CANEPA_WORK_RE = re.compile(
+    r'\bupgrad\w*|\breimagined\b|\bstage\s+(?:one|two|1|2|i{1,2})\b|\bphase\s+(?:ii?|2|two)\b'
+    r'|\bgen\.?\s*\d\b|\b(?-i:959\s?S)\b|\bsuspension\b|\bcoilovers?\b|\bengine\s+(?:build|enhancements?)\b',
+    re.IGNORECASE)
+_SENTENCE_SPLIT = re.compile(r'(?<=[.!?;])\s+|\n+|\s+[*•]\s*')
+
+
+def parse_canepa(title: str | None, details_text: str | None, model_line: str | None) -> bool:
+    """A 959 re-engineered or upgraded by Canepa, per its title or a sentence of its listing."""
+    if model_line != "959":
+        return False
+    if _CANEPA_RE.search(title or ""):
+        return True
+    return any(_CANEPA_RE.search(s) and _CANEPA_WORK_RE.search(s)
+               for s in _SENTENCE_SPLIT.split(details_text or ""))
+
+
 def leichtbau_options(options: list[str], title: str | None, generation: str | None) -> list[str]:
     if generation == "964" and "Lightweight" in options and not _964_LEICHTBAU.search(title or ""):
         return [o for o in options if o != "Lightweight"]
@@ -477,7 +502,8 @@ def derive(title: str | None, details_text: str | None,
         "chassis":      parse_chassis(details_text),
         "interior":     parse_interior(details_text),
         # M491 is a factory Porsche 911 option; RUF and other builders do not get the tag.
-        "options":      ",".join(o for o in leichtbau_options(ngt_options(parse_options(title, details_text, year), title, generation), title, generation)
-                                 if o != "M491" or model_line == "911") or None,
+        "options":      ",".join([o for o in leichtbau_options(ngt_options(parse_options(title, details_text, year), title, generation), title, generation)
+                                  if o != "M491" or model_line == "911"]
+                                 + (["Canepa"] if parse_canepa(title, details_text, model_line) else [])) or None,
         "provenance":   ",".join(parse_provenance(title, details_text)) or None,
     }

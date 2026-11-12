@@ -11,7 +11,7 @@ export function listOf(csv) {
 export const squash = s => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 
 // Filter chips: every tag a car can carry, in the order collectors rank them.
-export const FILTER_TAGS = ['PTS', 'Sonderwunsch', 'Lightweight', 'N/GT', 'Weissach', 'M491', 'Clubsport',
+export const FILTER_TAGS = ['PTS', 'Canepa', 'Sonderwunsch', 'Lightweight', 'N/GT', 'Weissach', 'M491', 'Clubsport',
                             'Touring Package', 'X50/X51']
 
 export function hasTag(r, t) {
