@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, GENERATIONS, GEN_LABELS, genImage, GEN_YEARS, MODEL_LINE } from '../data/taxonomy'
+import { ALL_MODELS, GENERATION_GROUPS, GENERATIONS, GEN_LABELS, genImage, GEN_YEARS, MODEL_LINE, CARD_PHOTO_ZOOM } from '../data/taxonomy'
 import { fetchAggregateStats } from '../api/client'
 import { combineStats, indexByKey, statsFromGroup } from '../utils/aggregation'
 import Breadcrumb from '../components/Breadcrumb'
@@ -68,12 +68,13 @@ export default function GenerationIndex() {
               : statsFromGroup(byGen[gen])
             const imgStyle = GEN_IMAGE_POSITION[gen] ? { objectPosition: GEN_IMAGE_POSITION[gen] } : undefined
             const photo = genImage(modelSlug, gen)
+            const bgStyle = CARD_PHOTO_ZOOM[photo] ? { ...imgStyle, '--zoom': CARD_PHOTO_ZOOM[photo] } : imgStyle
             if (showPhotos && photo) {
               // Same card as the variant pages: photo fills the card, text on top.
               return (
                 <Link key={gen} to={`/${modelSlug}/${gen}`} className="index-card index-card--bg">
                   <img src={photo} alt="" className="index-card-bg-img"
-                    loading="lazy" decoding="async" style={imgStyle} />
+                    loading="lazy" decoding="async" style={bgStyle} />
                   <div className="index-card-header">
                     <span className="index-card-name">{GEN_LABELS[gen] ?? gen}</span>
                     <span className="index-card-count">{stats.count.toLocaleString()} sold</span>
