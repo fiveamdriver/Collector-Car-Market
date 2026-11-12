@@ -15,6 +15,11 @@ const GEN_DESCRIPTIONS = {
   '992': 'The 992 is the most capable and technologically advanced 911 to date, standardizing the widened body shell and twin-turbocharged flat-six across the entire Carrera range. Launched in 2019 with the 992.1 and refreshed for 2025 with the 992.2, the generation continues to evolve while maintaining the 911\'s fundamental character. GT3 and GT3 RS variants have drawn wide acclaim as the benchmark for naturally aspirated, road-legal track cars.',
 }
 
+// Card photo for a sub-generation: a model-scoped key first ('cayman/987.1'),
+// then the bare generation (911 entries).
+const subGenPhoto = (modelSlug, gen) =>
+  SUBGEN_CARD_IMAGES[`${modelSlug}/${gen}`] ?? SUBGEN_CARD_IMAGES[gen]
+
 export default function SubGenerationIndex() {
   const { modelSlug, seg1 } = useParams()
   const model    = ALL_MODELS.find(m => m.slug === modelSlug)
@@ -22,7 +27,7 @@ export default function SubGenerationIndex() {
   const subGens  = GENERATION_GROUPS[modelSlug]?.[seg1] ?? []
   // Photo layout as soon as any sub-generation has a photo; a card without one
   // stays a plain sparkline card until its photo lands (997.2, 2026-11-09).
-  const showPhotos = subGens.some(g => SUBGEN_CARD_IMAGES[g])
+  const showPhotos = subGens.some(g => subGenPhoto(modelSlug, g))
 
   const [groupStats, setGroupStats] = useState([])
   const [loading, setLoading] = useState(true)
@@ -102,7 +107,7 @@ export default function SubGenerationIndex() {
             const group   = byGen[subGen]
             const stats   = statsFromGroup(group)
             const monthly = toMonthlySeries(group?.monthly)
-            const photo   = SUBGEN_CARD_IMAGES[subGen]
+            const photo   = subGenPhoto(modelSlug, subGen)
             return (
               <Link key={subGen} to={`/${modelSlug}/${seg1}/${subGen}`}
                 className={`index-card${photo ? ' index-card--bg' : ''}`}>

@@ -430,7 +430,15 @@ export const VARIANT_HERO = {
   },
   '356':     {},
   'cayman':  {
-    '987.1': { 'base': '/images/Mid Engine/Cayman/987 cayman.jpg' },
+    '987.1': {
+      'base': '/images/Mid Engine/Cayman/987/987.1/987.1_cayman.jpg',
+      'S':    '/images/Mid Engine/Cayman/987/987.1/987.1_caymanS.jpg',
+    },
+    '987.2': {
+      'base': '/images/Mid Engine/Cayman/987/987.2/987.2_cayman.jpg',
+      'S':    '/images/Mid Engine/Cayman/987/987.2/987.2_caymanS.jpg',
+      'R':    '/images/Mid Engine/Cayman/987/987.2/987.2_caymanR.avif',
+    },
     '981':   { 'GT4': '/images/Mid Engine/Cayman/cayman_718_gt4.jpeg' },
     '718':   { 'GT4 RS': '/images/Front_page_cards/Regular_models/GT4RS.jpg' },
   },
@@ -562,6 +570,11 @@ export const SUBGEN_CARD_IMAGES = {
   '991.1': '/images/911_variants/991/991.1/991.1_911R.jpg',
   '991.2': '/images/911_variants/991/991.2/991.2_GT2RS.jpg',
   '992.1': '/images/911_variants/992/992.1/911_ST/911_st3.jpg',
+  // Non-911 lines share generation names (Cayman and Boxster both have a
+  // 987.1), so their entries are keyed '<modelSlug>/<gen>'. Photo = the
+  // generation's most expensive variant by average sale.
+  'cayman/987.1': '/images/Mid Engine/Cayman/987/987.1/987.1_caymanS.jpg',
+  'cayman/987.2': '/images/Mid Engine/Cayman/987/987.2/987.2_caymanR.avif',
 }
 
 // Card images for generation index and hero pages.
