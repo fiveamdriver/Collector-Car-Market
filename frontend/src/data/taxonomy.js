@@ -561,6 +561,7 @@ export const SUBGEN_CARD_IMAGES = {
   '997.2': '/images/911_variants/997/997.2/997.2_gt3rs4.0.jpg',
   '991.1': '/images/911_variants/991/991.1/991.1_911R.jpg',
   '991.2': '/images/911_variants/991/991.2/991.2_GT2RS.jpg',
+  '992.1': '/images/911_variants/992/992.1/911_ST/911_st3.jpg',
 }
 
 // Card images for generation index and hero pages.
