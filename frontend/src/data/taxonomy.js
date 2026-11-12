@@ -240,7 +240,7 @@ export const VARIANTS = {
     '356 C':  ['Coupe', 'Cabriolet'],
   },
   'cayman': {
-    '987.1': ['base', 'S'],
+    '987.1': ['base', 'S', 'S Sport'],
     '987.2': ['base', 'S', 'R'],
     '981': ['base', 'S', 'GTS', 'GT4'],
     '718': ['base', 'S', 'GTS', 'GT4', 'GT4 RS'],
@@ -433,6 +433,7 @@ export const VARIANT_HERO = {
     '987.1': {
       'base': '/images/Mid Engine/Cayman/987/987.1/987.1_cayman.jpg',
       'S':    '/images/Mid Engine/Cayman/987/987.1/987.1_caymanS.avif',
+      'S Sport': '/images/Mid Engine/Cayman/987/987.1/987_caymanSsport.avif',
     },
     '987.2': {
       'base': '/images/Mid Engine/Cayman/987/987.2/987.2_cayman.jpg',
@@ -572,9 +573,9 @@ export const SUBGEN_CARD_IMAGES = {
   '991.2': '/images/911_variants/991/991.2/991.2_GT2RS.jpg',
   '992.1': '/images/911_variants/992/992.1/911_ST/911_st3.jpg',
   // Non-911 lines share generation names (Cayman and Boxster both have a
-  // 987.1), so their entries are keyed '<modelSlug>/<gen>'. Photo = the
-  // generation's most expensive variant by average sale.
-  'cayman/987.1': '/images/Mid Engine/Cayman/987/987.1/987.1_caymanS.avif',
+  // 987.1), so their entries are keyed '<modelSlug>/<gen>'. Usually the
+  // generation's most expensive variant; 987.1 is the owner's pick (a Cayman S).
+  'cayman/987.1': '/images/Mid Engine/Cayman/987/987.1/987.1.jpg',
   'cayman/987.2': '/images/Mid Engine/Cayman/987/987.2/987.2_caymanR.avif',
 }
 

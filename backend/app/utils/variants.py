@@ -106,6 +106,20 @@ def is_boxster_rs60(text: str) -> bool:
     return bool(_RS_60.search(text))
 
 
+# The 2008 Cayman S Sport (MY2008 only, a 987.1) has its own card, apart from
+# the plain Cayman S (owner, 2026-11-12). "Cayman S Sport Chrono", "... Sport
+# Design" etc. are option packages on an ordinary S and stay on the S card.
+_CAYMAN_S_SPORT = re.compile(
+    r"\bCayman\s+S\s+Sport\b(?!\s*(?:Chrono|Design|Exhaust|Seats?|Package|Suspension|Wheels?|Steering|Plus))",
+    re.IGNORECASE,
+)
+
+
+def is_cayman_s_sport(text: str, year: int | None) -> bool:
+    """True if `text` names a 2008 Cayman S Sport (not an S with a Sport option)."""
+    return year == 2008 and bool(_CAYMAN_S_SPORT.search(text or ""))
+
+
 def is_964_rs_38(text: str) -> bool:
     """True if `text` names a factory 964 Carrera RS 3.8 (the street car)."""
     named = _RS_38.search(text) or _CARRERA_38_RS.search(text)   # "RS 3.8" or "Carrera 3.8 RS"

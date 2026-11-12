@@ -182,6 +182,7 @@ const VARIANT_DESCRIPTIONS = {
     '987.1': {
       'base': 'The original 987.1 Cayman introduced a purpose-built fixed-roof mid-engined platform in 2005, using a 2.7-liter flat-six producing 245 horsepower in a body many considered more dynamically capable than the concurrent Boxster. Clean manual examples have become increasingly popular as modern classics valued for their taut mid-engined character.',
       'S':    'The 987.1 Cayman S used a 3.4-liter flat-six producing 295 horsepower, offering chassis dynamics that many drivers considered superior to the contemporary 911 Carrera. It is widely recognized as one of the finest driver\'s cars of its era and represents exceptional value for its performance credentials.',
+      'S Sport': 'Built in a run of 700 for the 2008 model year, the Cayman S Sport added a sport exhaust and engine tuning for 303 horsepower, with PASM, Sport Chrono, and a 10mm lower ride height as standard, in exclusive colors including Orange and Green. It trades at a clear premium over the ordinary 987.1 Cayman S.',
     },
     '987.2': {
       'base': 'The 987.2 Cayman updated the original platform with a revised 2.9-liter DFI engine producing 265 horsepower and improved interior quality. It remains among the most accessible Porsche mid-engined sports cars with strong driving credentials.',

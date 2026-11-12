@@ -37,7 +37,7 @@ from app.utils.lot_details import parse_odometer_value
 from app.utils.transaxle import TRANSAXLE_LINES, classify as classify_transaxle
 from app.utils.transaxle import match_model_line as match_transaxle_line
 from app.utils.model_lines import match_model_line as match_model_line_shared
-from app.utils.variants import gbody_variant, early_carrera_variant, match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base, parse_356_variant
+from app.utils.variants import gbody_variant, early_carrera_variant, match_variant, is_964_rs_38, is_boxster_rs60, is_cayman_s_sport, fix_964_carrera, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base, parse_356_variant
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -259,6 +259,8 @@ def _parse_variant_raw(model_line: str, year: int, text: str) -> str:
         return "base"
 
     if model_line in ("Cayman", "Boxster"):
+        if model_line == "Cayman" and is_cayman_s_sport(text, year):
+            return "S Sport"
         if model_line == "Boxster" and is_boxster_rs60(text):
             return "RS 60 Spyder"
         for pat in ["GT4 RS", "GT4", "GTS", "Spyder RS", "Spyder"]:

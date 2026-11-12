@@ -33,7 +33,7 @@ from app.utils.lot_extras import parse_pts, parse_transmission
 from app.services.enrichment import enrich
 from app.utils.color_parser import parse_exterior_color
 from app.utils.model_lines import match_coachbuilt_line
-from app.utils.variants import gbody_variant, early_carrera_variant, match_variant, is_964_rs_38, is_boxster_rs60, fix_964_carrera, is_early_carrera_4, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base
+from app.utils.variants import gbody_variant, early_carrera_variant, match_variant, is_964_rs_38, is_boxster_rs60, is_cayman_s_sport, fix_964_carrera, is_early_carrera_4, strip_turbo_impostor, is_not_a_car, cabriolet_variant, resolve_911_base
 from app.utils.generations import (
     get_911_generation,
     get_boxster_generation,
@@ -404,6 +404,8 @@ def map_record(raw: dict, model_line: str, config_variant: str | None) -> dict |
         # 1976 Porsche 914" is filed as a Turbo — a variant the 914 never had.
         variant = 'base' if is_tribute(title) or not re.search(
             r'914[/-]6', strip_style_prefix(title)) else '914/6'
+    elif model_line == 'Cayman' and is_cayman_s_sport(title, year):
+        variant = 'S Sport'
     elif model_line in ('Cayman', 'Boxster'):
         variant = parse_cayman_boxster_variant(title)
     else:
