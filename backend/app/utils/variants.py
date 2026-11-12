@@ -305,6 +305,17 @@ def cabriolet_variant(generation: str, variant: str, text: str, year: int | None
         and not _TARGA_WORD.search(text or "")
     ):
         return "Cabriolet"
+    return fold_merged_card(generation, variant, text)
+
+
+# ── Merged cards ──────────────────────────────────────────────────────────────
+# The 992.1 has no Carrera 4 card (owner, 2026-11-12): its coupes sit on the
+# Carrera card. Search configs stamp "Carrera 4" on Carrera 4S lots too (id
+# 30358), so a title that says 4S goes to the Carrera 4S card instead.
+def fold_merged_card(generation: str, variant: str, text: str) -> str:
+    """`variant` re-filed onto the card that holds it, where a card was merged away."""
+    if generation == "992.1" and variant == "Carrera 4":
+        return "Carrera 4S" if _B_4S.search(text or "") else "Carrera"
     return variant
 
 

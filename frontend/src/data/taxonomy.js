@@ -220,8 +220,10 @@ export const VARIANTS = {
       'Turbo', 'Turbo S',
       'GT3', 'GT3 RS', 'GT2 RS', 'Speedster', 'Targa', 'Cabriolet',
     ],
+    // No Carrera 4 card (owner, 2026-11-12): 992.1 Carrera 4 sales sit on the
+    // Carrera card; a title that says 4S goes to Carrera 4S.
     '992.1': [
-      'Carrera', 'Carrera 4', 'Carrera S', 'Carrera 4S', 'Carrera T', 'Carrera GTS',
+      'Carrera', 'Carrera S', 'Carrera 4S', 'Carrera T', 'Carrera GTS',
       'Turbo', 'Turbo S',
       'GT3', 'GT3 RS', 'S/T', 'Sport Classic', 'Dakar', 'Targa', 'Cabriolet',
     ],
@@ -409,7 +411,22 @@ export const VARIANT_HERO = {
       'Targa':       '/images/911_variants/991/991.2/991.2_targa.jpg',
       'Cabriolet':   '/images/911_variants/991/991.2/991.2_cabriolet.jpg',
     },
-    '992.1':  { 'S/T': '/images/911_gen_page_cards/992ST_.jpg' },
+    '992.1': {
+      'Carrera':       '/images/911_variants/992/992.1/992_carrera.avif',
+      'Carrera S':     '/images/911_variants/992/992.1/992_carreraS.jpg',
+      'Carrera 4S':    '/images/911_variants/992/992.1/992_C4S.jpg',
+      'Carrera T':     '/images/911_variants/992/992.1/992_carrerat_card.jpg',
+      'Carrera GTS':   '/images/911_variants/992/992.1/992_carreraGTS.jpg',
+      'Turbo':         '/images/911_variants/992/992.1/992_turbo.webp',
+      'Turbo S':       '/images/911_variants/992/992.1/992_TURBOS.webp',
+      'GT3':           '/images/911_variants/992/992.1/992_GT3.jpg',
+      'GT3 RS':        '/images/911_variants/992/992.1/992_GT3RS.webp',
+      'S/T':           '/images/911_gen_page_cards/992ST_.jpg',
+      'Sport Classic': '/images/911_variants/992/992.1/992_sportclassic.jpg',
+      'Dakar':         '/images/911_variants/992/992.1/992_dakar.jpg',
+      'Targa':         '/images/911_variants/992/992.1/992_targa.webp',
+      'Cabriolet':     '/images/911_variants/992/992.1/992_cabriolet.webp',
+    },
   },
   '356':     {},
   'cayman':  {

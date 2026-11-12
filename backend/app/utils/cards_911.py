@@ -26,7 +26,7 @@ CARDS = {
     "991.2": {"Carrera", "Carrera 4", "Carrera S", "Carrera 4S", "Carrera T",
               "Carrera GTS", "Turbo", "Turbo S", "GT3", "GT3 RS", "GT2 RS",
               "Speedster", "Targa", "Cabriolet"},
-    "992.1": {"Carrera", "Carrera 4", "Carrera S", "Carrera 4S", "Carrera T",
+    "992.1": {"Carrera", "Carrera S", "Carrera 4S", "Carrera T",
               "Carrera GTS", "Turbo", "Turbo S", "GT3", "GT3 RS", "S/T",
               "Sport Classic", "Dakar", "Targa", "Cabriolet"},
     "992.2": {"Carrera", "Carrera 4", "Carrera S", "Carrera 4S", "Carrera T",
@@ -42,6 +42,8 @@ EQUIV = {
     ("Turbo", "964"): "Turbo 3.6",
     ("Turbo 3.3", "993"): "Turbo",
     ("Turbo 3.6", "993"): "Turbo",
+    # No 992.1 Carrera 4 card (owner, 2026-11-12); 992.2 keeps one.
+    ("Carrera 4", "992.1"): "Carrera",
 }
 
 
@@ -86,7 +88,7 @@ VARIANT_MY = {
               "Carrera GTS": (2017, 2019), "Carrera T": (2018, 2019), "Turbo": (2017, 2019),
               "Turbo S": (2017, 2019), "GT3": (2018, 2019), "GT3 RS": (2019, 2019),
               "GT2 RS": (2018, 2019), "Speedster": (2019, 2019)},
-    "992.1": {"Carrera": (2020, 2024), "Carrera S": (2020, 2024), "Carrera 4": (2020, 2024),
+    "992.1": {"Carrera": (2020, 2024), "Carrera S": (2020, 2024),
               "Carrera 4S": (2020, 2024), "Cabriolet": (2020, 2024), "Targa": (2021, 2024),
               "Carrera GTS": (2022, 2024), "Carrera T": (2023, 2024), "Turbo": (2021, 2025),
               "Turbo S": (2021, 2025), "GT3": (2022, 2024), "GT3 RS": (2023, 2025),
