@@ -313,7 +313,8 @@ export default VARIANT_DESCRIPTIONS
 // at the end — only variants with confirmed limited production numbers
 export const PRODUCTION_NUMBERS = {
   '987.1': {
-    'RS 60 Spyder': 1960,
+    'RS 60 Spyder': 1960,  // Boxster
+    'S Sport':      700,   // Cayman
   },
   'Modern': {
     'base': 77,
