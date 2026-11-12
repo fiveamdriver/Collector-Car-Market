@@ -359,7 +359,7 @@ export const VARIANT_HERO = {
       'Carrera 4S': '/images/911_variants/997/997.1/997.1_C4S.avif',
       'Turbo':      '/images/911_variants/997/997.1/997.1_turbo.webp',
       'GT3':        '/images/911_variants/997/997.1/997.1_GT3.avif',
-      'GT3 RS':     '/images/911_variants/997/997.1/997.1_gt3rssecond.avif',
+      'GT3 RS':     '/images/911_variants/997/997.1/997.1_GT3RS.png',
       'GT2':        '/images/911_variants/997/997.1/997.1_GT2.webp',
       'Targa':      '/images/911_variants/997/997.1/997.1_targa.jpg',
       'Cabriolet':  '/images/911_variants/997/997.1/997.1_cabriolet.jpeg',
