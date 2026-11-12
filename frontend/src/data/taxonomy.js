@@ -359,7 +359,7 @@ export const VARIANT_HERO = {
       'Carrera 4S': '/images/911_variants/997/997.1/997.1_C4S.avif',
       'Turbo':      '/images/911_variants/997/997.1/997.1_turbo.webp',
       'GT3':        '/images/911_variants/997/997.1/997.1_GT3.avif',
-      'GT3 RS':     '/images/911_variants/997/997.1/997.1_GT3RS.png',
+      'GT3 RS':     '/images/911_variants/997/997.1/997.1_gt3rssecond.avif',
       'GT2':        '/images/911_variants/997/997.1/997.1_GT2.webp',
       'Targa':      '/images/911_variants/997/997.1/997.1_targa.jpg',
       'Cabriolet':  '/images/911_variants/997/997.1/997.1_cabriolet.jpeg',
@@ -570,7 +570,7 @@ export const CARD_PHOTO_POS = {
 export const SUBGEN_CARD_IMAGES = {
   '996.1': '/images/911_variants/996/996.1/996.1_GT3.jpg',
   '996.2': '/images/911_variants/996/996.2/996_GT3RS.webp',
-  '997.1': '/images/911_variants/997/997.1/997.1_GT3RS.png',
+  '997.1': '/images/911_variants/997/997.1/997.1_gt3rssecond.avif',
   '997.2': '/images/911_variants/997/997.2/997.2_gt3rs4.0.jpg',
   '991.1': '/images/911_variants/991/991.1/991.1_911R.jpg',
   '991.2': '/images/911_variants/991/991.2/991.2_GT2RS.jpg',
