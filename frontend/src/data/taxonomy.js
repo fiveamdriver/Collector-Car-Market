@@ -459,8 +459,8 @@ export const VARIANT_HERO = {
     'base':  '/images/Front Engine/944.jpg',
   },
   '914': {
-    '914/6': '/images/914 photos/914:6GT.jpeg',
-    'base':  '/images/914 photos/1970-914:4.jpg',
+    '914/6': '/images/914 photos/914:6.webp',
+    'base':  '/images/914 photos/914_.avif',
   },
   '911-race': {},
   '935': {
