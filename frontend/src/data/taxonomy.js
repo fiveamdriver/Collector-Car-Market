@@ -542,6 +542,7 @@ export const MODEL_HERO = {
 export const CARD_PHOTO_ZOOM = {
   '/images/911_variants/997/997.2/997.2_gt2rs.webp': 1.15,
   '/images/911_variants/997/997.2/997.2_TurboS.jpg': 1.15,
+  '/images/911_variants/992/992.1/992_dakar.jpg': 1.2,
 }
 
 // Sub-generation cards (/911/996 -> 996.1, 996.2) become photo cards when they
