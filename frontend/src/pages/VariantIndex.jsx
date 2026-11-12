@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
-import { ALL_MODELS, GENERATION_GROUPS, GEN_IMAGES, GEN_YEARS, MODEL_LINE, VARIANTS, VARIANT_HERO, CARD_PHOTO_ZOOM, CARD_PHOTO_POS, CROSS_LISTINGS, HIDE_WHEN_EMPTY } from '../data/taxonomy'
+import { ALL_MODELS, GENERATION_GROUPS, GEN_YEARS, genImage, MODEL_LINE, VARIANTS, VARIANT_HERO, CARD_PHOTO_ZOOM, CARD_PHOTO_POS, CROSS_LISTINGS, HIDE_WHEN_EMPTY } from '../data/taxonomy'
 import { fetchAggregateStats, fetchAuctionResults } from '../api/client'
 import {
   combineStats, groupStatsFromRows, indexByKey, mergeGroups,
@@ -157,9 +157,9 @@ export default function VariantIndex() {
         </div>
 
         <div className="gen-hero-right">
-          {GEN_IMAGES[generation] && (
+          {genImage(modelSlug, generation) && (
             <img
-              src={GEN_IMAGES[generation]}
+              src={genImage(modelSlug, generation)}
               alt={`${model.label} ${generation}`}
               className="gen-hero-img"
             />

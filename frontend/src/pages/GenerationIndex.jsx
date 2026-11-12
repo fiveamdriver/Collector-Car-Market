@@ -6,8 +6,8 @@ import { combineStats, indexByKey, statsFromGroup } from '../utils/aggregation'
 import Breadcrumb from '../components/Breadcrumb'
 
 // Models whose generation page shows photo cards before every generation has a
-// photo (owner, 2026-11-12: Cayman 987 first, 981/718 to follow).
-const PHOTO_CARDS_PARTIAL = new Set(['cayman'])
+// photo (owner, 2026-11-12: Cayman 987 and Boxster 986 first, the rest to follow).
+const PHOTO_CARDS_PARTIAL = new Set(['cayman', 'boxster'])
 
 const GEN_IMAGE_POSITION = {
   'G-Body': 'center bottom',

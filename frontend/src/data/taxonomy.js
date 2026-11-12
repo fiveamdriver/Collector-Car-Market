@@ -444,6 +444,10 @@ export const VARIANT_HERO = {
     '718':   { 'GT4 RS': '/images/Front_page_cards/Regular_models/GT4RS.jpg' },
   },
   'boxster':  {
+    '986':   {
+      'base': '/images/Mid Engine/Boxster/986/986_boxster.avif',
+      'S':    '/images/Mid Engine/Boxster/986/986_boxsterS.jpeg',
+    },
     '987.2': { 'Spyder': '/images/boxsterspyder.png' },
     '981':   { 'Spyder': '/images/Mid Engine/Boxster/981spyder.jpg' },
     '718':   { 'Spyder RS': '/images/Front_page_cards/Regular_models/spyderrsfront.jpg' },
@@ -585,6 +589,7 @@ export const GEN_IMAGES = {
   // Non-911 lines share generation names (Cayman and Boxster both have a 987),
   // so theirs are keyed '<modelSlug>/<gen>'; read them through genImage().
   'cayman/987': '/images/Mid Engine/Cayman/987/987.2/987.2_caymanR.avif',
+  'boxster/986': '/images/Mid Engine/Boxster/986/986_boxsterS.jpeg',
   '356 A':  '/images/Canepa Images/356.jpeg',
   'F-Body': '/images/911_gen_page_cards/2.7CARRERA_RS.jpg',
   'G-Body': '/images/911_gen_page_cards/930turbogbodygen.jpg',
