@@ -456,28 +456,16 @@ _964_LEICHTBAU = re.compile(r'\bCarrera\s*4|\bC4\b|\bTurbo\s*S\b', re.IGNORECASE
 
 
 # ── Canepa (959) ──────────────────────────────────────────────────────────────
-# Canepa of Scotts Valley is the 959 specialist; a 959 it re-engineered (the
-# "959 SC Reimagined by Canepa", Stage One / Phase II / Gen 3 engines, 959S
-# conversions, Canepa suspension) trades as its own thing (owner, 2026-11-12).
-# A sentence must tie Canepa to work on the car: "serviced at Canepa",
-# "imported by Bruce Canepa", "Canepa service binders" and quotes from Bruce
-# Canepa are not Canepa cars.
-_CANEPA_RE = re.compile(r'\bcanepa\b', re.IGNORECASE)
-_CANEPA_WORK_RE = re.compile(
-    r'\bupgrad\w*|\breimagined\b|\bstage\s+(?:one|two|1|2|i{1,2})\b|\bphase\s+(?:ii?|2|two)\b'
-    r'|\bgen\.?\s*\d\b|\b(?-i:959\s?S)\b|\bsuspension\b|\bcoilovers?\b|\bengine\s+(?:build|enhancements?)\b',
-    re.IGNORECASE)
-_SENTENCE_SPLIT = re.compile(r'(?<=[.!?;])\s+|\n+|\s+[*•]\s*')
+# The tag is only for the "959 SC Reimagined by Canepa" cars (owner,
+# 2026-11-12): Canepa's complete re-engineering, sold as its own thing. 959s
+# Canepa merely upgraded (Stage One / Phase II engines, suspension) or serviced
+# stay untagged.
+_CANEPA_REIMAGINED_RE = re.compile(r'\breimagined\b.*\bcanepa\b|\bcanepa\b.*\breimagined\b', re.IGNORECASE)
 
 
 def parse_canepa(title: str | None, details_text: str | None, model_line: str | None) -> bool:
-    """A 959 re-engineered or upgraded by Canepa, per its title or a sentence of its listing."""
-    if model_line != "959":
-        return False
-    if _CANEPA_RE.search(title or ""):
-        return True
-    return any(_CANEPA_RE.search(s) and _CANEPA_WORK_RE.search(s)
-               for s in _SENTENCE_SPLIT.split(details_text or ""))
+    """A 959 SC Reimagined by Canepa, per its title."""
+    return model_line == "959" and bool(_CANEPA_REIMAGINED_RE.search(title or ""))
 
 
 def leichtbau_options(options: list[str], title: str | None, generation: str | None) -> list[str]:
