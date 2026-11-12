@@ -574,8 +574,8 @@ export const SUBGEN_CARD_IMAGES = {
   '992.1': '/images/911_variants/992/992.1/911_ST/911_st3.jpg',
   // Non-911 lines share generation names (Cayman and Boxster both have a
   // 987.1), so their entries are keyed '<modelSlug>/<gen>'. Usually the
-  // generation's most expensive variant; 987.1 is the owner's pick (a Cayman S).
-  'cayman/987.1': '/images/Mid Engine/Cayman/987/987.1/987.1.jpg',
+  // generation's most expensive variant (987.1 S Sport, 987.2 R).
+  'cayman/987.1': '/images/Mid Engine/Cayman/987/987.1/987_caymanSsport.avif',
   'cayman/987.2': '/images/Mid Engine/Cayman/987/987.2/987.2_caymanR.avif',
 }
 
